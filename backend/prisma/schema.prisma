@@ -1,0 +1,415 @@
+// =============================================================
+// OPAL LINE ERP — Database Schema (Prisma)
+// Every table used by the whole system lives here.
+// After editing this file, run:  npx prisma migrate dev
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- ENUMS ----------
+
+// A product's metal. Currently silver; ready for gold later.
+enum MetalType {
+  silver
+  gold
+}
+
+enum InventoryTransactionType {
+  STOCK_IN
+  STOCK_OUT
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum OrderSource {
+  SHOPIFY
+  POS
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  ONLINE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  FINAL
+  PAID
+  VOID
+}
+
+enum SyncType {
+  PRODUCT
+  PRICE
+  INVENTORY
+  ORDER
+}
+
+enum SyncStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ---------- AUTH ----------
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // ADMIN, MANAGER, STAFF
+  description String?
+  isSystem    Boolean  @default(false)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String // bcrypt-hashed, never plain text
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventoryTransactions InventoryTransaction[]
+  invoices              Invoice[]               @relation("salesperson")
+  auditLogs             AuditLog[]
+  metalRateChanges      MetalRateHistory[]
+  updatedMetalRates     MetalRate[]
+  notifications         Notification[]
+
+  @@index([roleId])
+}
+
+// ---------- CATALOG ----------
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id              Int      @id @default(autoincrement())
+  sku             String   @unique
+  name            String
+  description     String?
+  categoryId      Int
+  category        Category @relation(fields: [categoryId], references: [id])
+  metal           MetalType @default(silver)
+  weight          Decimal  @db.Decimal(10, 3) // grams
+  makingCharge    Decimal  @db.Decimal(10, 2) // per gram
+  gstPercent      Decimal  @default(3)        @db.Decimal(5, 2)
+  baseAmount      Decimal  @db.Decimal(12, 2) // calculated by pricing engine
+  gstAmount       Decimal  @default(0)        @db.Decimal(12, 2)
+  sellingPrice    Decimal  @db.Decimal(12, 2) // final price, published to Shopify
+  isActive        Boolean  @default(true)
+  lowStockThreshold Int    @default(5)
+  // Shopify linkage (Phases 15-16)
+  shopifyProductId  BigInt?
+  shopifyVariantId  BigInt?
+  shopifyInventoryItemId BigInt?
+  inventory       Inventory?
+  transactions    InventoryTransaction[]
+  orderItems      OrderItem[]
+  invoiceItems    InvoiceItem[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([sku])
+}
+
+// ---------- INVENTORY ----------
+
+model Inventory {
+  id        Int     @id @default(autoincrement())
+  productId Int     @unique
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(0)
+  reserved  Int     @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// Ledger of every stock change — never edited, only appended.
+model InventoryTransaction {
+  id          Int                      @id @default(autoincrement())
+  productId   Int
+  product     Product                  @relation(fields: [productId], references: [id])
+  type        InventoryTransactionType
+  quantity    Int // positive for IN, negative for OUT
+  reference   String? // e.g. "Order #123" or "Invoice INV-001"
+  note        String?
+  createdById Int?
+  createdBy   User?                    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime                 @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// ---------- CUSTOMERS & SUPPLIERS ----------
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String    @unique
+  email     String?   @unique
+  address   String?
+  gstin     String?
+  orders    Order[]
+  invoices  Invoice[]
+  payments  Payment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Supplier {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ---------- ORDERS (POS + Shopify) ----------
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  orderNumber     String   @unique // e.g. "SHOPIFY-1234" or "POS-20260101-001"
+  source          OrderSource
+  shopifyOrderId  BigInt?  @unique
+  customerId      Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  status          OrderStatus @default(PENDING)
+  totalAmount     Decimal  @default(0) @db.Decimal(12, 2)
+  items           OrderItem[]
+  invoice         Invoice?
+  payments        Payment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  sku         String // snapshot, keeps history if product is later renamed
+  name        String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  lineTotal   Decimal  @db.Decimal(12, 2)
+  weight      Decimal? @db.Decimal(10, 3)
+  makingCharge Decimal? @db.Decimal(10, 2)
+  silverRate  Decimal? @db.Decimal(10, 2) // rate used at the time of sale
+  gstAmount   Decimal? @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ---------- INVOICES / BILLING ----------
+
+model Invoice {
+  id              Int           @id @default(autoincrement())
+  invoiceNumber   String        @unique // e.g. "INV-0001"
+  customerId      Int?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  orderId         Int?          @unique
+  order           Order?        @relation(fields: [orderId], references: [id])
+  date            DateTime      @default(now())
+  paymentMethod   PaymentMethod?
+  salespersonId   Int?
+  salesperson     User?         @relation("salesperson", fields: [salespersonId], references: [id])
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Decimal       @default(0) @db.Decimal(12, 2)
+  discount        Decimal       @default(0) @db.Decimal(12, 2)
+  gstTotal        Decimal       @default(0) @db.Decimal(12, 2)
+  grandTotal      Decimal       @default(0) @db.Decimal(12, 2)
+  totalWeight     Decimal       @default(0) @db.Decimal(12, 3)
+  totalMakingCharge Decimal     @default(0) @db.Decimal(12, 2)
+  items           InvoiceItem[]
+  payments        Payment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([customerId])
+  @@index([date])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id           Int      @id @default(autoincrement())
+  invoiceId    Int
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id])
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id])
+  sku          String
+  name         String
+  quantity     Int      @default(1)
+  weight       Decimal  @db.Decimal(10, 3)
+  makingCharge Decimal  @db.Decimal(10, 2)
+  silverRate   Decimal  @db.Decimal(10, 2)
+  baseAmount   Decimal  @db.Decimal(12, 2)
+  gstAmount    Decimal  @db.Decimal(12, 2)
+  finalAmount  Decimal  @db.Decimal(12, 2)
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+// ---------- PAYMENTS ----------
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  invoiceId   Int?
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id])
+  orderId     Int?
+  order       Order?        @relation(fields: [orderId], references: [id])
+  customerId  Int
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  amount      Decimal       @db.Decimal(12, 2)
+  method      PaymentMethod
+  status      PaymentStatus @default(PAID)
+  reference   String? // transaction ID / UPI ref
+  createdAt   DateTime      @default(now())
+
+  @@index([customerId])
+  @@index([invoiceId])
+}
+
+// ---------- METAL RATES (dynamic silver pricing) ----------
+
+// Single row per metal: the CURRENT rate used by the pricing engine.
+model MetalRate {
+  id        Int       @id @default(autoincrement())
+  metal     MetalType @unique // only "silver" today
+  rate      Decimal   @db.Decimal(10, 2) // ₹ per gram
+  updatedById Int?
+  updatedBy User?     @relation(fields: [updatedById], references: [id])
+  updatedAt DateTime  @updatedAt
+}
+
+// Audit trail — EVERY rate change is recorded here, forever.
+model MetalRateHistory {
+  id        Int       @id @default(autoincrement())
+  metal     MetalType
+  oldRate   Decimal   @db.Decimal(10, 2)
+  newRate   Decimal   @db.Decimal(10, 2)
+  changedById Int?
+  changedBy User?     @relation(fields: [changedById], references: [id])
+  changedAt DateTime  @default(now())
+
+  @@index([metal])
+  @@index([changedAt])
+}
+
+// ---------- SHOPIFY ----------
+
+model ShopifySyncLog {
+  id            Int        @id @default(autoincrement())
+  type          SyncType
+  status        SyncStatus @default(PENDING)
+  itemsProcessed Int       @default(0)
+  message       String?
+  payload       Json?
+  createdAt     DateTime   @default(now())
+}
+
+// Every incoming Shopify webhook is stored here.
+// Used for idempotency: if the same event arrives twice, we skip it.
+model WebhookEvent {
+  id          Int      @id @default(autoincrement())
+  topic       String // e.g. "orders/create"
+  shopDomain  String
+  eventId     String   @unique // Shopify's unique ID for the event
+  payload     Json
+  processed   Boolean  @default(false)
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([topic])
+  @@index([processed])
+}
+
+// ---------- SETTINGS & AUDIT ----------
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique // e.g. "businessName", "invoicePrefix"
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // e.g. "PRODUCT_UPDATED", "RATE_CHANGED"
+  entity    String // e.g. "Product"
+  entityId  Int?
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  type      String // "LOW_STOCK", "SYNC_FAILED", ...
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}

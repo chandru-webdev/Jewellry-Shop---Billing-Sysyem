@@ -1,0 +1,27 @@
+# =============================================================
+# OPAL LINE ERP — root .gitignore
+# Protects secrets and build junk across the WHOLE repo.
+# The frontend/ and backend/ folders have their own .gitignore too.
+# =============================================================
+
+# Environment files (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+dev.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,111 @@
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  FileText,
+  ShoppingBag,
+  Users,
+  RotateCcw,
+  PackageSearch,
+  PackageCheck,
+  Truck,
+  RotateCw,
+  Boxes,
+  Package,
+  ArrowRightLeft,
+  ScanBarcode,
+  AlertTriangle,
+  CreditCard,
+  Landmark,
+  BookOpen,
+  BarChart3,
+  FileBarChart,
+  TrendingUp,
+  PieChart,
+  Store,
+  RefreshCw,
+  PackageOpen,
+  UsersRound,
+  DollarSign,
+  Settings,
+  Shield,
+  ScrollText,
+  Coins,
+  Receipt,
+} from 'lucide-react'
+
+export const navGroups = [
+  {
+    label: 'Main',
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    ],
+  },
+  {
+    label: 'Sales',
+    items: [
+      { to: '/billing', label: 'POS Billing', icon: ShoppingCart },
+      { to: '/invoices', label: 'Sales Invoices', icon: FileText },
+      { to: '/orders', label: 'Sales Orders', icon: ShoppingBag },
+      { to: '/customers', label: 'Customers', icon: Users },
+      { to: '/returns', label: 'Returns', icon: RotateCcw },
+    ],
+  },
+  {
+    label: 'Purchase',
+    items: [
+      { to: '/purchase-orders', label: 'Purchase Orders', icon: PackageSearch },
+      { to: '/purchase-invoices', label: 'Purchase Invoices', icon: PackageCheck },
+      { to: '/suppliers', label: 'Suppliers', icon: Truck },
+      { to: '/purchase-returns', label: 'Returns', icon: RotateCw },
+    ],
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { to: '/products', label: 'Products', icon: Package },
+      { to: '/inventory', label: 'Stock Overview', icon: Boxes },
+      { to: '/stock-transfer', label: 'Stock Transfer', icon: ArrowRightLeft },
+      { to: '/barcode', label: 'Barcode / Labels', icon: ScanBarcode },
+      { to: '/low-stock', label: 'Low Stock Alert', icon: AlertTriangle },
+    ],
+  },
+  {
+    label: 'Accounts',
+    items: [
+      { to: '/expenses', label: 'Expenses', icon: Receipt },
+      { to: '/payments', label: 'Payments', icon: CreditCard },
+      { to: '/bank-accounts', label: 'Bank Accounts', icon: Landmark },
+      { to: '/ledger', label: 'Ledger', icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      { to: '/reports', label: 'Business Reports', icon: BarChart3 },
+      { to: '/gst-reports', label: 'GST Reports', icon: FileBarChart },
+      { to: '/sales-analysis', label: 'Sales Analysis', icon: TrendingUp },
+      { to: '/inventory-reports', label: 'Inventory Reports', icon: PieChart },
+    ],
+  },
+  {
+    label: 'Shopify',
+    items: [
+      { to: '/shopify', label: 'Shopify Dashboard', icon: Store },
+      { to: '/shopify/orders-sync', label: 'Orders Sync', icon: RefreshCw },
+      { to: '/shopify/products-sync', label: 'Products Sync', icon: PackageOpen },
+      { to: '/shopify/inventory-sync', label: 'Inventory Sync', icon: Boxes },
+      { to: '/shopify/customers-sync', label: 'Customers Sync', icon: UsersRound },
+      { to: '/shopify/price-sync', label: 'Price Sync', icon: DollarSign },
+      { to: '/shopify/sync-logs', label: 'Sync Logs', icon: ScrollText },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/users', label: 'Users & Roles', icon: Shield },
+      { to: '/metal-rates', label: 'Silver Rate', icon: Coins },
+      { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText },
+      { to: '/settings', label: 'Settings', icon: Settings },
+    ],
+  },
+]

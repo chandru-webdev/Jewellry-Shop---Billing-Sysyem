@@ -12,8 +12,8 @@ router.use(authenticate)
 router.get('/', productController.list)
 router.get('/:id', productController.getById)
 
-router.post('/', authorize('ADMIN', 'MANAGER'), validate(createProductSchema), productController.create)
-router.put('/:id', authorize('ADMIN', 'MANAGER'), validate(updateProductSchema), productController.update)
-router.delete('/:id', authorize('ADMIN', 'MANAGER'), productController.remove)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER'), validate(createProductSchema), productController.create)
+router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER'), validate(updateProductSchema), productController.update)
+router.delete('/:id', authorize('SUPER_ADMIN', 'MANAGER'), productController.remove)
 
 module.exports = router

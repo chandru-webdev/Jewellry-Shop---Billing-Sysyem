@@ -2,7 +2,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 
 // Role names are stored UPPERCASE because the authorize() middleware matches
-// req.user.role.name against values like "ADMIN", "MANAGER", "STAFF".
+// req.user.role.name against values like "SUPER_ADMIN", "MANAGER", "EMPLOYEE".
 const roleService = {
   async list() {
     return prisma.role.findMany({
@@ -15,7 +15,13 @@ const roleService = {
     const name = data.name.trim().toUpperCase()
     const existing = await prisma.role.findUnique({ where: { name } })
     if (existing) throw new ApiError(400, 'A role with that name already exists')
-    return prisma.role.create({ data: { name, description: data.description } })
+    return prisma.role.create({
+      data: {
+        name,
+        description: data.description,
+        permissions: data.permissions || [],
+      },
+    })
   },
 
   async update(id, data) {
@@ -36,6 +42,9 @@ const roleService = {
     }
     if (typeof data.description === 'string') {
       patch.description = data.description
+    }
+    if (Array.isArray(data.permissions)) {
+      patch.permissions = data.permissions
     }
 
     return prisma.role.update({ where: { id: role.id }, data: patch })

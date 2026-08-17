@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const inventoryService = require('./inventory.service')
+const notificationService = require('./notification.service')
 
 const Decimal = Prisma.Decimal
 
@@ -157,6 +158,30 @@ const invoiceService = {
     await prisma.auditLog.create({
       data: { userId, action: 'INVOICE_CREATED', entity: 'Invoice', entityId: invoice.id },
     })
+
+    // Create notification for new invoice
+    const invoiceData = await this.getById(invoice.id)
+    const custName = invoiceData.customer?.name || 'Walk-in'
+    await notificationService.createForAll({
+      type: 'INVOICE_CREATED',
+      title: 'New Invoice',
+      message: `Invoice ${invoiceData.invoiceNumber} for ${custName} — ₹${Number(invoiceData.grandTotal).toLocaleString('en-IN')}`,
+    })
+
+    // Check for low stock after invoice
+    for (const line of itemsData) {
+      const product = await prisma.product.findUnique({
+        where: { id: line.productId },
+        include: { inventory: true },
+      })
+      if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
+        await notificationService.createForAll({
+          type: 'LOW_STOCK',
+          title: 'Low Stock Alert',
+          message: `${product.name} (${product.sku}) has only ${product.inventory?.quantity ?? 0} units left`,
+        })
+      }
+    }
 
     return this.getById(invoice.id)
   },

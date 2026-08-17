@@ -1,12 +1,27 @@
-import { Store, Coins, Building2 } from 'lucide-react'
+import { Store, Coins, Building2, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
 export default function Settings() {
+  const navigate = useNavigate()
+
   return (
     <div>
-      <PageHeader title="Settings" subtitle="Configure your Opal Line ERP system" />
+      <PageHeader
+        title="Settings"
+        subtitle="Configure your Opal Line ERP system"
+        actions={
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            title="Close"
+          >
+            <X size={18} />
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Store Settings */}

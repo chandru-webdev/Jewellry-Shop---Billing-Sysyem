@@ -11,8 +11,8 @@ router.use(authenticate)
 // Anyone logged in can list roles (used for the user-form dropdown).
 router.get('/', roleController.list)
 
-router.post('/', authorize('ADMIN'), validate(createRoleSchema), roleController.create)
-router.put('/:id', authorize('ADMIN'), validate(updateRoleSchema), roleController.update)
-router.delete('/:id', authorize('ADMIN'), roleController.remove)
+router.post('/', authorize('SUPER_ADMIN'), validate(createRoleSchema), roleController.create)
+router.put('/:id', authorize('SUPER_ADMIN'), validate(updateRoleSchema), roleController.update)
+router.delete('/:id', authorize('SUPER_ADMIN'), roleController.remove)
 
 module.exports = router

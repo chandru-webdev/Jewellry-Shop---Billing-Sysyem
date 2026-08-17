@@ -2,10 +2,24 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { navGroups } from '../../config/nav'
 import { cn } from '../../utils/cn'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) {
   const location = useLocation()
+  const { hasPermission } = useAuth()
   const isCollapsed = collapsed
+
+  // Filter nav groups and items based on user permissions
+  const filteredGroups = navGroups
+    .map((group) => {
+      // If group has a permission requirement, check it
+      if (group.permission && !hasPermission(group.permission)) return null
+      // Filter items within the group
+      const filteredItems = group.items.filter((item) => !item.permission || hasPermission(item.permission))
+      if (filteredItems.length === 0) return null
+      return { ...group, items: filteredItems }
+    })
+    .filter(Boolean)
 
   return (
     <>
@@ -93,7 +107,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
           'flex-1 overflow-y-auto py-3 space-y-4',
           isCollapsed ? 'px-2' : 'px-3'
         )}>
-          {navGroups.map((group) => (
+          {filteredGroups.map((group) => (
             <div key={group.label}>
               {!isCollapsed && (
                 <p className="px-3 mb-1.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-white/25">

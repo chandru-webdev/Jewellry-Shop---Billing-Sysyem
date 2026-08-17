@@ -10,7 +10,7 @@ router.use(authenticate)
 
 router.get('/', supplierController.list)
 router.get('/:id', supplierController.getById)
-router.post('/', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(createSupplierSchema), supplierController.create)
-router.put('/:id', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(updateSupplierSchema), supplierController.update)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createSupplierSchema), supplierController.create)
+router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(updateSupplierSchema), supplierController.update)
 
 module.exports = router

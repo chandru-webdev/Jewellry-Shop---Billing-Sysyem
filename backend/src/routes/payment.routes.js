@@ -14,6 +14,6 @@ router.get('/summary', paymentController.summary)
 router.get('/:id', paymentController.getById)
 
 // Recording a payment is a sales action — any staff member can do it.
-router.post('/', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(createPaymentSchema), paymentController.create)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createPaymentSchema), paymentController.create)
 
 module.exports = router

@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const { previewRecalculation, recalculateAllProducts } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
+const notificationService = require('./notification.service')
 
 const Decimal = Prisma.Decimal
 
@@ -79,6 +80,14 @@ const metalRateService = {
     } catch (err) {
       shopifySync = { ok: 0, failed: -1, error: err.message }
     }
+
+    // Create notification for rate change
+    const changePct = ((Number(newRate) - Number(current.rate)) / Number(current.rate) * 100).toFixed(2)
+    await notificationService.createForAll({
+      type: 'RATE_CHANGED',
+      title: 'Silver Rate Updated',
+      message: `Rate changed from ₹${current.rate}/gm to ₹${newRate}/gm (${changePct > 0 ? '+' : ''}${changePct}%). ${updatedProducts} products updated.`,
+    })
 
     return {
       unchanged: false,

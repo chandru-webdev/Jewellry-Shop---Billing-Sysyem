@@ -22,5 +22,7 @@ router.use('/shopify', require('./shopify.routes'))
 router.use('/reports', require('./report.routes'))
 router.use('/audit-logs', require('./auditLog.routes'))
 router.use('/settings', require('./setting.routes'))
+router.use('/notifications', require('./notification.routes'))
+router.use('/search', require('./search.routes'))
 
 module.exports = router

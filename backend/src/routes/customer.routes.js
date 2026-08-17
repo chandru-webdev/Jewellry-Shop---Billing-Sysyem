@@ -10,7 +10,7 @@ router.use(authenticate)
 
 router.get('/', customerController.list)
 router.get('/:id', customerController.getById)
-router.post('/', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(createCustomerSchema), customerController.create)
-router.put('/:id', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(updateCustomerSchema), customerController.update)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createCustomerSchema), customerController.create)
+router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(updateCustomerSchema), customerController.update)
 
 module.exports = router

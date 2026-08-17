@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs')
+const crypto = require('crypto')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 
@@ -40,16 +41,32 @@ const userService = {
     const role = await prisma.role.findUnique({ where: { id: Number(data.roleId) } })
     if (!role) throw new ApiError(400, 'Role not found')
 
-    const password = await bcrypt.hash(data.password, 10)
+    // Use provided password or generate a temporary one
+    const tempPassword = data.password || this.generatePassword()
+    const hashed = await bcrypt.hash(tempPassword, 10)
+    const mustChange = !data.password // Force password change if no password provided
+
     const user = await prisma.user.create({
-      data: { name: data.name, email, password, roleId: role.id },
+      data: {
+        name: data.name,
+        email,
+        password: hashed,
+        roleId: role.id,
+        mustChangePassword: mustChange,
+      },
     })
 
     await prisma.auditLog.create({
-      data: { userId: actorId, action: 'USER_CREATED', entity: 'User', entityId: user.id },
+      data: {
+        userId: actorId,
+        action: 'USER_CREATED',
+        entity: 'User',
+        entityId: user.id,
+        metadata: { email, role: role.name },
+      },
     })
 
-    return this.getById(user.id)
+    return { user: this.safeUser(await this.getById(user.id)), tempPassword: mustChange ? tempPassword : null }
   },
 
   async update(id, data, actorId) {
@@ -74,15 +91,15 @@ const userService = {
       patch.roleId = role.id
     }
 
-    if (data.password) {
-      patch.password = await bcrypt.hash(data.password, 10)
-    }
-
     if (typeof data.isActive === 'boolean') {
       if (data.isActive === false && Number(id) === Number(actorId)) {
         throw new ApiError(400, 'You cannot disable your own account')
       }
       patch.isActive = data.isActive
+    }
+
+    if (Object.keys(patch).length === 0) {
+      throw new ApiError(400, 'No fields to update')
     }
 
     const updated = await prisma.user.update({ where: { id: user.id }, data: patch })
@@ -98,6 +115,60 @@ const userService = {
     })
 
     return this.getById(updated.id)
+  },
+
+  // Admin resets a user's password — generates a new temporary password
+  async resetPassword(id, actorId) {
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } })
+    if (!user) throw new ApiError(404, 'User not found')
+
+    const tempPassword = this.generatePassword()
+    const hashed = await bcrypt.hash(tempPassword, 10)
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, mustChangePassword: true },
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'USER_PASSWORD_RESET',
+        entity: 'User',
+        entityId: user.id,
+        metadata: { email: user.email },
+      },
+    })
+
+    return { tempPassword, email: user.email }
+  },
+
+  // Admin sets a specific password for a user
+  async setPassword(id, newPassword, actorId) {
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } })
+    if (!user) throw new ApiError(404, 'User not found')
+
+    const hashed = await bcrypt.hash(newPassword, 10)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, mustChangePassword: false },
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        userId: actorId,
+        action: 'USER_PASSWORD_SET',
+        entity: 'User',
+        entityId: user.id,
+        metadata: { email: user.email },
+      },
+    })
+
+    return { message: 'Password updated successfully' }
+  },
+
+  generatePassword() {
+    return 'Temp' + crypto.randomBytes(4).toString('hex') + '!'
   },
 
   safeUser(user) {

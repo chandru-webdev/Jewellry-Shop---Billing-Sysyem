@@ -12,6 +12,6 @@ router.use(authenticate)
 router.get('/', settingController.getAll)
 
 // Only ADMIN can change business details / configuration.
-router.put('/', authorize('ADMIN'), validate(updateSettingsSchema), settingController.update)
+router.put('/', authorize('SUPER_ADMIN'), validate(updateSettingsSchema), settingController.update)
 
 module.exports = router

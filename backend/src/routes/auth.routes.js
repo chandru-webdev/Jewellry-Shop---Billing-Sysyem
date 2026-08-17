@@ -1,6 +1,6 @@
 const express = require('express')
 const authController = require('../controllers/auth.controller')
-const { loginSchema } = require('../validators/auth.validator')
+const { loginSchema, changePasswordSchema } = require('../validators/auth.validator')
 const validate = require('../middleware/validate')
 const { authenticate } = require('../middleware/auth')
 
@@ -14,5 +14,8 @@ router.post('/logout', authController.logout)
 
 // GET /api/auth/me  (protected)
 router.get('/me', authenticate, authController.me)
+
+// POST /api/auth/change-password  (protected)
+router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword)
 
 module.exports = router

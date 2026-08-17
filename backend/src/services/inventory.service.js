@@ -1,5 +1,6 @@
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const notificationService = require('./notification.service')
 
 // ALL stock changes go through this one service.
 // This is also what the Shopify webhook handler will call in Phase 17,
@@ -76,6 +77,16 @@ const inventoryService = {
         createdById: userId,
       },
     })
+
+    // Check for low stock after inventory change
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    if (product && newQuantity <= product.lowStockThreshold && newQuantity >= 0) {
+      await notificationService.createForAll({
+        type: 'LOW_STOCK',
+        title: 'Low Stock Alert',
+        message: `${product.name} (${product.sku}) has only ${newQuantity} units left — below threshold of ${product.lowStockThreshold}`,
+      })
+    }
 
     return { previous: inv.quantity, quantity: newQuantity }
   },

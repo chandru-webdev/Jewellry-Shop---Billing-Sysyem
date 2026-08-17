@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const inventoryService = require('./inventory.service')
+const notificationService = require('./notification.service')
 
 const Decimal = Prisma.Decimal
 
@@ -208,7 +209,31 @@ const orderService = {
       data: { userId, action: 'ORDER_CREATED', entity: 'Order', entityId: order.ord.id },
     })
 
-    return this.getById(order.ord.id)
+    // Create notification for new order
+    const orderData = await this.getById(order.ord.id)
+    const customerName = orderData.customer?.name || 'Walk-in'
+    await notificationService.createForAll({
+      type: 'ORDER_CREATED',
+      title: 'New Order Created',
+      message: `Order ${orderData.orderNumber} from ${customerName} — ₹${Number(orderData.totalAmount).toLocaleString('en-IN')}`,
+    })
+
+    // Check for low stock after order
+    for (const line of orderItemsData) {
+      const product = await prisma.product.findUnique({
+        where: { id: line.productId },
+        include: { inventory: true },
+      })
+      if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
+        await notificationService.createForAll({
+          type: 'LOW_STOCK',
+          title: 'Low Stock Alert',
+          message: `${product.name} (${product.sku}) has only ${product.inventory?.quantity ?? 0} units left`,
+        })
+      }
+    }
+
+    return orderData
   },
 
   // PATCH /api/orders/:id/status

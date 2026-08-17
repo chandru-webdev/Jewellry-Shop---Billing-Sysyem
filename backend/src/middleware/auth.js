@@ -34,7 +34,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
   next()
 })
 
-// 2. authorize('ADMIN', 'MANAGER'): restricts a route to certain roles.
+// 2. authorize('SUPER_ADMIN', 'MANAGER'): restricts a route to certain roles.
 //    Must be used AFTER authenticate.
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -46,4 +46,25 @@ const authorize = (...roles) => {
   }
 }
 
-module.exports = { authenticate, authorize }
+// 3. authorizePermission('users:manage'): checks granular permissions from role.permissions JSON.
+//    SUPER_ADMIN role always passes (has all permissions).
+//    Must be used AFTER authenticate.
+const authorizePermission = (...requiredPermissions) => {
+  return (req, res, next) => {
+    const role = req.user?.role
+    if (!role) throw new ApiError(403, 'No role assigned.')
+
+    // SUPER_ADMIN has all permissions
+    if (role.name === 'SUPER_ADMIN') return next()
+
+    const userPermissions = Array.isArray(role.permissions) ? role.permissions : []
+
+    const hasPermission = requiredPermissions.some((perm) => userPermissions.includes(perm))
+    if (!hasPermission) {
+      throw new ApiError(403, 'You do not have permission to access this resource.')
+    }
+    next()
+  }
+}
+
+module.exports = { authenticate, authorize, authorizePermission }

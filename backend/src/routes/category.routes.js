@@ -9,6 +9,6 @@ const router = express.Router()
 router.use(authenticate)
 
 router.get('/', categoryController.list)
-router.post('/', authorize('ADMIN', 'MANAGER'), validate(createCategorySchema), categoryController.create)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER'), validate(createCategorySchema), categoryController.create)
 
 module.exports = router

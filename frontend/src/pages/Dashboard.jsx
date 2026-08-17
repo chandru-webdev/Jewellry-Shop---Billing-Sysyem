@@ -1,8 +1,11 @@
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   IndianRupee, TrendingUp, ShoppingCart, FileText, AlertTriangle,
   Receipt, Clock, Coins, Package, Users, Truck, Boxes, CreditCard,
-  ArrowRight, BarChart3, Gem, CircleDollarSign, Activity, Store,
+  ArrowRight, BarChart3, Gem, CircleDollarSign, Store,
+  Calendar, ChevronDown,
 } from 'lucide-react'
 import {
   AreaChart, Area, LineChart, Line, PieChart, Pie, Cell,
@@ -11,45 +14,54 @@ import {
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
+import { dashboardApi } from '../api/dashboard'
 
-// --- DEMO DATA (removed when backend APIs are ready) ---
-const DEMO = {
-  silverRate: 92.80,
-  silverRateChange: 2.80,
-  silverRatePct: 3.11,
-  silverRateUpdated: 'Aug 10, 2026 09:00 AM',
+function isDemoMode() {
+  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
+}
 
-  todaySales: 124560,
-  todaySalesTrend: 18.6,
-  todayOrders: 32,
-  todayOrdersTrend: 9.7,
-  todayInvoices: 47,
-  todayInvoicesTrend: 15.2,
-  grossProfit: 39330,
-  grossProfitTrend: 21.3,
-  outstanding: 112450,
-  outstandingInvoices: 5,
-  lowStockItems: 18,
+const DEMO_DATA = {
+  dateRange: { filter: 'last7days', start: new Date(Date.now() - 6 * 86400000).toISOString(), end: new Date().toISOString() },
 
-  totalProducts: 312,
-  totalCustomers: 186,
-  totalSuppliers: 24,
-  totalStockQty: 2853,
-  totalStockWeight: 1248.70,
-  todayExpenses: 12450,
-  pendingPayments: 112450,
+  periodRevenue: 785460,
+  periodSalesCount: 247,
+  periodOrdersCount: 247,
+  salesTrend: 18.6,
+  ordersTrend: 9.7,
 
-  monthSales: 1875230,
-  monthSalesTrend: 24.5,
-  monthOrders: 486,
-  monthOrdersTrend: 19.8,
-  avgOrderValue: 3865,
-  avgOrderTrend: 15.4,
-  returnRate: 2.35,
-  returnRateTrend: -0.65,
-  profitMargin: 21.45,
-  profitMarginTrend: 2.15,
-  inventoryValue: 2648700,
+  revenue: { today: 124560, month: 1875230, total: 48250000 },
+  sales: { today: 47, month: 486 },
+  orders: { pending: 5, today: 32 },
+
+  customers: 186,
+  suppliers: 24,
+  products: { total: 312, active: 285 },
+
+  stock: { totalQuantity: 2853, totalWeight: 1248.70 },
+
+  silverRate: { rate: 92.80, updatedAt: new Date().toISOString(), updatedBy: 'Admin' },
+
+  lowStock: {
+    count: 18,
+    items: [
+      { id: 1, sku: 'SLV-RNG-00021', name: 'Silver Ring', category: 'Rings', quantity: 4, threshold: 10 },
+      { id: 2, sku: 'SLV-BRC-00015', name: 'Silver Bracelet', category: 'Bracelets', quantity: 3, threshold: 8 },
+      { id: 3, sku: 'SLV-CHN-00008', name: 'Silver Chain', category: 'Chains', quantity: 5, threshold: 12 },
+      { id: 4, sku: 'SLV-PND-00012', name: 'Silver Pendant', category: 'Pendants', quantity: 2, threshold: 6 },
+      { id: 5, sku: 'SLV-ERN-00031', name: 'Silver Earrings', category: 'Earrings', quantity: 6, threshold: 15 },
+    ],
+  },
+
+  recentInvoices: [
+    { id: 1, invoiceNumber: 'SI-2026-00047', customer: { name: 'Rajesh Kumar' }, grandTotal: 5230, status: 'PAID' },
+    { id: 2, invoiceNumber: 'SI-2026-00046', customer: { name: 'Priya Sharma' }, grandTotal: 8750, status: 'PAID' },
+    { id: 3, invoiceNumber: 'SI-2026-00045', customer: { name: 'Amit Patel' }, grandTotal: 3420, status: 'PENDING' },
+    { id: 4, invoiceNumber: 'SI-2026-00044', customer: { name: 'Neha Gupta' }, grandTotal: 12800, status: 'PAID' },
+    { id: 5, invoiceNumber: 'SI-2026-00043', customer: { name: 'Vikram Singh' }, grandTotal: 6540, status: 'PAID' },
+    { id: 6, invoiceNumber: 'SI-2026-00042', customer: { name: 'Anjali Mehta' }, grandTotal: 4180, status: 'VOID' },
+  ],
+
+  recentOrders: [],
 
   salesOverview: [
     { date: 'Mon 04', revenue: 85200, orders: 24 },
@@ -62,11 +74,11 @@ const DEMO = {
   ],
 
   topProducts: [
-    { name: 'Silver Chain', sku: 'SLV-CHN-00008', qty: 135, weight: 189.00, revenue: 18900, icon: '⛓️' },
-    { name: 'Silver Ring', sku: 'SLV-RNG-00021', qty: 98, weight: 142.10, revenue: 14210, icon: '💍' },
-    { name: 'Silver Bracelet', sku: 'SLV-BRC-00015', qty: 75, weight: 111.25, revenue: 11250, icon: '⌚' },
-    { name: 'Silver Pendant', sku: 'SLV-PND-00012', qty: 62, weight: 79.60, revenue: 9610, icon: '📿' },
-    { name: 'Silver Earrings', sku: 'SLV-ERN-00031', qty: 58, weight: 68.20, revenue: 8520, icon: '✨' },
+    { name: 'Silver Chain', sku: 'SLV-CHN-00008', qty: 135, weight: 189.00, revenue: 18900 },
+    { name: 'Silver Ring', sku: 'SLV-RNG-00021', qty: 98, weight: 142.10, revenue: 14210 },
+    { name: 'Silver Bracelet', sku: 'SLV-BRC-00015', qty: 75, weight: 111.25, revenue: 11250 },
+    { name: 'Silver Pendant', sku: 'SLV-PND-00012', qty: 62, weight: 79.60, revenue: 9610 },
+    { name: 'Silver Earrings', sku: 'SLV-ERN-00031', qty: 58, weight: 68.20, revenue: 8520 },
   ],
 
   paymentStatus: [
@@ -86,22 +98,32 @@ const DEMO = {
     { date: '10 Aug', rate: 92.80 },
   ],
 
-  lowStock: [
-    { name: 'Silver Ring', sku: 'SLV-RNG-00021', current: 4, reorder: 10 },
-    { name: 'Silver Bracelet', sku: 'SLV-BRC-00015', current: 3, reorder: 8 },
-    { name: 'Silver Chain', sku: 'SLV-CHN-00008', current: 5, reorder: 12 },
-    { name: 'Silver Pendant', sku: 'SLV-PND-00012', current: 2, reorder: 6 },
-    { name: 'Silver Earrings', sku: 'SLV-ERN-00031', current: 6, reorder: 15 },
-  ],
+  outstanding: 112450,
+  outstandingInvoices: 5,
+  todayExpenses: 12450,
 
-  recentActivities: [
-    { type: 'rate', icon: Coins, color: 'text-gold-500', msg: 'Silver rate updated to ₹92.80 / gm', by: 'Admin', time: 'Today, 09:00 AM' },
-    { type: 'order', icon: Store, color: 'text-blue-500', msg: 'Shopify Order #10235 imported', by: 'System', time: 'Today, 08:45 AM' },
-    { type: 'invoice', icon: FileText, color: 'text-royal-500', msg: 'Invoice SI-2026-00047 created', by: 'System', time: 'Today, 08:44 AM' },
-    { type: 'payment', icon: CreditCard, color: 'text-emerald-500', msg: 'Payment received via Razorpay — ₹5,230', by: 'System', time: 'Today, 08:30 AM' },
-    { type: 'product', icon: Package, color: 'text-amber-500', msg: 'Product Silver Chain updated', by: 'Admin', time: 'Today, 08:15 AM' },
-  ],
+  monthSales: 1875230,
+  monthSalesTrend: 24.5,
+  monthOrders: 486,
+  monthOrdersTrend: 19.8,
+  avgOrderValue: 3865,
+  avgOrderTrend: 15.4,
+  returnRate: 2.35,
+  returnRateTrend: -0.65,
+  profitMargin: 21.45,
+  profitMarginTrend: 2.15,
+  inventoryValue: 2648700,
 }
+
+const DATE_FILTERS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'last7days', label: 'Last 7 Days' },
+  { value: 'last30days', label: 'Last 30 Days' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lastMonth', label: 'Last Month' },
+  { value: 'custom', label: 'Custom Range' },
+]
 
 const quickActions = [
   { label: 'Sales Invoice', icon: FileText, to: '/billing' },
@@ -126,6 +148,74 @@ const CustomTooltip = ({ active, payload, label }) => {
           {p.name}: {p.name === 'revenue' || p.name === 'Revenue' ? formatINR(p.value) : p.name === 'rate' || p.name === 'Rate' ? `₹${p.value}/gm` : p.value}
         </p>
       ))}
+    </div>
+  )
+}
+
+function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomStartChange, onCustomEndChange }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedLabel = DATE_FILTERS.find((f) => f.value === value)?.label || 'Last 7 Days'
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-royal-300 transition-colors"
+        >
+          <Calendar size={14} className="text-gray-400" />
+          <span className="text-gray-700 font-medium">{selectedLabel}</span>
+          <ChevronDown size={14} className="text-gray-400" />
+        </button>
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl border border-gray-200 shadow-xl py-1.5 z-40">
+            {DATE_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => {
+                  onChange(filter.value)
+                  if (filter.value !== 'custom') setIsOpen(false)
+                }}
+                className={`w-full text-left px-3.5 py-2 text-sm transition-colors cursor-pointer ${
+                  value === filter.value
+                    ? 'text-royal-700 bg-royal-50 font-semibold'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {value === 'custom' && (
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="date"
+            value={customStart}
+            onChange={(e) => onCustomStartChange(e.target.value)}
+            className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+          />
+          <span className="text-xs text-gray-400">to</span>
+          <input
+            type="date"
+            value={customEnd}
+            onChange={(e) => onCustomEndChange(e.target.value)}
+            className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+          />
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-xs font-medium text-royal-600 hover:text-royal-800 px-2 py-1.5"
+          >
+            Apply
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -165,7 +255,83 @@ function QuickActionBar() {
   )
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+        </div>
+        <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+            <div className="w-9 h-9 rounded-lg bg-gray-200 animate-pulse mb-3" />
+            <div className="h-3 w-20 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200/80 shadow-sm h-80 animate-pulse" />
+        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm h-80 animate-pulse" />
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
+  const [dateFilter, setDateFilter] = useState('last7days')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+
+  const handleFilterChange = useCallback((value) => {
+    setDateFilter(value)
+  }, [])
+
+  const queryParams = {
+    filter: dateFilter,
+    ...(dateFilter === 'custom' && customStart ? { startDate: customStart } : {}),
+    ...(dateFilter === 'custom' && customEnd ? { endDate: customEnd } : {}),
+  }
+
+  const { data: res, isLoading, error, refetch } = useQuery({
+    queryKey: ['dashboard', dateFilter, customStart, customEnd],
+    queryFn: () => dashboardApi.getStats(queryParams),
+    staleTime: 30 * 1000,
+    retry: 1,
+  })
+
+  const d = isDemoMode() && (error || !res?.data?.data) ? DEMO_DATA : res?.data?.data
+
+  if (isLoading) return <LoadingSkeleton />
+
+  if (!d) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <AlertTriangle size={40} className="mb-3 opacity-40" />
+        <p className="text-sm font-medium">Failed to load dashboard data</p>
+        <p className="text-xs mt-1 mb-4">Check your connection and try again</p>
+        <button
+          onClick={() => refetch()}
+          className="text-xs font-medium text-royal-600 hover:text-royal-800 px-4 py-2 bg-royal-50 rounded-lg"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  const dateRangeLabel = (() => {
+    const fmt = (dt) => new Date(dt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    if (d.dateRange?.start && d.dateRange?.end) {
+      return `${fmt(d.dateRange.start)} — ${fmt(d.dateRange.end)}`
+    }
+    return 'Last 7 Days'
+  })()
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -174,14 +340,14 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-royal-950">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your ecommerce business today.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
-            <span className="text-gray-600 font-medium">Aug 04, 2026 — Aug 10, 2026</span>
-          </div>
-          <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-royal-700 hover:bg-royal-50 transition-colors cursor-pointer">
-            <BarChart3 size={16} />
-          </button>
-        </div>
+        <DateFilterDropdown
+          value={dateFilter}
+          onChange={handleFilterChange}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomStartChange={setCustomStart}
+          onCustomEndChange={setCustomEnd}
+        />
       </div>
 
       <SystemStatusStrip />
@@ -190,15 +356,62 @@ export default function Dashboard() {
       {/* Primary KPI Row - 6 cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {[
-          { icon: IndianRupee, label: "Today's Sales", value: formatINR(DEMO.todaySales), trend: 'up', trendValue: `▲ ${DEMO.todaySalesTrend}% vs yesterday`, accent: 'purple' },
-          { icon: ShoppingCart, label: "Today's Orders", value: DEMO.todayOrders, trend: 'up', trendValue: `▲ ${DEMO.todayOrdersTrend}% vs yesterday`, accent: 'blue' },
-          { icon: FileText, label: "Today's Invoices", value: DEMO.todayInvoices, trend: 'up', trendValue: `▲ ${DEMO.todayInvoicesTrend}% vs yesterday`, accent: 'indigo' },
-          { icon: TrendingUp, label: 'Gross Profit', value: formatINR(DEMO.grossProfit), trend: 'up', trendValue: `▲ ${DEMO.grossProfitTrend}% vs yesterday`, accent: 'green' },
-          { icon: Clock, label: 'Outstanding', value: formatINR(DEMO.outstanding), sub: `${DEMO.outstandingInvoices} invoices`, accent: 'amber' },
-          { icon: AlertTriangle, label: 'Low Stock Items', value: DEMO.lowStockItems, sub: 'Needs Reorder', accent: 'red' },
+          {
+            icon: IndianRupee,
+            label: 'Period Sales',
+            value: formatINR(d.periodRevenue),
+            trend: d.salesTrend >= 0 ? 'up' : 'down',
+            trendValue: `${d.salesTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.salesTrend)}% vs prev period`,
+            accent: 'purple',
+          },
+          {
+            icon: ShoppingCart,
+            label: 'Period Orders',
+            value: d.periodOrdersCount,
+            trend: d.ordersTrend >= 0 ? 'up' : 'down',
+            trendValue: `${d.ordersTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.ordersTrend)}% vs prev period`,
+            accent: 'blue',
+          },
+          {
+            icon: FileText,
+            label: 'Period Invoices',
+            value: d.periodSalesCount,
+            trend: d.salesTrend >= 0 ? 'up' : 'down',
+            trendValue: `${d.salesTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.salesTrend)}% vs prev period`,
+            accent: 'indigo',
+          },
+          {
+            icon: TrendingUp,
+            label: 'Gross Profit',
+            value: formatINR(d.periodRevenue * (d.profitMargin / 100)),
+            trend: 'up',
+            trendValue: `${d.profitMargin}% margin`,
+            accent: 'green',
+          },
+          {
+            icon: Clock,
+            label: 'Outstanding',
+            value: formatINR(d.outstanding),
+            sub: `${d.outstandingInvoices} invoices`,
+            accent: 'amber',
+          },
+          {
+            icon: AlertTriangle,
+            label: 'Low Stock Items',
+            value: d.lowStock.count,
+            sub: 'Needs Reorder',
+            accent: 'red',
+          },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 hover:shadow-md transition-all">
-            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${kpi.accent === 'purple' ? 'from-royal-500 to-royal-700' : kpi.accent === 'blue' ? 'from-blue-500 to-blue-600' : kpi.accent === 'indigo' ? 'from-indigo-500 to-indigo-600' : kpi.accent === 'green' ? 'from-emerald-500 to-emerald-600' : kpi.accent === 'amber' ? 'from-amber-500 to-orange-500' : 'from-red-500 to-red-600'} flex items-center justify-center mb-3`}>
+            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${
+              kpi.accent === 'purple' ? 'from-royal-500 to-royal-700' :
+              kpi.accent === 'blue' ? 'from-blue-500 to-blue-600' :
+              kpi.accent === 'indigo' ? 'from-indigo-500 to-indigo-600' :
+              kpi.accent === 'green' ? 'from-emerald-500 to-emerald-600' :
+              kpi.accent === 'amber' ? 'from-amber-500 to-orange-500' :
+              'from-red-500 to-red-600'
+            } flex items-center justify-center mb-3`}>
               <kpi.icon size={16} className="text-white" />
             </div>
             <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{kpi.label}</p>
@@ -207,10 +420,13 @@ export default function Dashboard() {
               {kpi.trend === 'up' && (
                 <span className="text-[11px] font-semibold text-emerald-600">{kpi.trendValue}</span>
               )}
+              {kpi.trend === 'down' && (
+                <span className="text-[11px] font-semibold text-red-500">{kpi.trendValue}</span>
+              )}
               {kpi.sub && !kpi.trend && (
                 <span className="text-[11px] text-gray-400">{kpi.sub}</span>
               )}
-              {kpi.trend !== 'up' && kpi.sub && (
+              {kpi.trend !== 'up' && kpi.trend !== 'down' && kpi.sub && (
                 <span className="text-[11px] text-gray-400">{kpi.sub}</span>
               )}
             </div>
@@ -222,13 +438,13 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm px-5 py-3">
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
           {[
-            { icon: Package, label: 'Total Products', value: DEMO.totalProducts, sub: 'Active', color: 'text-royal-500' },
-            { icon: Users, label: 'Total Customers', value: DEMO.totalCustomers, sub: 'Active', color: 'text-blue-500' },
-            { icon: Truck, label: 'Total Suppliers', value: DEMO.totalSuppliers, sub: 'Active', color: 'text-emerald-500' },
-            { icon: Boxes, label: 'Total Stock (Qty)', value: `${DEMO.totalStockQty.toLocaleString('en-IN')} pcs`, color: 'text-amber-500' },
-            { icon: Gem, label: 'Total Stock (Weight)', value: `${DEMO.totalStockWeight} gm`, color: 'text-gold-500' },
-            { icon: Receipt, label: "Today's Expenses", value: formatINR(DEMO.todayExpenses), color: 'text-red-500' },
-            { icon: CreditCard, label: 'Pending Payments', value: formatINR(DEMO.pendingPayments), color: 'text-orange-500' },
+            { icon: Package, label: 'Total Products', value: d.products.active, sub: 'Active', color: 'text-royal-500' },
+            { icon: Users, label: 'Total Customers', value: d.customers, sub: 'Active', color: 'text-blue-500' },
+            { icon: Truck, label: 'Total Suppliers', value: d.suppliers, sub: 'Active', color: 'text-emerald-500' },
+            { icon: Boxes, label: 'Total Stock (Qty)', value: `${(d.stock.totalQuantity || 0).toLocaleString('en-IN')} pcs`, color: 'text-amber-500' },
+            { icon: Gem, label: 'Total Stock (Weight)', value: `${Number(d.stock.totalWeight || 0).toFixed(2)} gm`, color: 'text-gold-500' },
+            { icon: Receipt, label: "Today's Expenses", value: formatINR(d.todayExpenses), color: 'text-red-500' },
+            { icon: CreditCard, label: 'Pending Payments', value: formatINR(d.outstanding), color: 'text-orange-500' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-2.5 min-w-0">
               <s.icon size={15} className={`${s.color} shrink-0`} />
@@ -250,30 +466,31 @@ export default function Dashboard() {
           icon={BarChart3}
           className="lg:col-span-2"
           action={
-            <select className="text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-royal-500">
-              <option>This Week</option>
-              <option>Today</option>
-              <option>This Month</option>
-              <option>This Year</option>
-            </select>
+            <span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+              {dateRangeLabel}
+            </span>
           }
         >
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={DEMO.salesOverview} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#salesGrad)" dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#7c3aed' }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {d.salesOverview && d.salesOverview.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={d.salesOverview} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#salesGrad)" dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#7c3aed' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400 text-sm">No sales data for this period</div>
+            )}
           </div>
         </Card>
 
@@ -284,7 +501,7 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={DEMO.paymentStatus}
+                    data={d.paymentStatus}
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
@@ -293,7 +510,7 @@ export default function Dashboard() {
                     dataKey="value"
                     strokeWidth={0}
                   >
-                    {DEMO.paymentStatus.map((entry, _i) => (
+                    {d.paymentStatus.map((entry, _i) => (
                       <Cell key={_i} fill={entry.color} />
                     ))}
                   </Pie>
@@ -302,11 +519,11 @@ export default function Dashboard() {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Total</p>
-                <p className="text-lg font-bold text-royal-950">{formatINR(DEMO.paymentTotal)}</p>
+                <p className="text-lg font-bold text-royal-950">{formatINR(d.paymentTotal)}</p>
               </div>
             </div>
             <div className="w-full space-y-2 mt-4">
-              {DEMO.paymentStatus.map((s) => (
+              {d.paymentStatus.map((s) => (
                 <div key={s.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
@@ -337,33 +554,32 @@ export default function Dashboard() {
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
-                <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
-                <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Qty</th>
-                <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Weight (gm)</th>
-                <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO.topProducts.map((p) => (
-                <tr key={p.sku} className="border-b border-gray-50 last:border-0 hover:bg-royal-50/30">
-                  <td className="py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{p.icon}</span>
-                      <span className="font-medium text-royal-950">{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 font-mono text-[11px] text-gray-500">{p.sku}</td>
-                  <td className="py-2.5 text-right font-semibold text-royal-900">{p.qty}</td>
-                  <td className="py-2.5 text-right text-gray-600">{p.weight.toFixed(2)}</td>
-                  <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(p.revenue)}</td>
+          {d.topProducts && d.topProducts.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Qty</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Weight (gm)</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Revenue</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {d.topProducts.map((p) => (
+                  <tr key={p.sku} className="border-b border-gray-50 last:border-0 hover:bg-royal-50/30">
+                    <td className="py-2.5 font-medium text-royal-950">{p.name}</td>
+                    <td className="py-2.5 font-mono text-[11px] text-gray-500">{p.sku}</td>
+                    <td className="py-2.5 text-right font-semibold text-royal-900">{p.qty}</td>
+                    <td className="py-2.5 text-right text-gray-600">{Number(p.weight).toFixed(2)}</td>
+                    <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(p.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="py-8 text-center text-sm text-gray-400">No sales in this period</div>
+          )}
         </div>
       </Card>
 
@@ -374,21 +590,27 @@ export default function Dashboard() {
           title="Silver Rate History (92.5)"
           icon={Coins}
           action={
-            <span className="text-xs font-semibold text-royal-700 bg-royal-50 px-2.5 py-1 rounded-lg">
-              Today: ₹{DEMO.silverRate} / gm
-            </span>
+            d.silverRate && (
+              <span className="text-xs font-semibold text-royal-700 bg-royal-50 px-2.5 py-1 rounded-lg">
+                Today: ₹{d.silverRate.rate} / gm
+              </span>
+            )
           }
         >
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={DEMO.silverRateHistory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[80, 100]} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="rate" name="Rate" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#7c3aed' }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {d.silverRateHistory && d.silverRateHistory.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={d.silverRateHistory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="rate" name="Rate" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#7c3aed' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400 text-sm">No rate changes in this period</div>
+            )}
           </div>
         </Card>
 
@@ -403,45 +625,56 @@ export default function Dashboard() {
           }
         >
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
-                  <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
-                  <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Stock</th>
-                  <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Reorder</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DEMO.lowStock.map((p) => (
-                  <tr key={p.sku} className="border-b border-gray-50 last:border-0">
-                    <td className="py-2 font-medium text-royal-950 text-xs">{p.name}</td>
-                    <td className="py-2 font-mono text-[10px] text-gray-500">{p.sku}</td>
-                    <td className="py-2 text-right">
-                      <Badge tone={p.current <= 3 ? 'red' : 'orange'}>{p.current} pcs</Badge>
-                    </td>
-                    <td className="py-2 text-right text-xs text-gray-500">{p.reorder} pcs</td>
+            {d.lowStock.items && d.lowStock.items.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
+                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
+                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Stock</th>
+                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Reorder</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {d.lowStock.items.map((p) => (
+                    <tr key={p.sku} className="border-b border-gray-50 last:border-0">
+                      <td className="py-2 font-medium text-royal-950 text-xs">{p.name}</td>
+                      <td className="py-2 font-mono text-[10px] text-gray-500">{p.sku}</td>
+                      <td className="py-2 text-right">
+                        <Badge tone={p.quantity <= 3 ? 'red' : 'orange'}>{p.quantity} pcs</Badge>
+                      </td>
+                      <td className="py-2 text-right text-xs text-gray-500">{p.threshold} pcs</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="py-8 text-center text-sm text-gray-400">All products are well stocked</div>
+            )}
           </div>
         </Card>
 
-        {/* Recent Activities */}
-        <Card title="Recent Activities" icon={Activity}>
+        {/* Recent Invoices */}
+        <Card title="Recent Invoices" icon={FileText}>
           <div className="space-y-0">
-            {DEMO.recentActivities.map((a, i) => (
-              <div key={i} className="flex gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                <div className={`w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 ${a.color}`}>
-                  <a.icon size={14} />
+            {d.recentInvoices && d.recentInvoices.length > 0 ? (
+              d.recentInvoices.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-royal-950 truncate">{inv.invoiceNumber}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{inv.customer?.name || 'Walk-in'}</p>
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className="text-xs font-bold text-royal-800">{formatINR(inv.grandTotal)}</p>
+                    <Badge tone={inv.status === 'PAID' ? 'green' : inv.status === 'VOID' ? 'red' : 'orange'}>
+                      {inv.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-royal-950 leading-snug">{a.msg}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">by {a.by} · {a.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="py-8 text-center text-sm text-gray-400">No recent invoices</div>
+            )}
           </div>
         </Card>
       </div>
@@ -449,12 +682,12 @@ export default function Dashboard() {
       {/* Bottom Analytics Strip - 6 compact cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {[
-          { label: 'Total Sales (This Month)', value: formatINR(DEMO.monthSales), trend: 'up', trendVal: `▲ ${DEMO.monthSalesTrend}%` },
-          { label: 'Total Orders (This Month)', value: DEMO.monthOrders, trend: 'up', trendVal: `▲ ${DEMO.monthOrdersTrend}%` },
-          { label: 'Average Order Value', value: formatINR(DEMO.avgOrderValue), trend: 'up', trendVal: `▲ ${DEMO.avgOrderTrend}%` },
-          { label: 'Return Rate', value: `${DEMO.returnRate}%`, trend: 'down', trendVal: `▼ ${Math.abs(DEMO.returnRateTrend)}%` },
-          { label: 'Gross Profit Margin', value: `${DEMO.profitMargin}%`, trend: 'up', trendVal: `▲ ${DEMO.profitMarginTrend}%` },
-          { label: 'Inventory Value', value: formatINR(DEMO.inventoryValue), trend: null },
+          { label: 'Total Sales (Period)', value: formatINR(d.periodRevenue), trend: d.salesTrend >= 0 ? 'up' : 'down', trendVal: `${d.salesTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.salesTrend)}%` },
+          { label: 'Total Orders (Period)', value: d.periodOrdersCount, trend: d.ordersTrend >= 0 ? 'up' : 'down', trendVal: `${d.ordersTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.ordersTrend)}%` },
+          { label: 'Average Order Value', value: formatINR(d.avgOrderValue), trend: d.avgOrderTrend >= 0 ? 'up' : 'down', trendVal: `${d.avgOrderTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.avgOrderTrend)}%` },
+          { label: 'Return Rate', value: `${d.returnRate}%`, trend: d.returnRateTrend <= 0 ? 'down' : 'up', trendVal: `▼ ${Math.abs(d.returnRateTrend)}%` },
+          { label: 'Gross Profit Margin', value: `${d.profitMargin}%`, trend: 'up', trendVal: `Margin` },
+          { label: 'Inventory Value', value: formatINR(d.inventoryValue), trend: null },
         ].map((c) => (
           <div key={c.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm px-4 py-3">
             <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{c.label}</p>

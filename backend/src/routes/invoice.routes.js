@@ -12,6 +12,6 @@ router.get('/', invoiceController.list)
 router.get('/:id', invoiceController.getById)
 
 // MANAGER, STAFF and ADMIN can create invoices (billing)
-router.post('/', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(createInvoiceSchema), invoiceController.create)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createInvoiceSchema), invoiceController.create)
 
 module.exports = router

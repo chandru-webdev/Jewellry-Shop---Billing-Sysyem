@@ -23,6 +23,12 @@ const authService = {
       throw new ApiError(403, 'Your account is disabled. Contact an administrator.')
     }
 
+    // Update lastLogin timestamp
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    })
+
     const token = signToken({ id: user.id, role: user.role.name })
     return { token, user: this.safeUser(user) }
   },
@@ -35,6 +41,23 @@ const authService = {
     })
     if (!user) throw new ApiError(404, 'User not found')
     return this.safeUser(user)
+  },
+
+  // Change password (for logged-in user)
+  async changePassword(userId, currentPassword, newPassword) {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new ApiError(404, 'User not found')
+
+    const valid = await bcrypt.compare(currentPassword, user.password)
+    if (!valid) throw new ApiError(400, 'Current password is incorrect')
+
+    const hashed = await bcrypt.hash(newPassword, 10)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed, mustChangePassword: false },
+    })
+
+    return { message: 'Password changed successfully' }
   },
 
   // Strip sensitive fields (like the password hash) before sending to the frontend.

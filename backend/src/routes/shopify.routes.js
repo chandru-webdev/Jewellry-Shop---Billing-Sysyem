@@ -7,7 +7,7 @@ const router = express.Router()
 // Everything under /api/shopify requires login.
 // MANAGER and ADMIN can trigger syncs.
 router.use(authenticate)
-router.use(authorize('ADMIN', 'MANAGER'))
+router.use(authorize('SUPER_ADMIN', 'MANAGER'))
 
 // GET /api/shopify/status — latest sync results (any logged-in user)
 router.get('/status', shopifyController.status)

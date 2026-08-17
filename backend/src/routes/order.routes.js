@@ -12,9 +12,9 @@ router.get('/', orderController.list)
 router.get('/:id', orderController.getById)
 
 // POS orders — anyone who can bill can create one
-router.post('/', authorize('ADMIN', 'MANAGER', 'STAFF'), validate(createOrderSchema), orderController.create)
+router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createOrderSchema), orderController.create)
 
 // Status changes (cancel/fulfil/refund) are manager-level actions
-router.patch('/:id/status', authorize('ADMIN', 'MANAGER'), validate(updateStatusSchema), orderController.updateStatus)
+router.patch('/:id/status', authorize('SUPER_ADMIN', 'MANAGER'), validate(updateStatusSchema), orderController.updateStatus)
 
 module.exports = router

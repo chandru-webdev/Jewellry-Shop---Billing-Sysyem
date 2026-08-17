@@ -79,13 +79,13 @@ function App() {
         <Route path="/shopify/price-sync" element={<ShopifySync />} />
         <Route path="/shopify/sync-logs" element={<ShopifySync />} />
 
-        {/* System */}
-        <Route path="/users" element={<Users />} />
-        <Route path="/roles" element={<Roles />} />
+        {/* System — SUPER_ADMIN only */}
+        <Route path="/users" element={<ProtectedRoute permission="users:manage"><Users /></ProtectedRoute>} />
+        <Route path="/roles" element={<ProtectedRoute permission="users:manage"><Roles /></ProtectedRoute>} />
         <Route path="/metal-rates" element={<MetalRates />} />
         <Route path="/metal-rates/history" element={<PriceHistory />} />
-        <Route path="/audit-logs" element={<AuditLogs />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/audit-logs" element={<ProtectedRoute permission="users:manage"><AuditLogs /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute permission="users:manage"><Settings /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

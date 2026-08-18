@@ -38,6 +38,13 @@ const shopifyController = {
     const result = await shopifyService.pullProductsFromShopify(req.user.id)
     success(res, 200, result, 'Products pulled from Shopify')
   }),
+
+  // GET /api/shopify/products — fetch products from Shopify (preview)
+  fetchProducts: asyncHandler(async (req, res) => {
+    const { limit, page, search } = req.query
+    const result = await shopifyService.fetchProducts({ limit, page, search })
+    success(res, 200, result, 'Products fetched from Shopify')
+  }),
 }
 
 module.exports = shopifyController

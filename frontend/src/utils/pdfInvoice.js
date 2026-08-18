@@ -14,7 +14,6 @@ export function generateInvoicePDF(invoice) {
 
   // Colors
   const royal = [76, 29, 149]
-  const gold = [184, 134, 11]
   const dark = [30, 27, 46]
   const muted = [107, 114, 128]
   const light = [243, 244, 246]

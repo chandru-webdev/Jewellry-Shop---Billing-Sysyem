@@ -23,7 +23,6 @@ import {
   UsersRound,
   DollarSign,
   Settings,
-  Shield,
   ScrollText,
   Coins,
   Receipt,

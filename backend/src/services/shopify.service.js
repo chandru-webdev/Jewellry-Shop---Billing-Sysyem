@@ -144,6 +144,38 @@ const shopifyService = {
     }
   },
 
+  // Fetch products from Shopify store (for preview/listing in UI)
+  async fetchProducts(params = {}) {
+    const { limit = 50, page = 1, search } = params
+    const queryParams = new URLSearchParams({
+      limit: String(limit),
+      page: String(page),
+    })
+    if (search) queryParams.set('search', search)
+
+    const res = await request(`/products.json?${queryParams.toString()}`)
+    const products = res.products || []
+
+    return products.map((p) => {
+      const variant = p.variants?.[0]
+      return {
+        shopifyId: p.id,
+        title: p.title,
+        status: p.status,
+        productType: p.product_type,
+        vendor: p.vendor,
+        sku: variant?.sku || '',
+        price: variant?.price || '0',
+        weight: variant?.weight || 0,
+        weightUnit: variant?.weight_unit || 'g',
+        inventoryQuantity: variant?.inventory_quantity || 0,
+        inventoryManagement: variant?.inventory_management || null,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+      }
+    })
+  },
+
   // ---------- helpers ----------
 
   // Find an existing Shopify product that already uses this SKU.

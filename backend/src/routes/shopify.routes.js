@@ -15,6 +15,9 @@ router.get('/status', shopifyController.status)
 // POST /api/shopify/pull-products — pull products FROM Shopify into ERP
 router.post('/pull-products', shopifyController.pullProducts)
 
+// GET /api/shopify/products — fetch products FROM Shopify (preview only)
+router.get('/products', shopifyController.fetchProducts)
+
 // POST /api/shopify/sync/... — manual sync jobs
 router.post('/sync/products/:id', shopifyController.syncOneProduct)
 router.post('/sync/all-products', shopifyController.syncAllProducts)

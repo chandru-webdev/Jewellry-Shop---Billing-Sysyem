@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag } from 'lucide-react'
+import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag, Search } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -33,6 +33,7 @@ const statusBadge = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
 
 export default function ShopifySync() {
   const [tab, setTab] = useState('dashboard')
+  const [productSearch, setProductSearch] = useState('')
   const queryClient = useQueryClient()
 
   const syncQuery = useQuery({
@@ -50,6 +51,17 @@ export default function ShopifySync() {
     onError: (err) => alert('Pull failed: ' + (err.response?.data?.message || err.message)),
   })
 
+  const fetchProductsQuery = useQuery({
+    queryKey: ['shopify-products', productSearch],
+    queryFn: () => shopifyApi.fetchProducts({ search: productSearch }).then((r) => r.data.data),
+    enabled: tab === 'products',
+    retry: false,
+  })
+
+  const fetchProducts = () => {
+    fetchProductsQuery.refetch()
+  }
+
   return (
     <div>
       <PageHeader
@@ -57,9 +69,28 @@ export default function ShopifySync() {
         subtitle="Monitor Shopify ecommerce synchronization and health"
         actions={
           <div className="flex gap-2">
-            <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
-              <Download size={14} /> Pull from Shopify
-            </Button>
+            {tab === 'products' && (
+              <>
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
+                  <Search size={14} className="text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search Shopify products..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="bg-transparent text-sm focus:outline-none w-full"
+                  />
+                </div>
+                <Button variant="primary" size="sm" onClick={fetchProducts} loading={fetchProductsQuery.isFetching}>
+                  <Download size={14} /> Fetch Products
+                </Button>
+              </>
+            )}
+            {tab === 'dashboard' && (
+              <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
+                <Download size={14} /> Pull from Shopify
+              </Button>
+            )}
             <Button variant="outline" size="sm"><RefreshCw size={14} /> Force Sync All</Button>
           </div>
         }
@@ -67,7 +98,7 @@ export default function ShopifySync() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-5 border-b border-gray-200">
-        {['dashboard', 'sync-logs'].map((t) => (
+        {['dashboard', 'products', 'sync-logs'].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -75,7 +106,7 @@ export default function ShopifySync() {
               tab === t ? 'border-royal-700 text-royal-700' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t === 'dashboard' ? 'Dashboard' : 'Sync Logs'}
+            {t === 'dashboard' ? 'Dashboard' : t === 'products' ? 'Products' : 'Sync Logs'}
           </button>
         ))}
       </div>
@@ -139,6 +170,56 @@ export default function ShopifySync() {
             </div>
           </Card>
         </>
+      )}
+
+      {tab === 'products' && (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-royal-50/80 border-b border-gray-200">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Product</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">SKU</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Price</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Weight</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Stock</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {fetchProductsQuery.isFetching && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      Fetching products from Shopify...
+                    </td>
+                  </tr>
+                )}
+                {!fetchProductsQuery.isFetching && fetchProductsQuery.data?.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      No products found. Click "Fetch Products" to load them.
+                    </td>
+                  </tr>
+                )}
+                {!fetchProductsQuery.isFetching && fetchProductsQuery.data?.map((p) => (
+                  <tr key={p.shopifyId} className="hover:bg-royal-50/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-royal-950">{p.title}</span>
+                      <span className="block text-[11px] text-gray-400">ID: {p.shopifyId}</span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">{p.sku || '—'}</td>
+                    <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(Number(p.price))}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{p.weight ? `${p.weight}${p.weightUnit || 'g'}` : '—'}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{p.inventoryQuantity || 0}</td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge tone={p.status === 'active' ? 'green' : 'gray'}>{p.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {tab === 'sync-logs' && (

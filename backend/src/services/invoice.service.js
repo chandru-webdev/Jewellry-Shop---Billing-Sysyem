@@ -7,9 +7,10 @@ const notificationService = require('./notification.service')
 const Decimal = Prisma.Decimal
 
 const invoiceService = {
-  async list(filters = {}) {
+   async list(filters = {}) {
     const where = {}
     if (filters.status) where.status = filters.status
+    if (filters.paymentMethod) where.paymentMethod = filters.paymentMethod
     if (filters.customerId) where.customerId = Number(filters.customerId)
     if (filters.dateFrom || filters.dateTo) {
       where.date = {}

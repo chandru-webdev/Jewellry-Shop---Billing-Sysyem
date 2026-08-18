@@ -2,13 +2,16 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 
 const supplierService = {
-  async list({ search, limit = 50 } = {}) {
+  async list({ search, limit = 50, isActive } = {}) {
     const where = {}
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
       ]
+    }
+    if (isActive !== undefined && isActive !== null && isActive !== '') {
+      where.isActive = isActive === 'true' || isActive === true
     }
     return prisma.supplier.findMany({
       where,

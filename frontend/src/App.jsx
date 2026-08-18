@@ -9,6 +9,9 @@ import Inventory from './pages/Inventory'
 import StockIn from './pages/StockIn'
 import StockOut from './pages/StockOut'
 import Suppliers from './pages/Suppliers'
+import PurchaseOrders from './pages/PurchaseOrders'
+import PurchaseInvoices from './pages/PurchaseInvoices'
+import PurchaseReturns from './pages/PurchaseReturns'
 import Sales from './pages/Sales'
 import Billing from './pages/Billing'
 import Customers from './pages/Customers'
@@ -46,10 +49,10 @@ function App() {
         <Route path="/customers" element={<Customers />} />
 
         {/* Purchase */}
-        <Route path="/purchase-orders" element={<Orders />} />
-        <Route path="/purchase-invoices" element={<Invoices />} />
+        <Route path="/purchase-orders" element={<PurchaseOrders />} />
+        <Route path="/purchase-invoices" element={<PurchaseInvoices />} />
         <Route path="/suppliers" element={<Suppliers />} />
-        <Route path="/purchase-returns" element={<Orders />} />
+        <Route path="/purchase-returns" element={<PurchaseReturns />} />
 
         {/* Inventory */}
         <Route path="/products" element={<Products />} />

@@ -17,4 +17,9 @@ const createInvoiceSchema = z.object({
   paymentMethod: z.enum(['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'ONLINE', 'OTHER']).optional(),
 })
 
-module.exports = { createInvoiceSchema }
+const updateInvoiceSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  status: z.enum(['DRAFT', 'FINAL', 'PAID', 'VOID']).optional(),
+})
+
+module.exports = { createInvoiceSchema, updateInvoiceSchema }

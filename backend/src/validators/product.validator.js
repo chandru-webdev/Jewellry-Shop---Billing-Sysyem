@@ -10,6 +10,7 @@ const createProductSchema = z.object({
   gstPercent: z.number().min(0).max(30).optional(),
   lowStockThreshold: z.number().int().nonnegative().optional(),
   initialStock: z.number().int().nonnegative().optional(),
+  updateStock: z.boolean().optional(),
 })
 
 // For updates every field is optional

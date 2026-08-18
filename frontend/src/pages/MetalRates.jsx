@@ -44,19 +44,18 @@ export default function MetalRates() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const { data: rates } = useQuery({
     queryKey: ['metal-rates'],
-    queryFn: () => metalRatesApi.list().then((r) => r.data.data),
+    queryFn: () => metalRatesApi.getCurrent().then((r) => r.data.data),
   })
 
-  const currentRate = rates?.[0]?.rate || 92.80
-  const lastUpdated = rates?.[0]?.updatedAt || new Date().toISOString()
+  const currentRate = rates?.rate || 92.80
+  const lastUpdated = rates?.updatedAt || new Date().toISOString()
 
   const updateMutation = useMutation({
-    mutationFn: (rate) => metalRatesApi.update({ rate: parseFloat(rate) }),
+    mutationFn: (rate) => metalRatesApi.updateSilver(parseFloat(rate)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
       setNewRate('')
       setPreviewOpen(false)
-      setPreviewConfirmed(false)
     },
   })
 
@@ -160,10 +159,10 @@ export default function MetalRates() {
       <Modal
         open={previewOpen}
         title="Preview Price Changes"
-        onClose={() => { setPreviewOpen(false); setPreviewConfirmed(false) }}
+        onClose={() => setPreviewOpen(false)}
         footer={
           <>
-            <Button variant="ghost" onClick={() => { setPreviewOpen(false); setPreviewConfirmed(false) }}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Cancel</Button>
             <Button onClick={handleApprove} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? 'Updating...' : 'Approve & Update Shopify'}
             </Button>

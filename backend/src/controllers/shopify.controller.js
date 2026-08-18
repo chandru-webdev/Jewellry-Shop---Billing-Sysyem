@@ -32,6 +32,12 @@ const shopifyController = {
     const result = await shopifyService.syncStatus()
     success(res, 200, result, 'Shopify sync status fetched')
   }),
+
+  // POST /api/shopify/pull-products — pull products from Shopify into ERP
+  pullProducts: asyncHandler(async (req, res) => {
+    const result = await shopifyService.pullProductsFromShopify(req.user.id)
+    success(res, 200, result, 'Products pulled from Shopify')
+  }),
 }
 
 module.exports = shopifyController

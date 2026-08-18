@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -33,10 +33,21 @@ const statusBadge = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
 
 export default function ShopifySync() {
   const [tab, setTab] = useState('dashboard')
+  const queryClient = useQueryClient()
 
-  useQuery({
+  const syncQuery = useQuery({
     queryKey: ['shopify-sync'],
     queryFn: () => shopifyApi.getSyncStatus().then((r) => r.data.data),
+  })
+
+  const pullMutation = useMutation({
+    mutationFn: () => shopifyApi.pullProducts(),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['shopify-sync'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      alert(`Done! Created ${res.data.data.created}, Updated ${res.data.data.updated}, Failed ${res.data.data.failed}`)
+    },
+    onError: (err) => alert('Pull failed: ' + (err.response?.data?.message || err.message)),
   })
 
   return (
@@ -46,6 +57,9 @@ export default function ShopifySync() {
         subtitle="Monitor Shopify ecommerce synchronization and health"
         actions={
           <div className="flex gap-2">
+            <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
+              <Download size={14} /> Pull from Shopify
+            </Button>
             <Button variant="outline" size="sm"><RefreshCw size={14} /> Force Sync All</Button>
           </div>
         }

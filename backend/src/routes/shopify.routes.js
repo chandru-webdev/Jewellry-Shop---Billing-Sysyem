@@ -12,6 +12,9 @@ router.use(authorize('SUPER_ADMIN', 'MANAGER'))
 // GET /api/shopify/status — latest sync results (any logged-in user)
 router.get('/status', shopifyController.status)
 
+// POST /api/shopify/pull-products — pull products FROM Shopify into ERP
+router.post('/pull-products', shopifyController.pullProducts)
+
 // POST /api/shopify/sync/... — manual sync jobs
 router.post('/sync/products/:id', shopifyController.syncOneProduct)
 router.post('/sync/all-products', shopifyController.syncAllProducts)

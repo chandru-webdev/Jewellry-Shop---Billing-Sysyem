@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   IndianRupee, TrendingUp, ShoppingCart, FileText, AlertTriangle,
   Receipt, Clock, Coins, Package, Users, Truck, Boxes, CreditCard,
   ArrowRight, BarChart3, Gem, CircleDollarSign, Store,
-  Calendar, ChevronDown,
+  Calendar, ChevronDown, Plus, Minus, X,
 } from 'lucide-react'
 import {
   AreaChart, Area, LineChart, Line, PieChart, Pie, Cell,
@@ -13,8 +13,11 @@ import {
 } from 'recharts'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
 import { formatINR } from '../utils/format'
 import { dashboardApi } from '../api/dashboard'
+import { productsApi } from '../api/products'
+import { inventoryApi } from '../api/inventory'
 
 function isDemoMode() {
   return localStorage.getItem('opal_token') === 'demo-token-opal-line'
@@ -282,10 +285,150 @@ function LoadingSkeleton() {
   )
 }
 
+function StockUpdateModal({ open, onClose, onSuccess }) {
+  const queryClient = useQueryClient()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [quantity, setQuantity] = useState('')
+  const [type, setType] = useState('IN')
+  const [message, setMessage] = useState('')
+
+  const { data: products } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => productsApi.list().then((r) => r.data.data),
+    enabled: open,
+  })
+
+  const stockMutation = useMutation({
+    mutationFn: (data) => type === 'IN' ? inventoryApi.stockIn(data) : inventoryApi.stockOut(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      setMessage(`${type === 'IN' ? 'Stock added' : 'Stock removed'} successfully!`)
+      setTimeout(() => {
+        setSelectedProduct(null)
+        setQuantity('')
+        setSearchTerm('')
+        setMessage('')
+        onSuccess?.()
+        onClose()
+      }, 1200)
+    },
+    onError: (err) => setMessage(err.response?.data?.message || 'Failed to update stock'),
+  })
+
+  const filteredProducts = (products || []).filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+  ).slice(0, 8)
+
+  const handleSubmit = () => {
+    if (!selectedProduct || !quantity || Number(quantity) <= 0) return
+    setMessage('')
+    stockMutation.mutate({ productId: selectedProduct.id, quantity: Number(quantity) })
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-base font-bold text-royal-950">Quick Stock Update</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Add or remove stock for any product</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"><X size={18} /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* IN / OUT toggle */}
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <button onClick={() => setType('IN')}
+              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'IN' ? 'bg-emerald-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+              <Plus size={14} className="inline mr-1" /> Stock In
+            </button>
+            <button onClick={() => setType('OUT')}
+              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'OUT' ? 'bg-red-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+              <Minus size={14} className="inline mr-1" /> Stock Out
+            </button>
+          </div>
+
+          {/* Product search */}
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Search Product</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setSelectedProduct(null) }}
+              placeholder="Type name or SKU..."
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
+            />
+            {searchTerm && !selectedProduct && filteredProducts.length > 0 && (
+              <div className="mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {filteredProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setSelectedProduct(p); setSearchTerm(`${p.name} (${p.sku})`) }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 flex justify-between items-center cursor-pointer"
+                  >
+                    <span className="font-medium text-royal-950">{p.name}</span>
+                    <span className="text-[11px] text-gray-400 font-mono">{p.sku}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Current stock display */}
+          {selectedProduct && (
+            <div className="bg-royal-50 rounded-lg px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-gray-600">Current Stock</span>
+              <span className="text-sm font-bold text-royal-800">{selectedProduct.inventory?.quantity ?? 0} pcs</span>
+            </div>
+          )}
+
+          {/* Quantity input */}
+          <div>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">Quantity</label>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Enter quantity"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
+            />
+          </div>
+
+          {message && (
+            <div className={`text-sm rounded-lg px-3 py-2 ${message.includes('success') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+              {message}
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            variant={type === 'IN' ? 'primary' : 'danger'}
+            onClick={handleSubmit}
+            loading={stockMutation.isPending}
+            disabled={!selectedProduct || !quantity || Number(quantity) <= 0}
+          >
+            {type === 'IN' ? 'Add Stock' : 'Remove Stock'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const [dateFilter, setDateFilter] = useState('last7days')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
+  const [stockModalOpen, setStockModalOpen] = useState(false)
 
   const handleFilterChange = useCallback((value) => {
     setDateFilter(value)
@@ -351,7 +494,27 @@ export default function Dashboard() {
       </div>
 
       <SystemStatusStrip />
-      <QuickActionBar />
+
+      {/* Quick Actions + Add Stock */}
+      <div className="flex flex-wrap items-center gap-2">
+        {quickActions.map((a) => (
+          <Link
+            key={a.label}
+            to={a.to}
+            className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:border-royal-300 hover:bg-royal-50 text-gray-700 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
+          >
+            <a.icon size={13} />
+            {a.label}
+          </Link>
+        ))}
+        <button
+          onClick={() => setStockModalOpen(true)}
+          className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer"
+        >
+          <Package size={13} />
+          Add Stock
+        </button>
+      </div>
 
       {/* Primary KPI Row - 6 cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -697,6 +860,11 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      <StockUpdateModal
+        open={stockModalOpen}
+        onClose={() => setStockModalOpen(false)}
+      />
     </div>
   )
 }

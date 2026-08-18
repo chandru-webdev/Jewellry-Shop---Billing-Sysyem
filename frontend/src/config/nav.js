@@ -1,17 +1,13 @@
 import {
   LayoutDashboard,
   ShoppingCart,
-  FileText,
-  ShoppingBag,
-  Users,
-  RotateCcw,
   PackageSearch,
   PackageCheck,
   Truck,
   RotateCw,
   Boxes,
   Package,
-  ArrowRightLeft,
+  ArrowRight,
   ScanBarcode,
   AlertTriangle,
   CreditCard,
@@ -31,6 +27,7 @@ import {
   ScrollText,
   Coins,
   Receipt,
+  Users,
 } from 'lucide-react'
 
 export const navGroups = [
@@ -43,11 +40,7 @@ export const navGroups = [
   {
     label: 'Sales',
     items: [
-      { to: '/billing', label: 'POS Billing', icon: ShoppingCart, permission: 'billing:view' },
-      { to: '/invoices', label: 'Sales Invoices', icon: FileText, permission: 'invoices:view' },
-      { to: '/orders', label: 'Sales Orders', icon: ShoppingBag, permission: 'orders:view' },
-      { to: '/customers', label: 'Customers', icon: Users, permission: 'customers:view' },
-      { to: '/returns', label: 'Returns', icon: RotateCcw, permission: 'orders:view' },
+      { to: '/sales', label: 'Sales', icon: ShoppingCart, permission: 'invoices:view' },
     ],
   },
   {
@@ -64,7 +57,7 @@ export const navGroups = [
     items: [
       { to: '/products', label: 'Products', icon: Package, permission: 'products:view' },
       { to: '/inventory', label: 'Stock Overview', icon: Boxes, permission: 'inventory:view' },
-      { to: '/stock-transfer', label: 'Stock Transfer', icon: ArrowRightLeft, permission: 'inventory:manage' },
+      { to: '/stock-transfer', label: 'Stock Transfer', icon: ArrowRight, permission: 'inventory:manage' },
       { to: '/barcode', label: 'Barcode / Labels', icon: ScanBarcode, permission: 'inventory:view' },
       { to: '/low-stock', label: 'Low Stock Alert', icon: AlertTriangle, permission: 'inventory:view' },
     ],
@@ -84,7 +77,7 @@ export const navGroups = [
       { to: '/reports', label: 'Business Reports', icon: BarChart3, permission: 'reports:view' },
       { to: '/gst-reports', label: 'GST Reports', icon: FileBarChart, permission: 'reports:view' },
       { to: '/sales-analysis', label: 'Sales Analysis', icon: TrendingUp, permission: 'reports:view' },
-      { to: '/inventory-reports', label: 'Inventory Reports', icon: PieChart, permission: 'reports:view' },
+      { to: '/inventory-reports', label: 'Inventory Reports', icon: PieChart, permission: 'inventory:view' },
     ],
   },
   {

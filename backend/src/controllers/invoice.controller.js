@@ -17,6 +17,11 @@ const invoiceController = {
     const invoice = await invoiceService.create(req.body, req.user.id)
     success(res, 201, invoice, 'Invoice created')
   }),
+
+  update: asyncHandler(async (req, res) => {
+    const invoice = await invoiceService.update(req.params.id, req.body, req.user.id)
+    success(res, 200, invoice, 'Invoice updated')
+  }),
 }
 
 module.exports = invoiceController

@@ -4,4 +4,5 @@ export const invoicesApi = {
   list: (params) => apiClient.get('/invoices', { params }),
   get: (id) => apiClient.get(`/invoices/${id}`),
   create: (data) => apiClient.post('/invoices', data),
+  update: (id, data) => apiClient.put(`/invoices/${id}`, data),
 }

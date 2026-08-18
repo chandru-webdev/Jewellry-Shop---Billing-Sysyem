@@ -12,8 +12,138 @@
 // =============================================================
 const prisma = require('../prisma/client')
 const { request, throttle, ShopifyApiError } = require('../integrations/shopify/client')
+const { calculatePrice, getSilverRate } = require('./pricing.service')
 
 const shopifyService = {
+
+  // Pull ALL products from Shopify store into the ERP database.
+  // Creates new products or updates existing ones matched by SKU.
+  async pullProductsFromShopify(userId) {
+    let ok = 0
+    let failed = 0
+    let created = 0
+    let updated = 0
+    let skipped = 0
+    let firstError = null
+
+    const silverRate = await getSilverRate()
+    const defaultCategory = await prisma.category.findFirst({ orderBy: { name: 'asc' } })
+
+    // Paginate through all Shopify products
+    let sinceId = 0
+    const allShopifyProducts = []
+
+    while (true) {
+      const res = await request(`/products.json?limit=250&since_id=${sinceId}`)
+      const products = res.products || []
+      if (!products.length) break
+      allShopifyProducts.push(...products)
+      sinceId = products[products.length - 1].id
+      await throttle()
+    }
+
+    for (const sp of allShopifyProducts) {
+      try {
+        const variant = sp.variants?.[0]
+        if (!variant) { skipped++; continue }
+
+        const sku = variant.sku || `SHOPIFY-${sp.id}`
+        const name = sp.title || 'Untitled Product'
+        const weight = parseFloat(variant.weight) || 5
+        const shopifyPrice = parseFloat(variant.price) || 0
+
+        // Check if product already exists by SKU
+        const existing = await prisma.product.findUnique({ where: { sku } })
+
+        // Calculate price using our pricing engine
+        const makingCharge = 180 // default making charge for imported products
+        const price = calculatePrice({
+          silverRate,
+          weight,
+          makingCharge,
+          gstPercent: 3,
+        })
+
+        if (existing) {
+          // Update existing product with Shopify link
+          await prisma.product.update({
+            where: { id: existing.id },
+            data: {
+              shopifyProductId: BigInt(sp.id),
+              shopifyVariantId: BigInt(variant.id),
+              shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
+              name,
+              weight,
+            },
+          })
+
+          // Create inventory if it doesn't exist
+          if (!existing.inventoryId) {
+            await prisma.inventory.create({
+              data: { productId: existing.id, quantity: variant.inventory_quantity || 0 },
+            })
+          }
+
+          updated++
+        } else {
+          // Determine category from Shopify product type
+          let categoryId = defaultCategory?.id
+          if (sp.product_type) {
+            const cat = await prisma.category.findFirst({
+              where: { name: { equals: sp.product_type, mode: 'insensitive' } },
+            })
+            if (cat) categoryId = cat.id
+          }
+
+          // Create new product
+          const product = await prisma.product.create({
+            data: {
+              sku,
+              name,
+              description: sp.body_html?.replace(/<[^>]*>/g, '') || '',
+              categoryId: categoryId || 1,
+              metal: 'silver',
+              weight,
+              makingCharge,
+              gstPercent: 3,
+              baseAmount: price.baseAmount,
+              gstAmount: price.gstAmount,
+              sellingPrice: price.sellingPrice,
+              isActive: sp.status === 'active',
+              shopifyProductId: BigInt(sp.id),
+              shopifyVariantId: BigInt(variant.id),
+              shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
+            },
+          })
+
+          // Create inventory record
+          await prisma.inventory.create({
+            data: { productId: product.id, quantity: variant.inventory_quantity || 0 },
+          })
+
+          created++
+        }
+
+        ok++
+      } catch (err) {
+        failed++
+        if (!firstError) firstError = err.message
+      }
+    }
+
+    await this.logSync('PRODUCT', ok, failed, firstError, userId)
+
+    return {
+      total: allShopifyProducts.length,
+      ok,
+      created,
+      updated,
+      skipped,
+      failed,
+      firstError,
+    }
+  },
+
   // ---------- helpers ----------
 
   // Find an existing Shopify product that already uses this SKU.

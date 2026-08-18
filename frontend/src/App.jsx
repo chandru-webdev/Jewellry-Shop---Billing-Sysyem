@@ -9,6 +9,7 @@ import Inventory from './pages/Inventory'
 import StockIn from './pages/StockIn'
 import StockOut from './pages/StockOut'
 import Suppliers from './pages/Suppliers'
+import Sales from './pages/Sales'
 import Billing from './pages/Billing'
 import Customers from './pages/Customers'
 import Orders from './pages/Orders'
@@ -38,11 +39,11 @@ function App() {
         <Route path="/" element={<Dashboard />} />
 
         {/* Sales */}
+        <Route path="/sales" element={<Sales />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/customers" element={<Customers />} />
-        <Route path="/returns" element={<Orders />} />
 
         {/* Purchase */}
         <Route path="/purchase-orders" element={<Orders />} />

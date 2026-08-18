@@ -11,17 +11,41 @@ const invoiceService = {
     const where = {}
     if (filters.status) where.status = filters.status
     if (filters.customerId) where.customerId = Number(filters.customerId)
+    if (filters.dateFrom || filters.dateTo) {
+      where.date = {}
+      if (filters.dateFrom) where.date.gte = new Date(filters.dateFrom)
+      if (filters.dateTo) {
+        const end = new Date(filters.dateTo)
+        end.setHours(23, 59, 59, 999)
+        where.date.lte = end
+      }
+    }
+    if (filters.search) {
+      const q = filters.search
+      where.OR = [
+        { invoiceNumber: { contains: q, mode: 'insensitive' } },
+        { customer: { name: { contains: q, mode: 'insensitive' } } },
+        { customer: { phone: { contains: q } } },
+      ]
+    }
 
-    return prisma.invoice.findMany({
+    const invoices = await prisma.invoice.findMany({
       where,
       include: {
         customer: true,
         salesperson: { select: { id: true, name: true } },
         _count: { select: { items: true } },
+        items: { select: { quantity: true } },
       },
       orderBy: { id: 'desc' },
       take: Number(filters.limit) || 50,
     })
+
+    return invoices.map((inv) => ({
+      ...inv,
+      totalQuantity: inv.items.reduce((sum, it) => sum + it.quantity, 0),
+      items: undefined,
+    }))
   },
 
   async getById(id) {
@@ -182,6 +206,22 @@ const invoiceService = {
         })
       }
     }
+
+    return this.getById(invoice.id)
+  },
+
+  async update(id, data, userId) {
+    const existing = await prisma.invoice.findUnique({ where: { id: Number(id) } })
+    if (!existing) throw new ApiError(404, 'Invoice not found')
+
+    const invoice = await prisma.invoice.update({
+      where: { id: existing.id },
+      data,
+    })
+
+    await prisma.auditLog.create({
+      data: { userId, action: 'INVOICE_UPDATED', entity: 'Invoice', entityId: invoice.id },
+    })
 
     return this.getById(invoice.id)
   },

@@ -1,6 +1,7 @@
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
+const shopifyService = require('./shopify.service')
 
 const productService = {
   // GET /api/products  — optional filters: ?search=, ?categoryId=, ?isActive=
@@ -88,14 +89,52 @@ const productService = {
     const silverRate = await getSilverRate()
     const price = calculatePrice({ silverRate, weight, makingCharge, gstPercent })
 
+    const { initialStock, updateStock, ...restData } = data
+
     const product = await prisma.product.update({
       where: { id: existing.id },
       data: {
-        ...data,
+        ...restData,
         ...price,
       },
       include: { category: true, inventory: true },
     })
+
+    // Push price to Shopify if price-relevant fields changed
+    if (product.shopifyVariantId && (data.weight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined)) {
+      shopifyService.updateProductOnShopify({
+        shopifyProductId: product.shopifyProductId,
+        shopifyVariantId: product.shopifyVariantId,
+        shopifyInventoryItemId: product.shopifyInventoryItemId,
+        name: product.name,
+        category: product.category,
+        description: product.description,
+        isActive: product.isActive,
+        sellingPrice: product.sellingPrice,
+        sku: product.sku,
+        inventory: product.inventory,
+        weight: product.weight,
+      }).catch(() => {})
+    }
+
+    // Handle stock update via inventory
+    if (updateStock && initialStock !== undefined) {
+      const newQty = Number(initialStock)
+      if (existing.inventory) {
+        await prisma.inventory.update({
+          where: { id: existing.inventory.id },
+          data: { quantity: newQty },
+        })
+      } else {
+        await prisma.inventory.create({
+          data: { productId: product.id, quantity: newQty },
+        })
+      }
+      // Push to Shopify
+      if (product.shopifyInventoryItemId) {
+        shopifyService.setInventoryLevel(Number(product.shopifyInventoryItemId), newQty).catch(() => {})
+      }
+    }
 
     await prisma.auditLog.create({
       data: { userId, action: 'PRODUCT_UPDATED', entity: 'Product', entityId: product.id },

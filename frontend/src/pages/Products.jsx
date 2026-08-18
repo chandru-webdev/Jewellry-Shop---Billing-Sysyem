@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Power, Upload, Download, RefreshCw, Search } from 'lucide-react'
+import { Plus, Pencil, Power, Upload, Download, RefreshCw, Search, Package, DollarSign, Weight, X, Check } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Products() {
   const { user } = useAuth()
-  const canEdit = ['ADMIN', 'MANAGER'].includes(user?.role?.name)
+  const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -21,6 +21,8 @@ export default function Products() {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStock, setFilterStock] = useState('')
+  const [inlineEdit, setInlineEdit] = useState({ productId: null, field: null })
+  const [inlineValue, setInlineValue] = useState('')
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
@@ -30,6 +32,16 @@ export default function Products() {
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoriesApi.list().then((r) => r.data.data),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => productsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      setInlineEdit({ productId: null, field: null })
+      setInlineValue('')
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to update'),
   })
 
   const saveMutation = useMutation({
@@ -51,6 +63,33 @@ export default function Products() {
       product.isActive ? productsApi.remove(product.id) : productsApi.update(product.id, { isActive: true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
   })
+
+  const startInlineEdit = (productId, field, currentValue) => {
+    setInlineEdit({ productId, field })
+    setInlineValue(String(currentValue ?? ''))
+  }
+
+  const cancelInlineEdit = () => {
+    setInlineEdit({ productId: null, field: null })
+    setInlineValue('')
+  }
+
+  const saveInlineEdit = (product) => {
+    const val = parseFloat(inlineValue)
+    if (isNaN(val) || val < 0) {
+      setError('Please enter a valid number')
+      return
+    }
+    if (inlineEdit.field === 'makingCharge') {
+      updateMutation.mutate({ id: product.id, data: { makingCharge: val } })
+    } else if (inlineEdit.field === 'weight') {
+      updateMutation.mutate({ id: product.id, data: { weight: val } })
+    } else if (inlineEdit.field === 'stock') {
+      updateMutation.mutate({ id: product.id, data: { initialStock: val, updateStock: true } })
+    }
+  }
+
+  const isEditing = (productId, field) => inlineEdit.productId === productId && inlineEdit.field === field
 
   const filtered = (products || []).filter((p) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sku?.toLowerCase().includes(search.toLowerCase())) return false
@@ -151,13 +190,71 @@ export default function Products() {
                   </td>
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
                   <td className="px-4 py-3 text-gray-600">{p.purity || '92.5'}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">{formatWeight(p.weight)}</td>
-                  <td className="px-4 py-3 text-right text-gray-600">{formatINR(p.makingCharge)}/g</td>
+                  <td className="px-4 py-3 text-right">
+                    {isEditing(p.id, 'weight') ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <input type="number" step="0.01" value={inlineValue} onChange={(e) => setInlineValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveInlineEdit(p); if (e.key === 'Escape') cancelInlineEdit() }}
+                          className="w-20 text-right text-sm border border-royal-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-royal-500" autoFocus />
+                        <button onClick={() => saveInlineEdit(p)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"><Check size={12} /></button>
+                        <button onClick={cancelInlineEdit} className="p-1 text-red-500 hover:bg-red-50 rounded cursor-pointer"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 group">
+                        <span className="text-gray-600">{formatWeight(p.weight)}</span>
+                        {canEdit && (
+                          <button onClick={() => startInlineEdit(p.id, 'weight', p.weight)}
+                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit weight">
+                            <Weight size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {isEditing(p.id, 'makingCharge') ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <input type="number" step="1" value={inlineValue} onChange={(e) => setInlineValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveInlineEdit(p); if (e.key === 'Escape') cancelInlineEdit() }}
+                          className="w-24 text-right text-sm border border-royal-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-royal-500" autoFocus />
+                        <button onClick={() => saveInlineEdit(p)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"><Check size={12} /></button>
+                        <button onClick={cancelInlineEdit} className="p-1 text-red-500 hover:bg-red-50 rounded cursor-pointer"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 group">
+                        <span className="text-gray-600">{formatINR(p.makingCharge)}/g</span>
+                        {canEdit && (
+                          <button onClick={() => startInlineEdit(p.id, 'makingCharge', p.makingCharge)}
+                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit making charge">
+                            <DollarSign size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(p.sellingPrice)}</td>
                   <td className="px-4 py-3 text-right">
-                    <Badge tone={p.inventory?.quantity > (p.lowStockThreshold || 5) ? 'green' : p.inventory?.quantity > 0 ? 'orange' : 'red'}>
-                      {p.inventory?.quantity ?? 0} pcs
-                    </Badge>
+                    {isEditing(p.id, 'stock') ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <input type="number" step="1" min="0" value={inlineValue} onChange={(e) => setInlineValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveInlineEdit(p); if (e.key === 'Escape') cancelInlineEdit() }}
+                          className="w-20 text-right text-sm border border-royal-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-royal-500" autoFocus />
+                        <button onClick={() => saveInlineEdit(p)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded cursor-pointer"><Check size={12} /></button>
+                        <button onClick={cancelInlineEdit} className="p-1 text-red-500 hover:bg-red-50 rounded cursor-pointer"><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1 group">
+                        <Badge tone={p.inventory?.quantity > (p.lowStockThreshold || 5) ? 'green' : p.inventory?.quantity > 0 ? 'orange' : 'red'}>
+                          {p.inventory?.quantity ?? 0} pcs
+                        </Badge>
+                        {canEdit && (
+                          <button onClick={() => startInlineEdit(p.id, 'stock', p.inventory?.quantity ?? 0)}
+                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit stock">
+                            <Package size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone="blue">Synced</Badge>

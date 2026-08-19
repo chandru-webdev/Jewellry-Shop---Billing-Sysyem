@@ -24,17 +24,19 @@ app.set('json replacer', (key, value) =>
 app.use(helmet())
 
 // CORS — allow only configured origins
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true)
-      if (env.allowedOrigins.includes(origin)) return callback(null, true)
-      callback(new Error('Not allowed by CORS'))
-    },
-    credentials: true,
-  })
-)
+// CORS — allow only configured origins (relaxed in development)
+const corsOptions = {
+  credentials: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true)
+    // In development, allow all local origins to avoid CORS friction
+    if (env.nodeEnv === 'development') return callback(null, true)
+    if (env.allowedOrigins.includes(origin)) return callback(null, true)
+    callback(new Error('Not allowed by CORS'))
+  },
+}
+app.use(cors(corsOptions))
 
 // Shopify webhooks MUST be mounted BEFORE the JSON body parser and the
 // rate limiter:

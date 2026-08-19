@@ -67,7 +67,7 @@ export default function Login() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Email address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@opalline.com" className={inputClass} required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@opalline.in" className={inputClass} required />
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
@@ -103,7 +103,7 @@ export default function Login() {
           {import.meta.env.DEV && (
             <div className="mt-5 text-center">
               <p className="text-[11px] text-white/40">
-                Demo: <span className="font-medium text-white/60">admin@opalline.in</span> / <span className="font-medium text-white/60">admin123</span>
+                Seeded admin: <span className="font-medium text-white/60">admin@opalline.com</span> / <span className="font-medium text-white/60">Admin@123</span>
               </p>
             </div>
           )}

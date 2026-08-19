@@ -10,11 +10,13 @@ import {
   ArrowRight,
   ScanBarcode,
   AlertTriangle,
+  Activity,
   CreditCard,
   Landmark,
   BookOpen,
   BarChart3,
   FileBarChart,
+  FileText,
   TrendingUp,
   PieChart,
   Store,
@@ -34,12 +36,17 @@ export const navGroups = [
     label: 'Main',
     items: [
       { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true, permission: 'dashboard:view' },
+      { to: '/metal-rates', label: 'Silver Rate', icon: Coins, permission: 'metal-rates:view' },
     ],
   },
   {
     label: 'Sales',
     items: [
       { to: '/sales', label: 'Sales', icon: ShoppingCart, permission: 'invoices:view' },
+      { to: '/invoices', label: 'Sales Invoices', icon: FileText, permission: 'invoices:view' },
+      { to: '/orders', label: 'Sales Orders', icon: ShoppingCart, permission: 'orders:view' },
+      { to: '/customers', label: 'Customers', icon: UsersRound, permission: 'customers:view' },
+      { to: '/sales-returns', label: 'Returns', icon: RotateCw, permission: 'orders:view' },
     ],
   },
   {
@@ -99,6 +106,7 @@ export const navGroups = [
       { to: '/metal-rates', label: 'Silver Rate', icon: Coins, permission: 'metal-rates:view' },
       { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'users:manage' },
       { to: '/settings', label: 'Settings', icon: Settings, permission: 'users:manage' },
+      { to: '/activity-log', label: 'Activity Log', icon: Activity, permission: 'users:manage' },
     ],
   },
 ]

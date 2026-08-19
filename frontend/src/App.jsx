@@ -6,8 +6,6 @@ import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import Categories from './pages/Categories'
 import Inventory from './pages/Inventory'
-import StockIn from './pages/StockIn'
-import StockOut from './pages/StockOut'
 import Suppliers from './pages/Suppliers'
 import PurchaseOrders from './pages/PurchaseOrders'
 import PurchaseInvoices from './pages/PurchaseInvoices'
@@ -18,6 +16,11 @@ import Customers from './pages/Customers'
 import Orders from './pages/Orders'
 import Invoices from './pages/Invoices'
 import Payments from './pages/Payments'
+import LowStockAlert from './pages/LowStockAlert'
+import StockTransfer from './pages/StockTransfer'
+import BarcodeLabels from './pages/BarcodeLabels'
+import SalesReturns from './pages/SalesReturns'
+import ActivityLog from './pages/ActivityLog'
 import MetalRates from './pages/MetalRates'
 import PriceHistory from './pages/PriceHistory'
 import Reports from './pages/Reports'
@@ -58,9 +61,10 @@ function App() {
         <Route path="/products" element={<Products />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/inventory" element={<Inventory />} />
-        <Route path="/stock-transfer" element={<StockIn />} />
-        <Route path="/barcode" element={<StockOut />} />
-        <Route path="/low-stock" element={<Inventory />} />
+        <Route path="/stock-transfer" element={<StockTransfer />} />
+        <Route path="/barcode" element={<BarcodeLabels />} />
+        <Route path="/low-stock" element={<LowStockAlert />} />
+        <Route path="/sales-returns" element={<SalesReturns />} />
 
         {/* Accounts */}
         <Route path="/expenses" element={<Payments />} />
@@ -90,6 +94,7 @@ function App() {
         <Route path="/metal-rates/history" element={<PriceHistory />} />
         <Route path="/audit-logs" element={<ProtectedRoute permission="users:manage"><AuditLogs /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute permission="users:manage"><Settings /></ProtectedRoute>} />
+        <Route path="/activity-log" element={<ProtectedRoute permission="users:manage"><ActivityLog /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

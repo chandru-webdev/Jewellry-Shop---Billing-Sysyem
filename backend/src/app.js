@@ -19,10 +19,15 @@ app.set('json replacer', (key, value) =>
 // Secure HTTP headers
 app.use(helmet())
 
-// CORS — allow only the React app
+// CORS — allow only configured origins
 app.use(
   cors({
-    origin: env.clientUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true)
+      if (env.allowedOrigins.includes(origin)) return callback(null, true)
+      callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   })
 )

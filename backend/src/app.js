@@ -10,6 +10,10 @@ const errorHandler = require('./middleware/errorHandler')
 
 const app = express()
 
+// Trust proxy — required when behind Railway/Nginx/load balancer so that
+// express-rate-limit can read X-Forwarded-For without crashing.
+app.set('trust proxy', 1)
+
 // Express cannot serialize BigInt (e.g. Prisma BigInt ids like shopifyOrderId).
 // Register a global JSON replacer so every res.json() handles BigInt safely.
 app.set('json replacer', (key, value) =>

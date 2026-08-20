@@ -95,7 +95,25 @@ async function main() {
   }
   console.log('✓ Categories ready: 8 jewellery categories')
 
-  // 5. Invoice prefix setting
+  // 5. Staff user
+  const staffRole = await prisma.role.findUnique({ where: { name: 'MANAGER' } })
+  const staffEmail = process.env.SEED_STAFF_EMAIL || 'staff@opalline.com'
+  const staffPassword = process.env.SEED_STAFF_PASSWORD || 'Staff@123'
+  const staffHash = await bcrypt.hash(staffPassword, 10)
+
+  await prisma.user.upsert({
+    where: { email: staffEmail },
+    update: { password: staffHash, roleId: staffRole.id },
+    create: {
+      name: 'Priya Sharma',
+      email: staffEmail,
+      password: staffHash,
+      roleId: staffRole.id,
+    },
+  })
+  console.log(`✓ Staff user ready: ${staffEmail} / ${staffPassword}`)
+
+  // 6. Invoice prefix setting
   await prisma.setting.upsert({
     where: { key: 'invoicePrefix' },
     update: {},

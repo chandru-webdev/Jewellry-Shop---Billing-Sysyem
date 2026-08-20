@@ -29,6 +29,9 @@ import Users from './pages/Users'
 import Roles from './pages/Roles'
 import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
+import Expenses from './pages/Expenses'
+import BankAccounts from './pages/BankAccounts'
+import Ledger from './pages/Ledger'
 
 function App() {
   return (
@@ -67,10 +70,10 @@ function App() {
         <Route path="/sales-returns" element={<SalesReturns />} />
 
         {/* Accounts */}
-        <Route path="/expenses" element={<Payments />} />
+        <Route path="/expenses" element={<Expenses />} />
         <Route path="/payments" element={<Payments />} />
-        <Route path="/bank-accounts" element={<Payments />} />
-        <Route path="/ledger" element={<Reports />} />
+        <Route path="/bank-accounts" element={<BankAccounts />} />
+        <Route path="/ledger" element={<Ledger />} />
 
         {/* Reports */}
         <Route path="/reports" element={<Reports />} />

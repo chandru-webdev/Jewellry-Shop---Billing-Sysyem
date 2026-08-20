@@ -3,10 +3,12 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { navGroups } from '../../config/nav'
 import { cn } from '../../utils/cn'
 import { useAuth } from '../../context/AuthContext'
+import { useSilverRate } from '../../hooks/useSilverRate'
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) {
   const location = useLocation()
   const { hasPermission } = useAuth()
+  const { currentRate, isLoading: rateLoading } = useSilverRate()
   const isCollapsed = collapsed
 
   // Filter nav groups and items based on user permissions
@@ -96,7 +98,11 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] text-white/40 uppercase tracking-wider font-medium">Silver Rate (92.5)</p>
-                <p className="text-sm font-bold text-gold-400">₹92.80 <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
+                {rateLoading ? (
+                  <p className="text-sm font-bold text-gold-400 animate-pulse">₹... <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
+                ) : (
+                  <p className="text-sm font-bold text-gold-400">₹{currentRate.toFixed(2)} <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
+                )}
               </div>
             </div>
           </div>

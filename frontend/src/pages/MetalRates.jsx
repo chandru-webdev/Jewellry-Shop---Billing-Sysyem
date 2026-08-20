@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Coins, TrendingUp, TrendingDown, AlertCircle, ArrowRight, Loader2, Send, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/ui/PageHeader'
@@ -24,9 +25,23 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function MetalRates() {
   const queryClient = useQueryClient()
   const { isManager, isSuperAdmin } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [newRate, setNewRate] = useState('')
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('update')
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'update')
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && (tab === 'update' || tab === 'requests')) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  const updateTab = (tab) => {
+    setActiveTab(tab)
+    setSearchParams({ tab }, { replace: true })
+  }
 
   const { data: rates, isLoading: ratesLoading } = useQuery({
     queryKey: ['metal-rates'],
@@ -64,6 +79,7 @@ export default function MetalRates() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
       queryClient.invalidateQueries({ queryKey: ['metal-rates-history'] })
+      queryClient.invalidateQueries({ queryKey: ['silver-rate-current'] })
       setNewRate('')
       setPreviewOpen(false)
     },
@@ -75,7 +91,7 @@ export default function MetalRates() {
       queryClient.invalidateQueries({ queryKey: ['rate-requests'] })
       setNewRate('')
       setPreviewOpen(false)
-      setActiveTab('requests')
+      updateTab('requests')
     },
   })
 
@@ -119,7 +135,7 @@ export default function MetalRates() {
         <div className="mb-6 border-b border-gray-200">
           <nav className="flex gap-4" aria-label="Tabs">
             <button
-              onClick={() => setActiveTab('update')}
+              onClick={() => updateTab('update')}
               className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'update'
                   ? 'border-royal-600 text-royal-700'
@@ -129,7 +145,7 @@ export default function MetalRates() {
               Update Rate
             </button>
             <button
-              onClick={() => setActiveTab('requests')}
+              onClick={() => updateTab('requests')}
               className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'requests'
                   ? 'border-royal-600 text-royal-700'
@@ -353,6 +369,7 @@ function RateRequestsTab() {
       queryClient.invalidateQueries({ queryKey: ['rate-requests'] })
       queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
       queryClient.invalidateQueries({ queryKey: ['metal-rates-history'] })
+      queryClient.invalidateQueries({ queryKey: ['silver-rate-current'] })
     },
   })
 

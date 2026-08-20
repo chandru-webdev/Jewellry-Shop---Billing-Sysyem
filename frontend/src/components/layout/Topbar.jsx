@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { searchApi } from '../../api/search'
 import { notificationsApi } from '../../api/notifications'
+import { useSilverRate } from '../../hooks/useSilverRate'
 
 function isDemoMode() {
   return localStorage.getItem('opal_token') === 'demo-token-opal-line'
@@ -85,6 +86,7 @@ const searchResultRoutes = {
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { currentRate, isLoading: rateLoading } = useSilverRate()
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false)
@@ -297,6 +299,24 @@ export default function Topbar({ onMenuClick }) {
     }
   }
 
+  const handleNotificationClick = (notif) => {
+    setNotifOpen(false)
+    // Mark as read if unread
+    if (!notif.isRead) {
+      handleMarkAsRead(notif.id)
+    }
+    // Navigate based on notification type
+    if (notif.type === 'SILVER_RATE_REQUEST' || notif.type === 'RATE_CHANGED') {
+      navigate('/metal-rates?tab=requests')
+    } else if (notif.type === 'ORDER_CREATED') {
+      navigate('/orders')
+    } else if (notif.type === 'INVOICE_CREATED') {
+      navigate('/invoices')
+    } else if (notif.type === 'LOW_STOCK') {
+      navigate('/inventory')
+    }
+  }
+
   const initials = (user?.name || 'U')
     .split(' ')
     .map((w) => w[0])
@@ -337,11 +357,14 @@ export default function Topbar({ onMenuClick }) {
           <div className="hidden lg:flex items-center gap-3 mr-3 px-3 py-1.5 rounded-lg bg-royal-50 border border-royal-100">
             <div className="text-center">
               <p className="text-[9px] text-royal-400 uppercase tracking-wider font-semibold">Silver Rate (92.5)</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-royal-900">₹92.80</span>
-                <span className="text-[10px] text-royal-400">/gm</span>
-                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">+2.80 (3.11%)</span>
-              </div>
+              {rateLoading ? (
+                <div className="h-5 flex items-center justify-center"><span className="text-sm font-bold text-royal-900 animate-pulse">₹...</span></div>
+              ) : (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-bold text-royal-900">₹{currentRate.toFixed(2)}</span>
+                  <span className="text-[10px] text-royal-400">/gm</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -495,9 +518,10 @@ export default function Topbar({ onMenuClick }) {
                     notifications.map((notif) => (
                       <div
                         key={notif.id}
-                        className={`flex gap-3 px-4 py-3 border-b border-gray-50 last:border-0 transition-colors ${
+                        className={`flex gap-3 px-4 py-3 border-b border-gray-50 last:border-0 transition-colors cursor-pointer ${
                           notif.isRead ? 'bg-white hover:bg-gray-50/50' : 'bg-royal-50/30 hover:bg-royal-50/50'
                         }`}
+                        onClick={() => handleNotificationClick(notif)}
                       >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                           notif.type === 'LOW_STOCK' ? 'bg-amber-50 text-amber-500' :

@@ -108,6 +108,8 @@ model User {
   auditLogs             AuditLog[]
   metalRateChanges      MetalRateHistory[]
   updatedMetalRates     MetalRate[]
+  rateRequestsRequested MetalRateRequest[] @relation("RateRequestsRequested")
+  rateRequestsReviewed  MetalRateRequest[] @relation("RateRequestsReviewed")
   notifications         Notification[]
 
   @@index([roleId])
@@ -348,6 +350,31 @@ model MetalRateHistory {
 
   @@index([metal])
   @@index([changedAt])
+}
+
+// Silver Rate Approval Requests — managers request, admins approve
+model MetalRateRequest {
+  id          Int         @id @default(autoincrement())
+  oldRate     Decimal     @db.Decimal(10, 2)
+  newRate     Decimal     @db.Decimal(10, 2)
+  requestedById Int
+  requestedBy User        @relation("RateRequestsRequested", fields: [requestedById], references: [id])
+  status      RequestStatus @default(PENDING)
+  reviewedById Int?
+  reviewedBy  User?       @relation("RateRequestsReviewed", fields: [reviewedById], references: [id])
+  reviewedAt  DateTime?
+  previewJson Json?       // snapshot of preview data (affectedCount, sample)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status])
+  @@index([requestedById])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ---------- SHOPIFY ----------

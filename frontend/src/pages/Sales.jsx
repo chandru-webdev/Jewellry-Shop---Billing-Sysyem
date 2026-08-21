@@ -447,6 +447,7 @@ export default function Sales() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPayment, setFilterPayment] = useState('')
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
@@ -480,6 +481,7 @@ export default function Sales() {
 
   const displayInvoices = (isDemoMode() && invoicesError) ? DEMO_INVOICES : (invoices || [])
   const displayOrders = (isDemoMode() && ordersError) ? DEMO_ORDERS : (orders || [])
+  const filteredOrders = orderStatusFilter === 'all' ? displayOrders : displayOrders.filter((o) => o.status === orderStatusFilter)
   const displayCustomers = (isDemoMode() && customersError) ? DEMO_CUSTOMERS : (customers || [])
   const displayReturns = (isDemoMode() && returnsError) ? DEMO_ORDERS.filter((o) => o.status === 'CANCELLED') : (returns || [])
 
@@ -547,6 +549,7 @@ export default function Sales() {
               setSearch('')
               setFilterStatus('')
               setFilterPayment('')
+              setOrderStatusFilter('all')
               setDateFrom('')
               setDateTo('')
             }}
@@ -717,6 +720,22 @@ export default function Sales() {
             {/* === SALES ORDERS TAB === */}
             {activeTab === 'orders' && (
               <>
+                <div className="px-4 pt-4 pb-2">
+                  <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+                    {[
+                      { key: 'all', label: 'All', count: displayOrders.length },
+                      { key: 'FULFILLED', label: 'Fulfilled', count: displayOrders.filter((o) => o.status === 'FULFILLED').length },
+                      { key: 'PAID', label: 'Paid', count: displayOrders.filter((o) => o.status === 'PAID').length },
+                      { key: 'PENDING', label: 'Pending', count: displayOrders.filter((o) => o.status === 'PENDING').length },
+                      { key: 'CANCELLED', label: 'Cancelled', count: displayOrders.filter((o) => o.status === 'CANCELLED').length },
+                    ].map((f) => (
+                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white text-royal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {f.label}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 text-royal-700' : 'bg-gray-200 text-gray-500'}`}>{f.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <thead>
                   <tr className="bg-royal-50/80 border-b border-gray-200">
                     <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Order #</th>
@@ -736,15 +755,15 @@ export default function Sales() {
                       </td>
                     </tr>
                   )}
-                  {!ordersLoading && displayOrders.length === 0 && (
+                  {!ordersLoading && filteredOrders.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
-                        No orders found.
+                        {orderStatusFilter === 'all' ? 'No orders found.' : `No ${orderStatusFilter.toLowerCase()} orders found.`}
                       </td>
                     </tr>
                   )}
                   {!ordersLoading &&
-                    displayOrders.map((o) => (
+                    filteredOrders.map((o) => (
                       <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</td>
                         <td className="px-4 py-3 font-medium text-royal-950">{o.customer?.name || '—'}</td>

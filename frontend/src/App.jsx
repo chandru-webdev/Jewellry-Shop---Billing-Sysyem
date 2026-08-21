@@ -27,7 +27,13 @@ import BusinessReports from './pages/BusinessReports'
 import GSTReports from './pages/GSTReports'
 import SalesAnalysis from './pages/SalesAnalysis'
 import InventoryReports from './pages/InventoryReports'
-import ShopifySync from './pages/ShopifySync'
+import ShopifyDashboard from './pages/ShopifyDashboard'
+import OrdersSync from './pages/OrdersSync'
+import ProductsSync from './pages/ProductsSync'
+import InventorySync from './pages/InventorySync'
+import CustomersSync from './pages/CustomersSync'
+import PriceSync from './pages/PriceSync'
+import SyncLogs from './pages/SyncLogs'
 import Users from './pages/Users'
 import Roles from './pages/Roles'
 import AuditLogs from './pages/AuditLogs'
@@ -85,13 +91,13 @@ function App() {
         <Route path="/inventory-reports" element={<InventoryReports />} />
 
         {/* Shopify */}
-        <Route path="/shopify" element={<ShopifySync />} />
-        <Route path="/shopify/orders-sync" element={<ShopifySync />} />
-        <Route path="/shopify/products-sync" element={<ShopifySync />} />
-        <Route path="/shopify/inventory-sync" element={<ShopifySync />} />
-        <Route path="/shopify/customers-sync" element={<ShopifySync />} />
-        <Route path="/shopify/price-sync" element={<ShopifySync />} />
-        <Route path="/shopify/sync-logs" element={<ShopifySync />} />
+        <Route path="/shopify" element={<ShopifyDashboard />} />
+        <Route path="/shopify/orders-sync" element={<OrdersSync />} />
+        <Route path="/shopify/products-sync" element={<ProductsSync />} />
+        <Route path="/shopify/inventory-sync" element={<InventorySync />} />
+        <Route path="/shopify/customers-sync" element={<CustomersSync />} />
+        <Route path="/shopify/price-sync" element={<PriceSync />} />
+        <Route path="/shopify/sync-logs" element={<SyncLogs />} />
 
         {/* System — SUPER_ADMIN only */}
         <Route path="/users" element={<ProtectedRoute permission="users:manage"><Users /></ProtectedRoute>} />

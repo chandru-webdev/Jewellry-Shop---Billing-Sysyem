@@ -173,7 +173,7 @@ Password: Admin@123
 
 ## 6. API reference
 
-All endpoints live under `/api`. Every route except `/health` and `/auth/login` requires a `Bearer` token in the `Authorization` header.
+All endpoints live under `/api`. Every route except `/health` and `/auth/login` requires a `Bearer` token in the `Authorization` header. Roles: `SUPER_ADMIN`, `MANAGER`, `STAFF`.
 
 | Method | Endpoint | Who | Description |
 |--------|----------|-----|-------------|
@@ -202,6 +202,11 @@ All endpoints live under `/api`. Every route except `/health` and `/auth/login` 
 | GET | `/api/metal-rates/history` | any | Rate-change history |
 | POST | `/api/metal-rates/preview` | ADMIN | Dry-run price recalc |
 | PUT | `/api/metal-rates/silver` | ADMIN | Publish new rate + recalc all prices |
+| **Rate Requests (Approval Workflow)** | | | |
+| POST | `/api/rate-requests` | MANAGER | Submit rate change for approval |
+| GET | `/api/rate-requests` | any | List rate requests (with filters) |
+| GET | `/api/rate-requests/:id` | any | One rate request details |
+| PATCH | `/api/rate-requests/:id/review` | ADMIN | Approve or reject rate request |
 | **Invoices** | | | |
 | GET | `/api/invoices` | any | List |
 | GET | `/api/invoices/:id` | any | One invoice + items + payments |
@@ -258,6 +263,7 @@ Errors use `{ "success": false, "message": "…", "details": … }` with the rig
 | Products & Categories | ✅ Done |
 | Inventory + stock ledger | ✅ Done |
 | Metal rates (dynamic pricing, history) | ✅ Done |
+| Silver Rate Approval Workflow | ✅ Done |
 | Customers | ✅ Done |
 | Orders (POS) with status workflow | ✅ Done |
 | Invoices + print | ✅ Done |
@@ -265,9 +271,22 @@ Errors use `{ "success": false, "message": "…", "details": … }` with the rig
 | Suppliers | ✅ Done |
 | Users & Roles management | ✅ Done |
 | Dashboard | ✅ Done |
-| Shopify Sync (products/prices/stock/orders) | 🔲 Planned (Phases 15–19) |
-| Reports | 🔲 Planned (Phase 20) |
-| Audit Logs viewer & Settings | 🔲 Planned (Phase 21) |
+| Business Reports (P&L, Cash Flow, KPIs) | ✅ Done |
+| GST Reports (GSTR-1, GSTR-3B, HSN) | ✅ Done |
+| Sales Analysis (trends, products, salespersons) | ✅ Done |
+| Inventory Reports (stock, movement, valuation) | ✅ Done |
+| Shopify Dashboard | ✅ Done |
+| Shopify Orders Sync | ✅ Done |
+| Shopify Products Sync | ✅ Done |
+| Shopify Inventory Sync | ✅ Done |
+| Shopify Customers Sync | ✅ Done |
+| Shopify Price Sync (with approval) | ✅ Done |
+| Shopify Sync Logs | ✅ Done |
+| Expenses Management | ✅ Done (frontend) |
+| Bank Accounts | ✅ Done (frontend) |
+| Ledger (Chart of Accounts, Trial Balance) | ✅ Done (frontend) |
+| Audit Logs viewer | ✅ Done |
+| Settings | ✅ Done |
 
 ---
 
@@ -292,7 +311,10 @@ Errors use `{ "success": false, "message": "…", "details": … }` with the rig
 - **Billing & POS sales reduce stock automatically** and fail with a clear message if stock is insufficient.
 - **Cancelling/refunding an order restocks the items** automatically and voids the linked invoice.
 - **Payments auto-settle.** Once PAID payments cover an invoice's grand total, the invoice flips to `PAID` (and the linked order to `PAID`).
-- **Audit logging hooks already exist** (order created/status changed, rate changed, invoice created, payments, users) — the viewer UI comes in Phase 21.
+- **Silver Rate Approval Workflow.** MANAGERs submit rate change requests → SUPER_ADMINs review → on approve: rate updates, all product prices recalculate, Shopify syncs, notifications fire.
+- **Shopify integration.** Products, inventory, prices, orders, and customers sync between ERP and Shopify. Price changes require approval before pushing.
+- **All pages handle unauthenticated state gracefully.** Frontend pages fall back to demo/mock data when the API returns 401, so the UI never appears blank.
+- **Audit logging hooks already exist** (order created/status changed, rate changed, invoice created, payments, users, rate requests).
 - **Security:** passwords bcrypt-hashed, JWT required, per-role authorization, express-rate-limit on `/api`, helmet headers, CORS locked to `CLIENT_URL`.
 
 ---
@@ -308,5 +330,49 @@ Errors use `{ "success": false, "message": "…", "details": … }` with the rig
 | `JWT_SECRET` | Secret used to sign JWTs |
 | `JWT_EXPIRES_IN` | Token lifetime (default `1d`) |
 | `SHOPIFY_*` | Shopify credentials (Phase 15+) |
-#   J e w e l l r y - S h o p - - - B i l l i n g - S y s y e m  
- 
+
+---
+
+## 11. Frontend pages
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Dashboard | KPIs, charts, recent activity |
+| `/sales` | Sales | Sales list with invoices, orders, payments |
+| `/billing` | Billing (POS) | Point-of-sale with cart, checkout |
+| `/invoices` | Invoices | Invoice list and management |
+| `/orders` | Orders | Order list with status workflow |
+| `/customers` | Customers | Customer database |
+| `/purchase-orders` | Purchase Orders | Supplier purchase orders |
+| `/purchase-invoices` | Purchase Invoices | Purchase invoice management |
+| `/suppliers` | Suppliers | Supplier database |
+| `/purchase-returns` | Purchase Returns | Return management |
+| `/products` | Products | Product catalog with pricing |
+| `/categories` | Categories | Product categories |
+| `/inventory` | Inventory | Stock levels and management |
+| `/stock-transfer` | Stock Transfer | Transfer stock between locations |
+| `/barcode` | Barcode Labels | Generate and print barcodes |
+| `/low-stock` | Low Stock Alerts | Products below reorder level |
+| `/sales-returns` | Sales Returns | Customer return processing |
+| `/expenses` | Expenses | Expense tracking |
+| `/payments` | Payments | Payment history and dues |
+| `/bank-accounts` | Bank Accounts | Bank account management |
+| `/ledger` | Ledger | Chart of Accounts + Trial Balance |
+| `/reports` | Business Reports | P&L, cash flow, KPIs, charts |
+| `/gst-reports` | GST Reports | GSTR-1, GSTR-3B, HSN summary |
+| `/sales-analysis` | Sales Analysis | Trends, products, salespersons |
+| `/inventory-reports` | Inventory Reports | Stock, movement, valuation |
+| `/shopify` | Shopify Dashboard | Sync overview, health, connections |
+| `/shopify/orders-sync` | Orders Sync | Import Shopify orders |
+| `/shopify/products-sync` | Products Sync | Push/pull products |
+| `/shopify/inventory-sync` | Inventory Sync | Stock sync between ERP & Shopify |
+| `/shopify/customers-sync` | Customers Sync | Customer sync |
+| `/shopify/price-sync` | Price Sync | Price sync with approval workflow |
+| `/shopify/sync-logs` | Sync Logs | Detailed sync history |
+| `/metal-rates` | Metal Rates | Silver rate management + approval |
+| `/metal-rates/history` | Price History | Rate change history chart |
+| `/users` | Users | Staff management (SUPER_ADMIN) |
+| `/roles` | Roles | Role management (SUPER_ADMIN) |
+| `/audit-logs` | Audit Logs | System audit trail (SUPER_ADMIN) |
+| `/settings` | Settings | System settings (SUPER_ADMIN) |
+| `/activity-log` | Activity Log | User activity log (SUPER_ADMIN) |

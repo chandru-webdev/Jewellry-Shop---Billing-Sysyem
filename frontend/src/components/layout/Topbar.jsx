@@ -330,7 +330,7 @@ export default function Topbar({ onMenuClick }) {
   return (
     <>
       <header className="h-16 shrink-0 bg-white border-b border-gray-200/80 flex items-center justify-between px-4 lg:px-6 gap-3 z-20">
-        <div className="flex items-center gap-3 min-w-0">
+<div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onMenuClick}
             className="lg:hidden text-royal-700 hover:text-royal-900 p-1.5 rounded-lg hover:bg-royal-50 transition-colors cursor-pointer shrink-0"
@@ -342,7 +342,7 @@ export default function Topbar({ onMenuClick }) {
           {/* Search trigger — wider, responsive */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden md:flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2 w-[280px] lg:w-[360px] xl:w-[400px] transition-colors cursor-pointer group shrink-0"
+            className="hidden md:flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2 w-[280px] lg:w-[360px] xl:w-[400px] transition-colors cursor-pointer shrink-0"
           >
             <Search size={15} className="text-gray-400 group-hover:text-gray-500 shrink-0" />
             <span className="text-sm text-gray-400 flex-1 text-left truncate">Search products, invoices, orders...</span>

@@ -29,12 +29,13 @@ export default function BankAccounts() {
   const [editing, setEditing] = useState(null)
   const [formData, setFormData] = useState({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0] })
 
-  const { data: apiAccounts } = useQuery({
+  const { data: apiAccounts, isError } = useQuery({
     queryKey: ['bank-accounts'],
     queryFn: () => bankAccountsApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const accounts = apiAccounts?.length ? apiAccounts : DEMO_BANK_ACCOUNTS
+  const accounts = (!isError && apiAccounts?.length) ? apiAccounts : DEMO_BANK_ACCOUNTS
 
   const filtered = accounts.filter((a) => {
     if (filterType && a.type !== filterType) return false

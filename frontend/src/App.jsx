@@ -23,7 +23,10 @@ import SalesReturns from './pages/SalesReturns'
 import ActivityLog from './pages/ActivityLog'
 import MetalRates from './pages/MetalRates'
 import PriceHistory from './pages/PriceHistory'
-import Reports from './pages/Reports'
+import BusinessReports from './pages/BusinessReports'
+import GSTReports from './pages/GSTReports'
+import SalesAnalysis from './pages/SalesAnalysis'
+import InventoryReports from './pages/InventoryReports'
 import ShopifySync from './pages/ShopifySync'
 import Users from './pages/Users'
 import Roles from './pages/Roles'
@@ -76,10 +79,10 @@ function App() {
         <Route path="/ledger" element={<Ledger />} />
 
         {/* Reports */}
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/gst-reports" element={<Reports />} />
-        <Route path="/sales-analysis" element={<Reports />} />
-        <Route path="/inventory-reports" element={<Reports />} />
+        <Route path="/reports" element={<BusinessReports />} />
+        <Route path="/gst-reports" element={<GSTReports />} />
+        <Route path="/sales-analysis" element={<SalesAnalysis />} />
+        <Route path="/inventory-reports" element={<InventoryReports />} />
 
         {/* Shopify */}
         <Route path="/shopify" element={<ShopifySync />} />

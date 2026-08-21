@@ -17,12 +17,13 @@ const DEMO_CATEGORIES = [
 ]
 
 export default function Categories() {
-  const { data: apiCategories } = useQuery({
+  const { data: apiCategories, isError } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoriesApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const categories = apiCategories?.length ? apiCategories : DEMO_CATEGORIES
+  const categories = (!isError && apiCategories?.length) ? apiCategories : DEMO_CATEGORIES
 
   return (
     <div>

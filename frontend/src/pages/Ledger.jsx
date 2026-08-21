@@ -40,17 +40,19 @@ export default function Ledger() {
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
 
-  const { data: apiAccounts } = useQuery({
+  const { data: apiAccounts, isError: accountsError } = useQuery({
     queryKey: ['ledger-accounts'],
     queryFn: () => ledgerApi.accounts().then((r) => r.data.data),
+    retry: false,
   })
 
   const { data: trialBalance } = useQuery({
     queryKey: ['ledger-trial-balance'],
     queryFn: () => ledgerApi.trialBalance().then((r) => r.data.data),
+    retry: false,
   })
 
-  const accounts = apiAccounts?.length ? apiAccounts : DEMO_LEDGER_ACCOUNTS
+  const accounts = (!accountsError && apiAccounts?.length) ? apiAccounts : DEMO_LEDGER_ACCOUNTS
 
   const filtered = accounts.filter((a) => {
     if (filterType && a.type !== filterType) return false

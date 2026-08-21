@@ -26,12 +26,13 @@ export default function Payments() {
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
 
-  const { data: apiPayments } = useQuery({
+  const { data: apiPayments, isError } = useQuery({
     queryKey: ['payments'],
     queryFn: () => paymentsApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const payments = apiPayments?.length ? apiPayments : DEMO_PAYMENTS
+  const payments = (!isError && apiPayments?.length) ? apiPayments : DEMO_PAYMENTS
 
   const filtered = payments.filter((p) => {
     if (filterType && p.type !== filterType) return false

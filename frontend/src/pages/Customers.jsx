@@ -19,12 +19,13 @@ const DEMO_CUSTOMERS = [
 export default function Customers() {
   const [search, setSearch] = useState('')
 
-  const { data: apiCustomers } = useQuery({
+  const { data: apiCustomers, isError } = useQuery({
     queryKey: ['customers'],
     queryFn: () => customersApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const customers = apiCustomers?.length ? apiCustomers : DEMO_CUSTOMERS
+  const customers = (!isError && apiCustomers?.length) ? apiCustomers : DEMO_CUSTOMERS
 
   const filtered = customers.filter((c) => {
     if (search) {

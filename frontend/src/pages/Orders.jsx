@@ -29,12 +29,13 @@ export default function Orders() {
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
 
-  const { data: apiOrders, isLoading } = useQuery({
+  const { data: apiOrders, isLoading, isError } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const orders = apiOrders?.length ? apiOrders : DEMO_ORDERS
+  const orders = (!isError && apiOrders?.length) ? apiOrders : DEMO_ORDERS
 
   const filtered = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false

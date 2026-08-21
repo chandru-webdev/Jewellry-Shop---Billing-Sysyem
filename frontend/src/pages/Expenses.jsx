@@ -31,12 +31,13 @@ export default function Expenses() {
   const [formOpen, setFormOpen] = useState(false)
   const [formData, setFormData] = useState({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
 
-  const { data: apiExpenses } = useQuery({
+  const { data: apiExpenses, isError } = useQuery({
     queryKey: ['expenses'],
     queryFn: () => expensesApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const expenses = apiExpenses?.length ? apiExpenses : DEMO_EXPENSES
+  const expenses = (!isError && apiExpenses?.length) ? apiExpenses : DEMO_EXPENSES
 
   const filtered = expenses.filter((e) => {
     if (filterCategory && e.category !== filterCategory) return false

@@ -35,19 +35,21 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState('CASH')
   const [error, setError] = useState('')
 
-  const { data: apiProducts } = useQuery({
+  const { data: apiProducts, isError: productsError } = useQuery({
     queryKey: ['products'],
     queryFn: () => productsApi.list().then((r) => r.data.data),
+    retry: false,
   })
 
-  const { data: metalRates } = useQuery({
+  const { data: metalRates, isError: ratesError } = useQuery({
     queryKey: ['metal-rates'],
     queryFn: () => metalRatesApi.getCurrent().then((r) => r.data.data),
+    retry: false,
   })
 
-  const silverRate = metalRates?.rate || 92.80
+  const silverRate = (!ratesError && metalRates?.rate) || 92.80
   const GST_RATE = 3
-  const products = apiProducts?.length ? apiProducts : DEMO_PRODUCTS
+  const products = (!productsError && apiProducts?.length) ? apiProducts : DEMO_PRODUCTS
 
   const addItem = (product) => {
     const existing = items.find((i) => i.productId === product.id)

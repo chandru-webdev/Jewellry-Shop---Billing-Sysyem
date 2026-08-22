@@ -1,4 +1,5 @@
-import { Store, Coins, Building2, X } from 'lucide-react'
+import { useState } from 'react'
+import { Store, Coins, Building2, X, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -6,6 +7,25 @@ import Button from '../components/ui/Button'
 
 export default function Settings() {
   const navigate = useNavigate()
+
+  const [storeName, setStoreName] = useState('Opal Line Jewellery')
+  const [gstin, setGstin] = useState('27AABCU9603R1ZM')
+  const [pan, setPan] = useState('AABCU9603R')
+  const [address, setAddress] = useState('123 Jewellery Lane, Zaveri Bazaar, Mumbai 400003')
+  const [shopUrl, setShopUrl] = useState('https://opalline.myshopify.com')
+  const [apiKey, setApiKey] = useState('shpat_xxxxxxxxxxxxx')
+  const [syncFreq, setSyncFreq] = useState('Every 5 minutes')
+  const [invoicePrefix, setInvoicePrefix] = useState('SI')
+  const [gstRate, setGstRate] = useState('3')
+  const [hsnCode, setHsnCode] = useState('7113')
+  const [defaultPurity, setDefaultPurity] = useState('92.5 Sterling Silver')
+
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 3000)
+  }
 
   return (
     <div>
@@ -29,21 +49,21 @@ export default function Settings() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Store Name</label>
-              <input type="text" defaultValue="Opal Line Jewellery" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GSTIN</label>
-              <input type="text" defaultValue="27AABCU9603R1ZM" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={gstin} onChange={(e) => setGstin(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PAN</label>
-              <input type="text" defaultValue="AABCU9603R" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={pan} onChange={(e) => setPan(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
-              <textarea defaultValue="123 Jewellery Lane, Zaveri Bazaar, Mumbai 400003" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 min-h-16" />
+              <textarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 min-h-16" />
             </div>
-            <Button size="sm">Save Changes</Button>
+            <Button size="sm" onClick={() => showToast('Store information saved successfully')}>Save Changes</Button>
           </div>
         </Card>
 
@@ -59,22 +79,22 @@ export default function Settings() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shop URL</label>
-              <input type="text" defaultValue="https://opalline.myshopify.com" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={shopUrl} onChange={(e) => setShopUrl(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
-              <input type="password" defaultValue="shpat_xxxxxxxxxxxxx" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Auto-sync Frequency</label>
-              <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500">
+              <select value={syncFreq} onChange={(e) => setSyncFreq(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500">
                 <option>Every 5 minutes</option>
                 <option>Every 15 minutes</option>
                 <option>Every 30 minutes</option>
                 <option>Manual only</option>
               </select>
             </div>
-            <Button variant="outline" size="sm">Reconnect Shopify</Button>
+            <Button variant="outline" size="sm" onClick={() => showToast(`Reconnecting to Shopify at ${shopUrl}...`)}>Reconnect Shopify</Button>
           </div>
         </Card>
 
@@ -83,27 +103,40 @@ export default function Settings() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice Prefix</label>
-              <input type="text" defaultValue="SI" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GST Rate (%)</label>
-              <input type="number" defaultValue="3" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="number" value={gstRate} onChange={(e) => setGstRate(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HSN Code</label>
-              <input type="text" defaultValue="7113" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" value={hsnCode} onChange={(e) => setHsnCode(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Purity</label>
-              <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500">
+              <select value={defaultPurity} onChange={(e) => setDefaultPurity(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500">
                 <option>92.5 Sterling Silver</option>
                 <option>99.9 Fine Silver</option>
               </select>
             </div>
-            <Button size="sm">Save Changes</Button>
+            <Button size="sm" onClick={() => showToast('Invoice settings saved successfully')}>Save Changes</Button>
           </div>
         </Card>
       </div>
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-lg px-4 py-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" />
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{toast}</p>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:bg-white/10 rounded transition-colors cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

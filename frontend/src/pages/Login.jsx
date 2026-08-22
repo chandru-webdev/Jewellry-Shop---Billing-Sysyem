@@ -221,6 +221,12 @@ export default function Login() {
         </div>
       </div>
 
+      {/* Right side tagline */}
+      <div className="relative z-10 hidden lg:flex flex-col justify-end items-end w-full pr-[8%] pb-12 pointer-events-none">
+        <p className="text-white text-2xl font-bold tracking-wide">Pure 92.5 Silver</p>
+        <p className="text-white/70 text-sm tracking-widest uppercase mt-1">Elegance That Lasts Forever</p>
+      </div>
+
       {/* ========== FORGOT PASSWORD MODAL ========== */}
       {forgotOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closeForgot}>

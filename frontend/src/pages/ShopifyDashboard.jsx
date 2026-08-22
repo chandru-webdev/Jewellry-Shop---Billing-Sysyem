@@ -62,7 +62,14 @@ export default function ShopifyDashboard() {
       queryClient.invalidateQueries({ queryKey: ['shopify-sync'] })
       alert(`Done! Created ${res.data.data.created}, Updated ${res.data.data.updated}, Failed ${res.data.data.failed}`)
     },
-    onError: (err) => alert('Pull failed: ' + (err.response?.data?.message || err.message)),
+    onError: (err) => {
+      const msg = err.response?.data?.message || err.message || ''
+      if (msg.includes('credentials') || msg.includes('not configured')) {
+        alert('Shopify is in demo mode. Connect your store in Settings > Shopify to enable live sync.')
+      } else {
+        alert('Sync failed: ' + msg)
+      }
+    },
   })
 
   return (

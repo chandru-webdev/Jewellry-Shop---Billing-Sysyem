@@ -96,10 +96,10 @@ export default function Payments() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-royal-50/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-royal-700 font-semibold">{p.invoice || '—'}</td>
+                <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{p.invoice || '—'}</td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{p.customer}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(p.amount)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{p.method}</Badge></td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={typeTone[p.type]}>
@@ -112,7 +112,7 @@ export default function Payments() {
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(p.date)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => { setSelected(p); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => { setSelected(p); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
                     </div>
                   </td>
                 </tr>

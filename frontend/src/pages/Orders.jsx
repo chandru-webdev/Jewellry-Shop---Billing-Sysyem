@@ -95,11 +95,11 @@ export default function Orders() {
               {isLoading && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Loading orders...</td></tr>}
               {!isLoading && filtered.length === 0 && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">No orders found.</td></tr>}
               {filtered.map((o) => (
-                <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.shopifyId || o.orderNumber || '—'}</td>
+                <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.shopifyId || o.orderNumber || '—'}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.internalId}</td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || o.customer}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.value || o.totalAmount)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.value || o.totalAmount)}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={o.payment === 'Paid' || o.paymentStatus === 'PAID' ? 'green' : 'orange'}>{o.payment || o.paymentStatus || '—'}</Badge>
                   </td>
@@ -107,7 +107,7 @@ export default function Orders() {
                     <Badge tone={o.fulfillment === 'Fulfilled' ? 'green' : o.fulfillment === 'Cancelled' ? 'red' : 'blue'}>{o.fulfillment || '—'}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {o.invoice ? <span className="font-mono text-xs text-royal-700">{o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
+                    {o.invoice ? <span className="font-mono text-xs text-royal-700 dark:text-gray-300">{o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={statusTone[o.status]}>{o.status}</Badge>
@@ -115,7 +115,7 @@ export default function Orders() {
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.date || o.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => { setSelected(o); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => { setSelected(o); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
                     </div>
                   </td>
                 </tr>

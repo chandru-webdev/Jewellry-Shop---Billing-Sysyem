@@ -74,7 +74,7 @@ function InvoiceDetail({ invoice }) {
           <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · Purchase Invoice</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold text-royal-800 font-mono">{invoice.invoiceNumber}</p>
+          <p className="text-lg font-bold text-royal-800 dark:text-gray-200 font-mono">{invoice.invoiceNumber}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(invoice.date)}</p>
           <Badge tone={statusTone[invoice.status]}>{invoice.status}</Badge>
         </div>
@@ -115,7 +115,7 @@ function InvoiceDetail({ invoice }) {
               <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{it.quantity}</td>
               <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatWeight(it.weight)}</td>
               <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.silverRate)}</td>
-              <td className="px-3 py-2 text-right font-semibold text-royal-800">{formatINR(it.finalAmount)}</td>
+              <td className="px-3 py-2 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(it.finalAmount)}</td>
             </tr>
           ))}
         </tbody>
@@ -240,9 +240,9 @@ export default function PurchaseInvoices() {
               </tr>
             )}
             {!isLoading && filtered.map((inv) => (
-              <tr key={inv.id} className="hover:bg-royal-50/30 transition-colors">
+              <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                 <td className="px-4 py-3">
-                  <span className="font-mono text-xs font-semibold text-royal-700">{inv.invoiceNumber}</span>
+                  <span className="font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{inv.invoiceNumber}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-medium text-royal-950 dark:text-white">{inv.customer?.name || '—'}</span>
@@ -250,7 +250,7 @@ export default function PurchaseInvoices() {
                 </td>
                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(inv.date)}</td>
                 <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv._count?.items || 0}</td>
-                <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(inv.grandTotal)}</td>
+                <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</td>
                 <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv.paymentMethod || '—'}</td>
                 <td className="px-4 py-3 text-center">
                   <Badge tone={statusTone[inv.status]}>{statusLabel[inv.status] || inv.status}</Badge>
@@ -259,14 +259,14 @@ export default function PurchaseInvoices() {
                   <div className="flex justify-end gap-1">
                       <button
                       onClick={handleDownload}
-                      className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                      className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                       title="Download"
                     >
                       <Download size={14} />
                     </button>
                     <button
                       onClick={() => handleView(inv)}
-                      className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                      className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                       title="View"
                     >
                       <Eye size={14} />

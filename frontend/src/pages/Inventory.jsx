@@ -48,7 +48,7 @@ export default function Inventory() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
         {[
-          { icon: Package, label: 'Total Products', value: inv.totalProducts, color: 'text-royal-500' },
+          { icon: Package, label: 'Total Products', value: inv.totalProducts, color: 'text-royal-500 dark:text-gray-400' },
           { icon: Boxes, label: 'Total Quantity', value: `${inv.totalQuantity.toLocaleString('en-IN')} pcs`, color: 'text-blue-500' },
           { icon: Gem, label: 'Total Weight', value: `${inv.totalWeight} gm`, color: 'text-gold-500' },
           { icon: IndianRupee, label: 'Inventory Value', value: formatINR(inv.inventoryValue), color: 'text-emerald-500' },
@@ -96,13 +96,13 @@ export default function Inventory() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((item) => (
-                <tr key={item.sku} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={item.sku} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{item.name}</td>
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.sku}</td>
                   <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{item.qty}</td>
                   <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{item.weight.toFixed(2)} gm</td>
                   <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.costValue)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-royal-800">{formatINR(item.sellingValue)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(item.sellingValue)}</td>
                   <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.reorderLevel}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={statusTone[item.status]}>{item.status}</Badge>

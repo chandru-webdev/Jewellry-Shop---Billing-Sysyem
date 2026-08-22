@@ -97,7 +97,7 @@ export default function BankAccounts() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Balance</p>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalBalance)}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{formatINR(totalBalance)}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Active Accounts</p>
@@ -105,7 +105,7 @@ export default function BankAccounts() {
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Accounts</p>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{totalAccounts}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{totalAccounts}</p>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ export default function BankAccounts() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={a.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{a.name}</td>
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.bank}</td>
                   <td className="px-4 py-3 text-center">
@@ -161,7 +161,7 @@ export default function BankAccounts() {
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.ifsc}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => handleEdit(a)} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
+                      <button onClick={() => handleEdit(a)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(a.id)} className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg cursor-pointer" title="Delete"><Trash2 size={14} /></button>
                     </div>
                   </td>

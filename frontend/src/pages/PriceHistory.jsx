@@ -90,7 +90,7 @@ export default function PriceHistory() {
                     <td className="py-2.5 font-medium text-royal-950 dark:text-white">{formatDateTime(h.date)}</td>
                     <td className="py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{h.changedBy}</td>
                     <td className="py-2.5 text-right text-gray-500 dark:text-gray-400 dark:text-gray-500">₹{h.oldRate.toFixed(2)}</td>
-                    <td className="py-2.5 text-right font-bold text-royal-800">₹{h.newRate.toFixed(2)}</td>
+                    <td className="py-2.5 text-right font-bold text-royal-800 dark:text-gray-200">₹{h.newRate.toFixed(2)}</td>
                     <td className={`py-2.5 text-right font-semibold ${h.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                       {h.change !== 0 ? `${h.change >= 0 ? '+' : ''}₹${Math.abs(h.change).toFixed(2)}` : '—'}
                     </td>

@@ -31,7 +31,7 @@ export default function Categories() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {categories.map((c) => (
-          <div key={c.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-5 hover:shadow-md hover:border-royal-300 transition-all cursor-pointer">
+          <div key={c.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-5 hover:shadow-md hover:border-royal-300 dark:border-white/10 transition-all cursor-pointer">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-royal-500 to-royal-700 flex items-center justify-center">
                 <Package size={18} className="text-white" />
@@ -42,7 +42,7 @@ export default function Categories() {
             <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-3">{c.description}</p>
             <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/[0.05]">
               <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{c.productCount} products</span>
-              <span className="text-xs font-semibold text-royal-600">Manage →</span>
+              <span className="text-xs font-semibold text-royal-600 dark:text-gray-300">Manage →</span>
             </div>
           </div>
         ))}

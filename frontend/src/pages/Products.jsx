@@ -184,7 +184,7 @@ export default function Products() {
                 <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No products found. Click "Add Product" to create one.</td></tr>
               )}
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
                   </td>
@@ -204,7 +204,7 @@ export default function Products() {
                         <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatWeight(p.weight)}</span>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'weight', p.weight)}
-                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit weight">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit weight">
                             <Weight size={12} />
                           </button>
                         )}
@@ -225,14 +225,14 @@ export default function Products() {
                         <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(p.makingCharge)}/g</span>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'makingCharge', p.makingCharge)}
-                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit making charge">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit making charge">
                             <DollarSign size={12} />
                           </button>
                         )}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(p.sellingPrice)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.sellingPrice)}</td>
                   <td className="px-4 py-3 text-right">
                     {isEditing(p.id, 'stock') ? (
                       <div className="flex items-center justify-end gap-1">
@@ -249,7 +249,7 @@ export default function Products() {
                         </Badge>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'stock', p.inventory?.quantity ?? 0)}
-                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit stock">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit stock">
                             <Package size={12} />
                           </button>
                         )}
@@ -265,7 +265,7 @@ export default function Products() {
                   {canEdit && (
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => { setEditing(p); setModalOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Edit">
+                        <button onClick={() => { setEditing(p); setModalOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => toggleMutation.mutate(p)} className={`p-1.5 rounded-lg cursor-pointer ${p.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`} title={p.isActive ? 'Deactivate' : 'Activate'}>

@@ -53,16 +53,16 @@ export default function DataExportBackup() {
         <div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
             {EXPORT_TYPES.map((t) => (
-              <div key={t.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 hover:border-royal-300 cursor-pointer transition-all">
-                <t.icon size={20} className="text-royal-500 mb-2" />
-                <p className="text-sm font-medium text-royal-800">{t.label}</p>
+              <div key={t.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 hover:border-royal-300 dark:border-white/10 cursor-pointer transition-all">
+                <t.icon size={20} className="text-royal-500 dark:text-gray-400 mb-2" />
+                <p className="text-sm font-medium text-royal-800 dark:text-gray-200">{t.label}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.count > 0 ? `${t.count} records` : 'Report'}</p>
                 <Button variant="outline" size="sm" className="mt-2 w-full"><Download size={12} /> Export</Button>
               </div>
             ))}
           </div>
 
-          <h3 className="text-sm font-semibold text-royal-800 mb-3">Recent Exports</h3>
+          <h3 className="text-sm font-semibold text-royal-800 dark:text-gray-200 mb-3">Recent Exports</h3>
           <Card className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -80,8 +80,8 @@ export default function DataExportBackup() {
                 <tbody>
                   {DEMO_EXPORTS.map((e, i) => (
                     <tr key={e.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-medium text-royal-800">{e.id}</td>
-                      <td className="px-4 py-2.5 font-medium text-royal-800">{e.name}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{e.id}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{e.name}</td>
                       <td className="px-4 py-2.5"><Badge tone={e.format === 'CSV' ? 'blue' : 'red'}>{e.format}</Badge></td>
                       <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{e.size}</td>
                       <td className="px-4 py-2.5"><Badge tone={statusColor[e.status]}>{e.status}</Badge></td>
@@ -109,11 +109,11 @@ export default function DataExportBackup() {
             </div>
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Backup Size</p>
-              <p className="text-sm font-bold text-royal-600 mt-0.5">45 MB</p>
+              <p className="text-sm font-bold text-royal-600 dark:text-gray-300 mt-0.5">45 MB</p>
             </div>
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Backups</p>
-              <p className="text-sm font-bold text-royal-600 mt-0.5">{DEMO_BACKUPS.length}</p>
+              <p className="text-sm font-bold text-royal-600 dark:text-gray-300 mt-0.5">{DEMO_BACKUPS.length}</p>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ export default function DataExportBackup() {
             <Button variant="outline" size="sm"><Upload size={14} /> Restore Backup</Button>
           </div>
 
-          <h3 className="text-sm font-semibold text-royal-800 mb-3">Backup History</h3>
+          <h3 className="text-sm font-semibold text-royal-800 dark:text-gray-200 mb-3">Backup History</h3>
           <Card className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -140,8 +140,8 @@ export default function DataExportBackup() {
                 <tbody>
                   {DEMO_BACKUPS.map((b, i) => (
                     <tr key={b.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-medium text-royal-800">{b.id}</td>
-                      <td className="px-4 py-2.5 font-medium text-royal-800">{b.name}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{b.id}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{b.name}</td>
                       <td className="px-4 py-2.5"><Badge tone={b.type === 'auto' ? 'blue' : 'amber'}>{b.type}</Badge></td>
                       <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{b.size}</td>
                       <td className="px-4 py-2.5"><Badge tone={statusColor[b.status]}>{b.status}</Badge></td>

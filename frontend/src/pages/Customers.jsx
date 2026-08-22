@@ -61,7 +61,7 @@ export default function Customers() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={c.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-500 to-royal-700 text-white flex items-center justify-center text-[10px] font-bold">{c.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</span>
@@ -75,7 +75,7 @@ export default function Customers() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{c.orders}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(c.totalSpent)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(c.totalSpent)}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(c.lastOrder)}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">Shopify</Badge></td>
                 </tr>

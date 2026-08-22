@@ -51,7 +51,7 @@ export default function CustomersSync() {
             <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Customers</p>
             <Users size={14} className="text-royal-400" />
           </div>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_CUSTOMERS.length}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{DEMO_CUSTOMERS.length}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
@@ -78,7 +78,7 @@ export default function CustomersSync() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, email, phone or Shopify ID..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300 dark:border-white/10"
           />
         </div>
       </div>
@@ -108,8 +108,8 @@ export default function CustomersSync() {
                   </td>
                   <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.phone}</td>
                   <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.orders}</td>
-                  <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(c.totalSpent)}</td>
-                  <td className="px-4 py-2.5 font-mono font-semibold text-royal-700">{c.erpId || '—'}</td>
+                  <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(c.totalSpent)}</td>
+                  <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300">{c.erpId || '—'}</td>
                   <td className="px-4 py-2.5"><Badge tone={statusColor[c.status]}>{c.status}</Badge></td>
                   <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{c.syncedAt || '—'}</td>
                   <td className="px-4 py-2.5 text-right">

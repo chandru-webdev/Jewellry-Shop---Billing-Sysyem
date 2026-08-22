@@ -138,7 +138,7 @@ export default function MetalRates() {
               onClick={() => updateTab('update')}
               className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'update'
-                  ? 'border-royal-600 text-royal-700'
+                  ? 'border-royal-600 dark:border-white/20 text-royal-700 dark:text-gray-300'
                   : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'
               }`}
             >
@@ -148,7 +148,7 @@ export default function MetalRates() {
               onClick={() => updateTab('requests')}
               className={`py-2 px-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'requests'
-                  ? 'border-royal-600 text-royal-700'
+                  ? 'border-royal-600 dark:border-white/20 text-royal-700 dark:text-gray-300'
                   : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'
               }`}
             >
@@ -203,7 +203,7 @@ export default function MetalRates() {
                   />
                 </div>
                 {newRate && parseFloat(newRate) > 0 && (
-                  <div className="bg-royal-50 rounded-lg p-3 space-y-2">
+                  <div className="bg-royal-50 dark:bg-white/5 rounded-lg p-3 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Old Rate</span>
                       <span className="font-semibold text-gray-800 dark:text-gray-200">₹{currentRate.toFixed(2)}</span>
@@ -326,7 +326,7 @@ export default function MetalRates() {
                             <td className="py-2.5 font-medium text-royal-950 dark:text-white">{p.name}</td>
                             <td className="py-2.5 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                             <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(p.oldPrice)}</td>
-                            <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(p.newPrice)}</td>
+                            <td className="py-2.5 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.newPrice)}</td>
                             <td className={`py-2.5 text-right font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                               {diff >= 0 ? '+' : ''}{formatINR(diff)}
                             </td>
@@ -417,7 +417,7 @@ function RateRequestsTab() {
                       {req.requestedBy?.name} <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 font-normal">({req.requestedBy?.email})</span>
                     </td>
                     <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">₹{parseFloat(req.oldRate).toFixed(2)}</td>
-                    <td className="py-2.5 text-right font-bold text-royal-800">₹{parseFloat(req.newRate).toFixed(2)}</td>
+                    <td className="py-2.5 text-right font-bold text-royal-800 dark:text-gray-200">₹{parseFloat(req.newRate).toFixed(2)}</td>
                     <td className={`py-2.5 text-right font-semibold ${change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                       {change >= 0 ? '+' : ''}₹{Math.abs(change).toFixed(2)}
                     </td>

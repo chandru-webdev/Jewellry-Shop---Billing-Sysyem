@@ -92,7 +92,7 @@ export default function PriceSync() {
             <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Products</p>
             <DollarSign size={16} className="text-royal-400" />
           </div>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{total}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{total}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
@@ -139,8 +139,8 @@ export default function PriceSync() {
                   <tr key={item.sku} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{item.sku}</td>
                     <td className="px-4 py-2.5 font-medium text-royal-950 dark:text-white">{item.name}</td>
-                    <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(item.erpPrice)}</td>
-                    <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(item.shopifyPrice)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(item.erpPrice)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(item.shopifyPrice)}</td>
                     <td className={`px-4 py-2.5 text-right font-mono ${diff !== 0 ? 'text-red-600 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
                       {formatINR(diff)}
                     </td>

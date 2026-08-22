@@ -59,7 +59,7 @@ export default function ActivityLog() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
+              <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
                 <th className="px-5 py-3 font-semibold">Time</th>
                 <th className="px-5 py-3 font-semibold">Type</th>
                 <th className="px-5 py-3 font-semibold">User</th>
@@ -77,7 +77,7 @@ export default function ActivityLog() {
                   const cfg = typeConfig[a.type] || typeConfig.system
                   const Icon = cfg.icon
                   return (
-                    <tr key={a.id} className="hover:bg-royal-50/50">
+                    <tr key={a.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
                       <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDateTime(a.time)}</td>
                       <td className="px-5 py-3">
                         <Badge tone={cfg.tone} className="flex items-center gap-1 w-fit">

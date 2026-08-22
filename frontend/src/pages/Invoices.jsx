@@ -22,7 +22,7 @@ function InvoiceDetail({ invoice }) {
           <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · GST invoicing</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold text-royal-800 font-mono">{invoice.invoiceNumber}</p>
+          <p className="text-lg font-bold text-royal-800 dark:text-gray-200 font-mono">{invoice.invoiceNumber}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(invoice.date)}</p>
           <Badge tone={statusTone[invoice.status]}>{invoice.status}</Badge>
         </div>
@@ -66,7 +66,7 @@ function InvoiceDetail({ invoice }) {
               <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.silverRate)}</td>
               <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.baseAmount)}</td>
               <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.gstAmount)}</td>
-              <td className="px-3 py-2 text-right font-semibold text-royal-800">{formatINR(it.finalAmount)}</td>
+              <td className="px-3 py-2 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(it.finalAmount)}</td>
             </tr>
           ))}
         </tbody>
@@ -165,13 +165,13 @@ export default function Invoices() {
               {isLoading && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Loading invoices...</td></tr>}
               {!isLoading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">No invoices found.</td></tr>}
               {filtered.map((inv) => (
-                <tr key={inv.id} className="hover:bg-royal-50/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-royal-700 font-semibold">{inv.invoiceNumber}</td>
+                <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{inv.invoiceNumber}</td>
                   <td className="px-4 py-3">
                     {inv.orderNumber ? <Badge tone="blue">#{inv.orderNumber}</Badge> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{inv.customer?.name || 'Walk-in'}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(inv.grandTotal)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={inv.paymentMethod ? 'green' : 'gray'}>{inv.paymentMethod || '—'}</Badge>
                   </td>
@@ -181,9 +181,9 @@ export default function Invoices() {
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDate(inv.date)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => { setSelected(inv); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
-                      <button onClick={() => printInvoice(inv)} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Print"><Printer size={14} /></button>
-                      <button className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Download"><Download size={14} /></button>
+                      <button onClick={() => { setSelected(inv); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => printInvoice(inv)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Print"><Printer size={14} /></button>
+                      <button className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Download"><Download size={14} /></button>
                     </div>
                   </td>
                 </tr>

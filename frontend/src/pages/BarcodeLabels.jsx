@@ -212,7 +212,7 @@ export default function BarcodeLabels() {
           <>
             <span className="name text-sm font-medium text-royal-950 dark:text-white truncate">{item.name}</span>
             <span className="sku text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.sku}</span>
-            <span className="price text-xs font-semibold text-royal-800">{formatINR(item.sellingPrice)}</span>
+            <span className="price text-xs font-semibold text-royal-800 dark:text-gray-200">{formatINR(item.sellingPrice)}</span>
           </>
         ) : (
           <>
@@ -330,7 +330,7 @@ export default function BarcodeLabels() {
             type="checkbox"
             checked={showLowStock}
             onChange={(e) => setShowLowStock(e.target.checked)}
-            className="rounded border-gray-300 text-royal-600 focus:ring-royal-500"
+            className="rounded border-gray-300 text-royal-600 dark:text-gray-300 focus:ring-royal-500"
           />
           Low stock only
         </label>
@@ -359,7 +359,7 @@ export default function BarcodeLabels() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
+                <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
                   <th className="px-4 py-2 font-semibold">Product</th>
                   <th className="px-4 py-2 font-mono text-[11px]">Barcode</th>
                   <th className="px-4 py-2 text-right">Price</th>
@@ -369,13 +369,13 @@ export default function BarcodeLabels() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-royal-50/30">
+                  <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30">
                     <td className="px-4 py-2">
                       <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</p>
                     </td>
                     <td className="px-4 py-2 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.barcode}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-royal-800">{formatINR(p.sellingPrice)}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(p.sellingPrice)}</td>
                     <td className="px-4 py-2 text-center">
                       <div className="flex justify-center">
                         <Barcode value={p.barcode} />
@@ -419,7 +419,7 @@ export default function BarcodeLabels() {
                 <div className="text-center">
                   <h3 className="font-semibold text-royal-950 dark:text-white">{fullView.name}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{fullView.sku}</p>
-                  <p className="text-sm font-bold text-royal-800 mt-1">{formatINR(fullView.sellingPrice)}</p>
+                  <p className="text-sm font-bold text-royal-800 dark:text-gray-200 mt-1">{formatINR(fullView.sellingPrice)}</p>
                 </div>
               ) : (
                 <div className="text-center">

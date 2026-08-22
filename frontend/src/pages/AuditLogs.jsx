@@ -71,7 +71,7 @@ export default function AuditLogs() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((log) => (
-                <tr key={log.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={log.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(log.timestamp)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">

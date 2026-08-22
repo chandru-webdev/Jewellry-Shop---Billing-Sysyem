@@ -237,9 +237,9 @@ export default function PurchaseOrders() {
               </tr>
             )}
             {!isLoading && filtered.map((o) => (
-              <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
+              <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                 <td className="px-4 py-3">
-                  <span className="font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</span>
+                  <span className="font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || `#${o.id}`}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-medium text-royal-950 dark:text-white">{o.supplier?.name || (o.customer?.name || '—')}</span>
@@ -248,7 +248,7 @@ export default function PurchaseOrders() {
                 <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt || o.date)}</td>
                 <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{o.totalItems || o._count?.items || 0}</td>
                 <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{o.totalQuantity || 0}</td>
-                <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
+                <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
                 <td className="px-4 py-3 text-center">
                   <Badge tone={statusTone[o.status] || 'gray'}>{statusLabel[o.status] || o.status}</Badge>
                 </td>
@@ -256,7 +256,7 @@ export default function PurchaseOrders() {
                   <div className="flex justify-end gap-1">
                     <button
                       onClick={() => handleView(o)}
-                      className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                      className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                       title="View"
                     >
                       <Eye size={14} />
@@ -278,7 +278,7 @@ export default function PurchaseOrders() {
                 <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · Purchase Management</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-royal-800 font-mono">{selected.orderNumber}</p>
+                <p className="text-lg font-bold text-royal-800 dark:text-gray-200 font-mono">{selected.orderNumber}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(selected.createdAt)}</p>
                 <Badge tone={statusTone[selected.status] || 'gray'}>{statusLabel[selected.status] || selected.status}</Badge>
               </div>

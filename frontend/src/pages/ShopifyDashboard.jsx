@@ -169,7 +169,7 @@ export default function ShopifyDashboard() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.customer}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-royal-800">{formatINR(o.amount)}</p>
+                <p className="text-sm font-bold text-royal-800 dark:text-gray-200">{formatINR(o.amount)}</p>
                 <p className="text-[11px] text-gray-400 dark:text-gray-500">{o.time}</p>
               </div>
             </div>

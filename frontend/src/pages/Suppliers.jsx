@@ -279,7 +279,7 @@ export default function Suppliers() {
                 </tr>
               )}
               {!isLoading && filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={s.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-[10px] font-bold">
@@ -301,7 +301,7 @@ export default function Suppliers() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{s.products || 0}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(s.totalPurchased || 0)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(s.totalPurchased || 0)}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.lastPurchase ? formatDate(s.lastPurchase) : '—'}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={s.isActive === false ? 'red' : 'green'}>{s.isActive === false ? 'Inactive' : 'Active'}</Badge>
@@ -312,14 +312,14 @@ export default function Suppliers() {
                         <>
                           <button
                             onClick={() => handleToggleActive(s)}
-                            className="p-1 text-royal-600 hover:bg-royal-100 rounded cursor-pointer"
+                            className="p-1 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded cursor-pointer"
                             title={s.isActive === false ? 'Activate' : 'Deactivate'}
                           >
                             {s.isActive === false ? <Play size={12} /> : <Pause size={12} />}
                           </button>
                           <button
                             onClick={() => handleEdit(s)}
-                            className="p-1 text-royal-600 hover:bg-royal-100 rounded cursor-pointer"
+                            className="p-1 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded cursor-pointer"
                             title="Edit"
                           >
                             <Edit size={12} />

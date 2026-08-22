@@ -240,9 +240,9 @@ export default function PurchaseReturns() {
               </tr>
             )}
             {!isLoading && filtered.map((r) => (
-                <tr key={r.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={r.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3">
-                    <span className="font-mono text-xs font-semibold text-royal-700">{r.returnNumber || r.orderNumber}</span>
+                    <span className="font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{r.returnNumber || r.orderNumber}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-medium text-royal-950 dark:text-white">{r.supplier?.name || (r.customer?.name || '—')}</span>
@@ -251,7 +251,7 @@ export default function PurchaseReturns() {
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 font-mono text-xs">{r.orderNumber || '—'}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(r.createdAt || r.date)}</td>
                   <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.totalItems || r._count?.items || 0}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(r.totalAmount)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(r.totalAmount)}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={statusTone[r.status] || 'gray'}>{statusLabel[r.status] || r.status}</Badge>
                   </td>
@@ -259,7 +259,7 @@ export default function PurchaseReturns() {
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => handleView(r)}
-                        className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                         title="View"
                       >
                         <Eye size={14} />
@@ -281,7 +281,7 @@ export default function PurchaseReturns() {
                 <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · Purchase Return</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-royal-800 font-mono">{selected.returnNumber || selected.orderNumber}</p>
+                <p className="text-lg font-bold text-royal-800 dark:text-gray-200 font-mono">{selected.returnNumber || selected.orderNumber}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(selected.createdAt)}</p>
                 <Badge tone={statusTone[selected.status] || 'gray'}>{statusLabel[selected.status] || selected.status}</Badge>
               </div>
@@ -295,7 +295,7 @@ export default function PurchaseReturns() {
               </div>
               <div className="bg-royal-50/60 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 font-semibold">Original PO</p>
-                <p className="font-mono text-xs text-royal-800">{selected.orderNumber || '—'}</p>
+                <p className="font-mono text-xs text-royal-800 dark:text-gray-200">{selected.orderNumber || '—'}</p>
               </div>
             </div>
 

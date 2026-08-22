@@ -201,7 +201,7 @@ export default function BusinessReports() {
               <div key={c.name} className="flex items-center gap-3">
                 <span className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-xs font-bold ${
                   idx === 0 ? 'bg-gold-500/20 text-gold-600' :
-                  idx === 1 ? 'bg-royal-100 text-royal-700' :
+                  idx === 1 ? 'bg-royal-100 dark:bg-white/10 text-royal-700 dark:text-gray-300' :
                   idx === 2 ? 'bg-amber-50 text-amber-600' :
                   'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 dark:text-gray-500'
                 }`}>
@@ -210,7 +210,7 @@ export default function BusinessReports() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-royal-950 dark:text-white truncate">{c.name}</p>
-                    <p className="text-sm font-bold text-royal-800 shrink-0">{formatINR(c.amount)}</p>
+                    <p className="text-sm font-bold text-royal-800 dark:text-gray-200 shrink-0">{formatINR(c.amount)}</p>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="h-1.5 flex-1 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
@@ -248,13 +248,13 @@ export default function BusinessReports() {
                 ))}
                 <div className="flex items-center justify-between py-2 mt-1 border-t border-gray-100 dark:border-white/[0.05]">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Total {section.section}</span>
-                  <span className="text-sm font-bold text-royal-800">{formatINR(sectionTotal)}</span>
+                  <span className="text-sm font-bold text-royal-800 dark:text-gray-200">{formatINR(sectionTotal)}</span>
                 </div>
               </div>
             )
           })}
 
-          <div className="mt-6 pt-4 border-t-2 border-royal-200 space-y-2">
+          <div className="mt-6 pt-4 border-t-2 border-royal-200 dark:border-white/10 space-y-2">
             <div className="flex items-center justify-between py-1">
               <span className="text-sm font-semibold text-royal-900 dark:text-gray-200">Gross Profit</span>
               <span className="text-sm font-bold text-emerald-600">{formatINR(grossProfit)}</span>
@@ -263,7 +263,7 @@ export default function BusinessReports() {
               <span className="text-sm font-semibold text-royal-900 dark:text-gray-200">Less: Operating Expenses</span>
               <span className="text-sm font-semibold text-red-500">-{formatINR(totalExpenses)}</span>
             </div>
-            <div className="flex items-center justify-between py-2.5 px-4 bg-royal-50 rounded-lg">
+            <div className="flex items-center justify-between py-2.5 px-4 bg-royal-50 dark:bg-white/5 rounded-lg">
               <span className="text-sm font-bold text-royal-950 dark:text-white">Net Profit</span>
               <span className="text-base font-bold text-royal-950 dark:text-white">{formatINR(netProfit)}</span>
             </div>

@@ -6,7 +6,7 @@ export default function Card({ className, title, action, icon: Icon, children, n
       {(title || action) && (
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-white/[0.08]">
           <div className="flex items-center gap-2">
-            {Icon && <Icon size={16} className="text-royal-500" />}
+            {Icon && <Icon size={16} className="text-royal-500 dark:text-gray-400" />}
             <h3 className="font-semibold text-sm text-royal-900 dark:text-white">{title}</h3>
           </div>
           {action}

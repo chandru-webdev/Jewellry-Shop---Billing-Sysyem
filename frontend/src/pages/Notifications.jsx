@@ -54,7 +54,7 @@ export default function Notifications() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total</p>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_NOTIFICATIONS.length}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{DEMO_NOTIFICATIONS.length}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Unread</p>
@@ -103,7 +103,7 @@ export default function Notifications() {
             <tbody>
               {notifications.map((n, i) => (
                 <tr key={n.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                  <td className="px-4 py-2.5 font-medium text-royal-800">{n.id}</td>
+                  <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{n.id}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       {(() => { const Icon = getTypeIcon(n.type); return <Icon size={14} className={n.status === 'SUCCESS' ? 'text-green-500' : n.status === 'FAILED' ? 'text-red-500' : n.status === 'WARNING' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />; })()}
@@ -124,7 +124,7 @@ export default function Notifications() {
                     ) : (
                       <button
                         onClick={() => markAsRead(n.id)}
-                        className="p-1.5 text-royal-400 hover:text-royal-700 cursor-pointer text-[10px]"
+                        className="p-1.5 text-royal-400 hover:text-royal-700 dark:text-gray-300 cursor-pointer text-[10px]"
                         title="Mark as read"
                       >
                         <CheckCircle2 size={12} />

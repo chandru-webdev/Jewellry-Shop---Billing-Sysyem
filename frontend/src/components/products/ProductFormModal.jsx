@@ -125,7 +125,7 @@ export default function ProductFormModal({ open, onClose, onSubmit, product, cat
           )}
         </div>
 
-        <p className="text-xs text-gray-500 bg-royal-50 rounded-lg p-3">
+        <p className="text-xs text-gray-500 bg-royal-50 dark:bg-white/5 rounded-lg p-3">
           Price is calculated automatically by the backend using the current silver rate + making charge + GST.
         </p>
       </form>

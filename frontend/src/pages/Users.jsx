@@ -184,7 +184,7 @@ export default function Users() {
                 <tr><td colSpan="6" className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No users found</td></tr>
               ) : (
                 filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-royal-50/30 transition-colors">
+                  <tr key={u.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-600 to-royal-800 text-white flex items-center justify-center text-[10px] font-bold">{u.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</span>
@@ -202,7 +202,7 @@ export default function Users() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(u)} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Edit"><Pencil size={14} /></button>
+                        <button onClick={() => openEdit(u)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Pencil size={14} /></button>
                         <button onClick={() => openReset(u)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer" title="Reset Password"><Key size={14} /></button>
                         <button
                           onClick={() => toggleActiveMutation.mutate({ id: u.id, isActive: !u.isActive })}

@@ -221,7 +221,7 @@ export default function StockTransfer() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
+                <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
                   <th className="px-5 py-3 font-semibold">Date</th>
                   <th className="px-5 py-3 font-semibold">ID</th>
                   <th className="px-5 py-3 font-semibold">Product</th>
@@ -240,7 +240,7 @@ export default function StockTransfer() {
                   </tr>
                 ) : (
                   filteredHistory.map((t) => (
-                    <tr key={t.id} className="hover:bg-royal-50/50">
+                    <tr key={t.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
                       <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDateTime(t.date)}</td>
                       <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.id}</td>
                       <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{t.name}</td>

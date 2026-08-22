@@ -82,7 +82,7 @@ export default function Reports() {
             <button
               key={cat.title}
               onClick={() => setSelectedCategory(cat)}
-              className="text-left bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm hover:shadow-md hover:border-royal-300 transition-all p-5 cursor-pointer group"
+              className="text-left bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm hover:shadow-md hover:border-royal-300 dark:border-white/10 transition-all p-5 cursor-pointer group"
             >
               <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
                 <cat.icon size={20} className="text-white" />
@@ -94,7 +94,7 @@ export default function Reports() {
         </div>
       ) : (
         <div>
-          <button onClick={() => setSelectedCategory(null)} className="text-sm font-medium text-royal-600 hover:text-royal-800 mb-4 cursor-pointer">
+          <button onClick={() => setSelectedCategory(null)} className="text-sm font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 mb-4 cursor-pointer">
             ← Back to all categories
           </button>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -106,8 +106,8 @@ export default function Reports() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">{report.desc}</p>
                   </div>
                   <div className="flex gap-1.5">
-                    <button className="p-2 text-royal-600 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer" title="Export"><Download size={14} /></button>
-                    <button className="p-2 text-royal-600 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer" title="Print"><Printer size={14} /></button>
+                    <button className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Export"><Download size={14} /></button>
+                    <button className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Print"><Printer size={14} /></button>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">

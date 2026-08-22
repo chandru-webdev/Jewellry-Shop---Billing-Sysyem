@@ -7,7 +7,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg transition-colors cursor-pointer text-gray-400 hover:text-royal-700 hover:bg-royal-50 dark:hover:text-royal-300 dark:hover:bg-white/10"
+      className="p-2 rounded-lg transition-colors cursor-pointer text-gray-400 hover:text-royal-700 dark:text-gray-300 hover:bg-royal-50 dark:hover:text-gray-200 dark:hover:bg-white/10"
       title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
     >
       {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}

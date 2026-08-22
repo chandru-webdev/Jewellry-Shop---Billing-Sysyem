@@ -82,7 +82,7 @@ export default function Expenses() {
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">This Month</p>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(thisMonth)}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{formatINR(thisMonth)}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Pending</p>
@@ -124,7 +124,7 @@ export default function Expenses() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((e) => (
-                <tr key={e.id} className="hover:bg-royal-50/30 transition-colors">
+                <tr key={e.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(e.date)}</td>
                   <td className="px-4 py-3">
                     <Badge tone={categoryTone[e.category] || 'gray'}> {e.category}</Badge>
@@ -136,7 +136,7 @@ export default function Expenses() {
                   <td className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{e.reference}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => { setSelected(e); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => { setSelected(e); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
                     </div>
                   </td>
                 </tr>

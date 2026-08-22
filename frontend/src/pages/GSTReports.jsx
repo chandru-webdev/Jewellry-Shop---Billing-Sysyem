@@ -66,7 +66,7 @@ export default function GSTReports() {
 
       <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 mb-5 w-fit">
         {tabs.map((t) => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
+          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 dark:text-gray-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
             <t.icon size={14} /> {t.label}
           </button>
         ))}
@@ -75,10 +75,10 @@ export default function GSTReports() {
       {activeTab === 'gstr1' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Invoices</p><p className="text-xl font-bold text-royal-600 mt-0.5">{GSTR1_DATA.length}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalTaxable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Invoices</p><p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{GSTR1_DATA.length}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Taxable Value</p><p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{formatINR(totalTaxable)}</p></Card>
             <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total CGST</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(totalCGST)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(totalTax)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 dark:text-gray-200 mt-0.5">{formatINR(totalTax)}</p></Card>
           </div>
 
           <Card title="GSTR-1 - Outward Supplies" className="p-0 overflow-hidden">
@@ -102,7 +102,7 @@ export default function GSTReports() {
                 <tbody>
                   {GSTR1_DATA.map((r, i) => (
                     <tr key={r.invoiceNo} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-medium text-royal-700">{r.invoiceNo}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-700 dark:text-gray-300">{r.invoiceNo}</td>
                       <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.date}</td>
                       <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{r.customerName}</td>
                       <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 dark:text-gray-500 font-mono text-xs">{r.customerGSTIN || '-'}</td>
@@ -112,18 +112,18 @@ export default function GSTReports() {
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(r.cgst)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(r.sgst)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-orange-600">{formatINR(r.igst)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(r.totalAmount)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(r.totalAmount)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-royal-50 border-t-2 border-royal-200 font-semibold">
-                    <td className="px-4 py-3 text-royal-800" colSpan={6}>Total</td>
-                    <td className="px-4 py-3 text-right font-mono text-royal-800">{formatINR(totalTaxable)}</td>
+                  <tr className="bg-royal-50 dark:bg-white/5 border-t-2 border-royal-200 dark:border-white/10 font-semibold">
+                    <td className="px-4 py-3 text-royal-800 dark:text-gray-200" colSpan={6}>Total</td>
+                    <td className="px-4 py-3 text-right font-mono text-royal-800 dark:text-gray-200">{formatINR(totalTaxable)}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{formatINR(totalCGST)}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{formatINR(totalSGST)}</td>
                     <td className="px-4 py-3 text-right font-mono text-orange-600">{formatINR(totalIGST)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-royal-800">{formatINR(totalTaxable + totalTax)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-royal-800 dark:text-gray-200">{formatINR(totalTaxable + totalTax)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -135,10 +135,10 @@ export default function GSTReports() {
       {activeTab === 'gstr3b' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Outward Taxable</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Outward Taxable</p><p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</p></Card>
             <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax Liability</p><p className="text-xl font-bold text-red-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalTax)}</p></Card>
             <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Input Tax Credit</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalITC)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Net Tax Payable</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(GSTR3B_SUMMARY.netTaxPayable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Net Tax Payable</p><p className="text-xl font-bold text-royal-800 dark:text-gray-200 mt-0.5">{formatINR(GSTR3B_SUMMARY.netTaxPayable)}</p></Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -148,7 +148,7 @@ export default function GSTReports() {
                 <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">CGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.cgst)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">SGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.sgst)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">IGST</span><span className="text-sm font-semibold text-orange-600">{formatINR(GSTR3B_SUMMARY.igst)}</span></div>
-                <div className="flex justify-between py-2 bg-royal-50 rounded-lg px-3"><span className="text-sm font-semibold text-royal-800">Total Tax</span><span className="text-sm font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.totalTax)}</span></div>
+                <div className="flex justify-between py-2 bg-royal-50 dark:bg-white/5 rounded-lg px-3"><span className="text-sm font-semibold text-royal-800 dark:text-gray-200">Total Tax</span><span className="text-sm font-bold text-royal-800 dark:text-gray-200">{formatINR(GSTR3B_SUMMARY.totalTax)}</span></div>
               </div>
             </Card>
 
@@ -165,13 +165,13 @@ export default function GSTReports() {
 
           <Card title="6.1 Payment of Tax" className="mt-5">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-royal-50 rounded-lg p-4 text-center">
+              <div className="bg-royal-50 dark:bg-white/5 rounded-lg p-4 text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">CGST Payable</p>
-                <p className="text-lg font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.cgst)}</p>
+                <p className="text-lg font-bold text-royal-800 dark:text-gray-200">{formatINR(GSTR3B_SUMMARY.cgst)}</p>
               </div>
-              <div className="bg-royal-50 rounded-lg p-4 text-center">
+              <div className="bg-royal-50 dark:bg-white/5 rounded-lg p-4 text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">SGST Payable</p>
-                <p className="text-lg font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.sgst)}</p>
+                <p className="text-lg font-bold text-royal-800 dark:text-gray-200">{formatINR(GSTR3B_SUMMARY.sgst)}</p>
               </div>
               <div className="bg-emerald-50 rounded-lg p-4 text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">ITC Utilized</p>
@@ -189,9 +189,9 @@ export default function GSTReports() {
       {activeTab === 'hsn' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total HSN Codes</p><p className="text-xl font-bold text-royal-600 mt-0.5">{HSN_DATA.length}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total HSN Codes</p><p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{HSN_DATA.length}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Taxable Value</p><p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 dark:text-gray-200 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</p></Card>
           </div>
 
           <Card title="HSN-wise Summary of Outward Supplies" className="p-0 overflow-hidden">
@@ -213,7 +213,7 @@ export default function GSTReports() {
                 <tbody>
                   {HSN_DATA.map((h, i) => (
                     <tr key={h.hsnCode + i} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-mono font-medium text-royal-700">{h.hsnCode}</td>
+                      <td className="px-4 py-2.5 font-mono font-medium text-royal-700 dark:text-gray-300">{h.hsnCode}</td>
                       <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{h.description}</td>
                       <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 dark:text-gray-500">{h.uqc}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{h.quantity}</td>
@@ -221,18 +221,18 @@ export default function GSTReports() {
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(h.cgstAmount)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(h.sgstAmount)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-orange-600">{formatINR(h.igstAmount)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(h.taxableValue + h.cgstAmount + h.sgstAmount + h.igstAmount)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(h.taxableValue + h.cgstAmount + h.sgstAmount + h.igstAmount)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-royal-50 border-t-2 border-royal-200 font-semibold">
-                    <td className="px-4 py-3 text-royal-800" colSpan={4}>Total</td>
-                    <td className="px-4 py-3 text-right font-mono text-royal-800">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</td>
+                  <tr className="bg-royal-50 dark:bg-white/5 border-t-2 border-royal-200 dark:border-white/10 font-semibold">
+                    <td className="px-4 py-3 text-royal-800 dark:text-gray-200" colSpan={4}>Total</td>
+                    <td className="px-4 py-3 text-right font-mono text-royal-800 dark:text-gray-200">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{formatINR(HSN_DATA.reduce((s, h) => s + h.cgstAmount, 0))}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{formatINR(HSN_DATA.reduce((s, h) => s + h.sgstAmount, 0))}</td>
                     <td className="px-4 py-3 text-right font-mono text-orange-600">{formatINR(HSN_DATA.reduce((s, h) => s + h.igstAmount, 0))}</td>
-                    <td className="px-4 py-3 text-right font-mono text-royal-800">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</td>
+                    <td className="px-4 py-3 text-right font-mono text-royal-800 dark:text-gray-200">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</td>
                   </tr>
                 </tfoot>
               </table>

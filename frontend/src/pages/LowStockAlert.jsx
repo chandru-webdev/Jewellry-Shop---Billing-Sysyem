@@ -60,7 +60,7 @@ export default function LowStockAlert() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {lowStock.map((p) => (
-                  <tr key={p.id} className="hover:bg-royal-50/30 transition-colors">
+                  <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                     <td className="px-4 py-3 text-center">
                       <AlertTriangle size={14} className="text-amber-500 mx-auto" />
                     </td>
@@ -69,7 +69,7 @@ export default function LowStockAlert() {
                     <td className="px-4 py-3 text-right font-bold text-red-600">{p.quantity} pcs</td>
                     <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.reorderLevel} pcs</td>
                     <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(p.costValue)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-royal-800">{formatINR(p.sellingPrice)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(p.sellingPrice)}</td>
                   </tr>
                 ))}
               </tbody>

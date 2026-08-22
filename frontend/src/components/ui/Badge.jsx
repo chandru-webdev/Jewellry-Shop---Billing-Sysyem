@@ -2,7 +2,7 @@ import { cn } from '../../utils/cn'
 
 const tones = {
   gold: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20',
-  purple: 'bg-royal-50 dark:bg-royal-500/10 text-royal-700 dark:text-royal-400 border border-royal-200 dark:border-royal-500/20',
+  purple: 'bg-royal-50 dark:bg-royal-50 dark:bg-white/50/10 text-royal-700 dark:text-royal-400 border border-royal-200 dark:border-royal-500/20',
   green: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20',
   red: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20',
   gray: 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10',

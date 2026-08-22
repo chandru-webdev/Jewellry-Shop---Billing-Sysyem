@@ -180,7 +180,7 @@ export default function SalesReturns() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
+              <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
                 <th className="px-5 py-3 font-semibold">Return #</th>
                 <th className="px-5 py-3 font-semibold">Date</th>
                 <th className="px-5 py-3 font-semibold">Customer</th>
@@ -199,7 +199,7 @@ export default function SalesReturns() {
                 </tr>
               ) : (
                 filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-royal-50/50">
+                  <tr key={r.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
                     <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.returnNo}</td>
                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{r.date}</td>
                     <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{r.customer}</td>

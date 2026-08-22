@@ -57,7 +57,7 @@ export default function PricingRules() {
             <div key={r.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <div className="flex items-between justify-between">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{r.name}</p>
-                <p className="text-sm font-medium text-royal-800">{r.value}%</p>
+                <p className="text-sm font-medium text-royal-800 dark:text-gray-200">{r.value}%</p>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.description}</p>
             </div>
@@ -90,11 +90,11 @@ export default function PricingRules() {
               <tbody>
                 {filteredRules.map((r) => (
                   <tr key={r.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${filteredRules.indexOf(r) % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                    <td className="px-3 py-2 font-medium text-royal-800">{r.name}</td>
+                    <td className="px-3 py-2 font-medium text-royal-800 dark:text-gray-200">{r.name}</td>
                     <td className="px-3 py-2">
                       <Badge tone={r.type === '%' ? 'blue' : 'amber'}>{r.type}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-right font-medium text-royal-800">{r.value}</td>
+                    <td className="px-3 py-2 text-right font-medium text-royal-800 dark:text-gray-200">{r.value}</td>
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.description}</td>
                     <td className="px-3 py-2 text-right">
                       <Button variant="ghost" size="sm" title="Edit">
@@ -148,7 +148,7 @@ export default function PricingRules() {
               <tbody>
                 {TAX_SLABS.map((t) => (
                   <tr key={t.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${TAX_SLABS.indexOf(t) % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                    <td className="px-3 py-2 font-medium text-royal-800">{t.name}</td>
+                    <td className="px-3 py-2 font-medium text-royal-800 dark:text-gray-200">{t.name}</td>
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">{t.slabs.join(', ')}</td>
                     <td className="px-3 py-2 text-right">
                       <Button variant="ghost" size="sm" title="Edit"><Calendar size={12} /></Button>

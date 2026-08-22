@@ -334,7 +334,7 @@ export default function Topbar({ onMenuClick }) {
 <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onMenuClick}
-            className="lg:hidden text-royal-700 hover:text-royal-900 p-1.5 rounded-lg hover:bg-royal-50 transition-colors cursor-pointer shrink-0"
+            className="lg:hidden text-royal-700 dark:text-gray-300 hover:text-royal-900 p-1.5 rounded-lg hover:bg-royal-50 dark:bg-white/5 transition-colors cursor-pointer shrink-0"
             aria-label="Open menu"
           >
             <Menu size={20} />
@@ -355,7 +355,7 @@ export default function Topbar({ onMenuClick }) {
 
         <div className="flex items-center gap-1 shrink-0">
           {/* Silver Rate Widget */}
-          <div className="hidden lg:flex items-center gap-3 mr-3 px-3 py-1.5 rounded-lg bg-royal-50 border border-royal-100">
+          <div className="hidden lg:flex items-center gap-3 mr-3 px-3 py-1.5 rounded-lg bg-royal-50 dark:bg-white/5 border border-royal-100">
             <div className="text-center">
               <p className="text-[9px] text-royal-400 uppercase tracking-wider font-semibold">Silver Rate (92.5)</p>
               {rateLoading ? (
@@ -372,7 +372,7 @@ export default function Topbar({ onMenuClick }) {
           <div className="relative" ref={helpRef}>
             <button
               onClick={() => setHelpOpen(!helpOpen)}
-              className="p-2 text-gray-400 hover:text-royal-700 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer"
+              className="p-2 text-gray-400 hover:text-royal-700 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer"
               title="Help"
             >
               <HelpCircle size={18} />
@@ -381,9 +381,9 @@ export default function Topbar({ onMenuClick }) {
             {/* Help Popover */}
             {helpOpen && (
               <div className="absolute right-0 top-full mt-2 w-[360px] bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.08] bg-royal-50/50 dark:bg-royal-500/5">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.08] bg-royal-50/50 dark:bg-royal-50 dark:bg-white/50/5">
                   <h3 className="text-sm font-semibold text-royal-950 dark:text-white flex items-center gap-2">
-                    <HelpCircle size={14} className="text-royal-500" />
+                    <HelpCircle size={14} className="text-royal-500 dark:text-gray-400" />
                     Opal Line ERP — Help
                   </h3>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Quick reference for your ERP system</p>
@@ -447,7 +447,7 @@ export default function Topbar({ onMenuClick }) {
                       href="https://github.com/anomalyco/opencode/issues"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium text-royal-600 hover:text-royal-800"
+                      className="inline-flex items-center gap-1 mt-2 text-[11px] font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200"
                     >
                       Report a bug <ExternalLink size={10} />
                     </a>
@@ -459,7 +459,7 @@ export default function Topbar({ onMenuClick }) {
           <ThemeToggle />
           <button
             onClick={() => navigate('/settings')}
-            className="p-2 text-gray-400 hover:text-royal-700 hover:bg-royal-50 dark:hover:text-royal-300 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="p-2 text-gray-400 hover:text-royal-700 dark:text-gray-300 hover:bg-royal-50 dark:hover:text-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             title="Settings"
           >
             <Settings size={18} />
@@ -469,7 +469,7 @@ export default function Topbar({ onMenuClick }) {
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen(!notifOpen)}
-              className="relative p-2 text-gray-400 hover:text-royal-700 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer"
+              className="relative p-2 text-gray-400 hover:text-royal-700 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer"
               title="Notifications"
             >
               <Bell size={18} />
@@ -496,7 +496,7 @@ export default function Topbar({ onMenuClick }) {
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllAsRead}
-                      className="text-[11px] font-medium text-royal-600 hover:text-royal-800 cursor-pointer"
+                      className="text-[11px] font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 cursor-pointer"
                     >
                       Mark all as read
                     </button>
@@ -521,7 +521,7 @@ export default function Topbar({ onMenuClick }) {
                       <div
                         key={notif.id}
                         className={`flex gap-3 px-4 py-3 border-b border-gray-50 dark:border-white/[0.05] last:border-0 transition-colors cursor-pointer ${
-                          notif.isRead ? 'bg-white dark:bg-transparent hover:bg-gray-50/50 dark:hover:bg-white/5' : 'bg-royal-50/30 dark:bg-royal-500/5 hover:bg-royal-50/50 dark:hover:bg-royal-500/10'
+                          notif.isRead ? 'bg-white dark:bg-transparent hover:bg-gray-50/50 dark:hover:bg-white/5' : 'bg-royal-50/30 dark:bg-royal-50 dark:bg-white/50/5 hover:bg-royal-50 dark:hover:bg-white/5/50 dark:hover:bg-royal-50 dark:bg-white/50/10'
                         }`}
                         onClick={() => handleNotificationClick(notif)}
                       >
@@ -548,7 +548,7 @@ export default function Topbar({ onMenuClick }) {
                             {!notif.isRead && (
                               <button
                                 onClick={() => handleMarkAsRead(notif.id)}
-                                className="shrink-0 p-0.5 text-royal-400 hover:text-royal-700 cursor-pointer"
+                                className="shrink-0 p-0.5 text-royal-400 hover:text-royal-700 dark:text-gray-300 cursor-pointer"
                                 title="Mark as read"
                               >
                                 <Check size={12} />

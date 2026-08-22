@@ -91,8 +91,8 @@ export default function Ledger() {
 
       <div className="mb-5">
         <div className="flex gap-2 border-b border-gray-200 dark:border-white/[0.08]">
-          <button onClick={() => setView('accounts')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'accounts' ? 'border-royal-600 text-royal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>Chart of Accounts</button>
-          <button onClick={() => setView('trial')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'trial' ? 'border-royal-600 text-royal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>Trial Balance</button>
+          <button onClick={() => setView('accounts')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'accounts' ? 'border-royal-600 dark:border-white/20 text-royal-700 dark:text-gray-300' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>Chart of Accounts</button>
+          <button onClick={() => setView('trial')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${view === 'trial' ? 'border-royal-600 dark:border-white/20 text-royal-700 dark:text-gray-300' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>Trial Balance</button>
         </div>
       </div>
 
@@ -146,8 +146,8 @@ export default function Ledger() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map((a) => (
-                    <tr key={a.id} className="hover:bg-royal-50/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-[11px] text-royal-700 font-semibold">{a.code}</td>
+                    <tr key={a.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                      <td className="px-4 py-3 font-mono text-[11px] text-royal-700 dark:text-gray-300 font-semibold">{a.code}</td>
                       <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{a.name}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge tone={typeTone[a.type] || 'gray'}> {a.type}</Badge>
@@ -163,7 +163,7 @@ export default function Ledger() {
                         <Badge tone={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Active' : 'Inactive'}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => { setSelected(a); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><BookOpen size={14} /></button>
+                        <button onClick={() => { setSelected(a); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><BookOpen size={14} /></button>
                       </td>
                     </tr>
                   ))}
@@ -192,8 +192,8 @@ export default function Ledger() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {trialBalanceData.map((a) => (
-                  <tr key={a.code} className="hover:bg-royal-50/30 transition-colors">
-                    <td className="px-4 py-2.5 font-mono text-[10px] text-royal-700">{a.code}</td>
+                  <tr key={a.code} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-royal-700 dark:text-gray-300">{a.code}</td>
                     <td className="px-4 py-2.5 font-medium text-royal-950 dark:text-white">{a.name}</td>
                     <td className="px-4 py-2.5 text-right font-bold text-blue-600">{a.debit > 0 ? formatINR(a.debit) : '—'}</td>
                     <td className="px-4 py-2.5 text-right font-bold text-red-600">{a.credit > 0 ? formatINR(a.credit) : '—'}</td>

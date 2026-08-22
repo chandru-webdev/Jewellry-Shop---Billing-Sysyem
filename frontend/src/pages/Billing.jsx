@@ -180,9 +180,9 @@ export default function Billing() {
                 <Search size={15} className="text-gray-400 dark:text-gray-500" />
                 <input type="text" placeholder="Search products by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
               </div>
-              <div className="flex items-center gap-2 bg-royal-50 rounded-lg px-3 py-2 border border-royal-200">
-                <Coins size={14} className="text-royal-600" />
-                <span className="text-sm font-bold text-royal-800">₹{silverRate}/gm</span>
+              <div className="flex items-center gap-2 bg-royal-50 dark:bg-white/5 rounded-lg px-3 py-2 border border-royal-200 dark:border-white/10">
+                <Coins size={14} className="text-royal-600 dark:text-gray-300" />
+                <span className="text-sm font-bold text-royal-800 dark:text-gray-200">₹{silverRate}/gm</span>
               </div>
             </div>
           </Card>
@@ -192,7 +192,7 @@ export default function Billing() {
             <Card title="Products" className="p-0 overflow-hidden">
               <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
                 {filteredProducts.map((p) => (
-                  <button key={p.id} onClick={() => addItem(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-royal-50/30 transition-colors cursor-pointer text-left">
+                  <button key={p.id} onClick={() => addItem(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors cursor-pointer text-left">
                     <div>
                       <p className="text-sm font-medium text-royal-950 dark:text-white">{p.name}</p>
                       <p className="text-[11px] font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku} · {formatWeight(p.weight)} · ₹{p.makingCharge}/g making</p>
@@ -235,7 +235,7 @@ export default function Billing() {
                         <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.silverValue * item.qty)}</td>
                         <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.makingValue * item.qty)}</td>
                         <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.gst * item.qty)}</td>
-                        <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(item.total)}</td>
+                        <td className="py-2.5 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(item.total)}</td>
                         <td className="py-2.5"><button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:text-red-600 cursor-pointer"><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
@@ -262,7 +262,7 @@ export default function Billing() {
           <Card title="Payment" icon={CreditCard}>
             <div className="grid grid-cols-2 gap-2">
               {PAYMENT_METHODS.map((m) => (
-                <button key={m.value} onClick={() => setPaymentMethod(m.value)} className={`py-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer flex flex-col items-center gap-1 ${paymentMethod === m.value ? 'bg-royal-700 text-white border-royal-700' : 'bg-white dark:bg-[#1a1025] text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/[0.08] hover:border-royal-300'}`}>
+                <button key={m.value} onClick={() => setPaymentMethod(m.value)} className={`py-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer flex flex-col items-center gap-1 ${paymentMethod === m.value ? 'bg-royal-700 text-white border-royal-700' : 'bg-white dark:bg-[#1a1025] text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/[0.08] hover:border-royal-300 dark:border-white/10'}`}>
                   <CreditCard size={12} />
                   {m.label}
                 </button>

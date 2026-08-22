@@ -61,8 +61,8 @@ export default function Roles() {
               <Card key={role.id}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-royal-100 flex items-center justify-center">
-                      <Shield size={14} className="text-royal-600" />
+                    <div className="w-8 h-8 rounded-lg bg-royal-100 dark:bg-white/10 flex items-center justify-center">
+                      <Shield size={14} className="text-royal-600 dark:text-gray-300" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-royal-950 dark:text-white text-sm">{role.name.replace(/_/g, ' ')}</h3>

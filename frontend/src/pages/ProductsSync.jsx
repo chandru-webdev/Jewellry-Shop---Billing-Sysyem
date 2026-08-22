@@ -52,7 +52,7 @@ export default function ProductsSync() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Products</p>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{total}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{total}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Active</p>
@@ -76,11 +76,11 @@ export default function ProductsSync() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by title, SKU or Shopify ID..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300 dark:border-white/10"
           />
         </div>
         {['all', 'mapped', 'unmapped'].map((f) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${filter === f ? 'bg-royal-100 text-royal-700' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-200'}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${filter === f ? 'bg-royal-100 dark:bg-white/10 text-royal-700 dark:text-gray-300' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-200'}`}>
             {f === 'all' ? 'All' : f === 'mapped' ? 'Mapped' : 'Unmapped'}
           </button>
         ))}
@@ -110,7 +110,7 @@ export default function ProductsSync() {
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono">{p.shopifyId}</p>
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
-                  <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(p.price)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(p.price)}</td>
                   <td className="px-4 py-2.5 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.weight}</td>
                   <td className="px-4 py-2.5 text-center font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.stock}</td>
                   <td className="px-4 py-2.5"><Badge tone={statusColor[p.status]}>{p.status}</Badge></td>

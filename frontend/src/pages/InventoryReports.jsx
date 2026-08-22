@@ -81,15 +81,15 @@ export default function InventoryReports() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total SKUs</p></div>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{totalSKUs}</p>
+          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500 dark:text-gray-400" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total SKUs</p></div>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{totalSKUs}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Warehouse size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Units</p></div>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{totalUnits}</p>
+          <div className="flex items-center gap-2 mb-1"><Warehouse size={14} className="text-royal-500 dark:text-gray-400" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Units</p></div>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{totalUnits}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Value</p></div>
+          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500 dark:text-gray-400" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Value</p></div>
           <p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(totalValue)}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
@@ -100,7 +100,7 @@ export default function InventoryReports() {
 
       <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 mb-5 w-fit">
         {tabs.map((t) => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
+          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 dark:text-gray-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
             <t.icon size={14} /> {t.label}
           </button>
         ))}
@@ -129,7 +129,7 @@ export default function InventoryReports() {
               <tbody>
                 {filteredSummary.map((p, i) => (
                   <tr key={p.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                    <td className="px-4 py-2.5 font-medium text-royal-800">{p.name}</td>
+                    <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{p.name}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                     <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold">{p.quantity}</td>
@@ -161,7 +161,7 @@ export default function InventoryReports() {
                 {STOCK_MOVEMENT.map((m, i) => (
                   <tr key={i} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{m.date}</td>
-                    <td className="px-4 py-2.5 font-medium text-royal-800">{m.product}</td>
+                    <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{m.product}</td>
                     <td className="px-4 py-2.5"><Badge tone={m.type === 'IN' ? 'green' : 'red'}>{m.type === 'IN' ? 'IN' : 'OUT'}</Badge></td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold">{m.quantity}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{m.reference}</td>
@@ -193,7 +193,7 @@ export default function InventoryReports() {
               <tbody>
                 {VALUATION.map((v, i) => (
                   <tr key={v.sku} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                    <td className="px-4 py-2.5 font-medium text-royal-800">{v.name}</td>
+                    <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{v.name}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{v.sku}</td>
                     <td className="px-4 py-2.5 text-right font-mono">{v.quantity}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(v.costPrice)}</td>
@@ -205,8 +205,8 @@ export default function InventoryReports() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-royal-50 border-t-2 border-royal-200 font-semibold">
-                  <td className="px-4 py-3 text-royal-800" colSpan={5}>Total</td>
+                <tr className="bg-royal-50 dark:bg-white/5 border-t-2 border-royal-200 dark:border-white/10 font-semibold">
+                  <td className="px-4 py-3 text-royal-800 dark:text-gray-200" colSpan={5}>Total</td>
                   <td className="px-4 py-3 text-right font-mono text-red-700">{formatINR(VALUATION.reduce((s, v) => s + v.costValue, 0))}</td>
                   <td className="px-4 py-3 text-right font-mono text-emerald-700">{formatINR(VALUATION.reduce((s, v) => s + v.sellValue, 0))}</td>
                   <td className="px-4 py-3 text-right font-mono"><Badge tone="green">{((VALUATION.reduce((s, v) => s + v.sellValue, 0) / VALUATION.reduce((s, v) => s + v.costValue, 0) - 1) * 100).toFixed(1)}%</Badge></td>
@@ -240,7 +240,7 @@ export default function InventoryReports() {
                     const urgencyColor = urgency === 'Critical' || urgency === 'Out of Stock' ? 'red' : 'orange'
                     return (
                       <tr key={p.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                        <td className="px-4 py-2.5 font-medium text-royal-800">{p.name}</td>
+                        <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{p.name}</td>
                         <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                         <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
                         <td className="px-4 py-2.5 text-right font-mono font-bold text-red-600">{p.quantity}</td>

@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn'
 const variants = {
   primary: 'bg-royal-700 hover:bg-royal-800 text-white shadow-sm',
   secondary: 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-white/10',
-  outline: 'border border-royal-300 dark:border-royal-500/30 text-royal-700 dark:text-royal-300 hover:bg-royal-50 dark:hover:bg-royal-500/10 bg-white dark:bg-transparent',
+  outline: 'border border-royal-300 dark:border-royal-500/30 text-royal-700 dark:text-royal-300 hover:bg-royal-50 dark:hover:bg-royal-50 dark:bg-white/50/10 bg-white dark:bg-transparent',
   danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm',
   ghost: 'text-royal-700 dark:text-royal-300 hover:bg-royal-50 dark:hover:bg-white/10',
   gold: 'bg-gold-500 hover:bg-gold-600 text-royal-950 shadow-sm',

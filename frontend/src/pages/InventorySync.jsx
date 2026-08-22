@@ -59,9 +59,9 @@ export default function InventorySync() {
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
             <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total SKUs</p>
-            <Boxes size={16} className="text-royal-500" />
+            <Boxes size={16} className="text-royal-500 dark:text-gray-400" />
           </div>
-          <p className="text-xl font-bold text-royal-600 mt-0.5">{total}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{total}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
@@ -82,7 +82,7 @@ export default function InventorySync() {
             <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Last Sync Time</p>
             <RefreshCw size={16} className="text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-sm font-bold text-royal-800 mt-1">{lastSync}</p>
+          <p className="text-sm font-bold text-royal-800 dark:text-gray-200 mt-1">{lastSync}</p>
         </div>
       </div>
 

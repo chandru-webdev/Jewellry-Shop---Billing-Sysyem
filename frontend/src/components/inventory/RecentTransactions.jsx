@@ -24,7 +24,7 @@ export default function RecentTransactions({ type, title = 'Recent Transactions'
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-royal-50 text-royal-900 text-left">
+            <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 text-left">
               <th className="px-5 py-3 font-semibold">Date</th>
               <th className="px-5 py-3 font-semibold">Product</th>
               <th className="px-5 py-3 font-semibold">Type</th>
@@ -41,7 +41,7 @@ export default function RecentTransactions({ type, title = 'Recent Transactions'
               <tr><td colSpan={6} className="px-5 py-6 text-center text-gray-400">No transactions yet.</td></tr>
             )}
             {transactions?.map((t) => (
-              <tr key={t.id} className="hover:bg-royal-50/50">
+              <tr key={t.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
                 <td className="px-5 py-3 text-gray-500 text-xs">{formatDateTime(t.createdAt)}</td>
                 <td className="px-5 py-3 font-medium text-royal-950">{t.product.name}</td>
                 <td className="px-5 py-3"><Badge tone={toneForType[t.type]}>{t.type}</Badge></td>

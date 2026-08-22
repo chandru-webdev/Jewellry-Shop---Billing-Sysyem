@@ -110,7 +110,7 @@ export default function ShopifySync() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              tab === t ? 'border-royal-700 text-royal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'
+              tab === t ? 'border-royal-700 text-royal-700 dark:text-gray-300' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'
             }`}
           >
             {t === 'dashboard' ? 'Dashboard' : t === 'products' ? 'Products' : 'Sync Logs'}
@@ -209,13 +209,13 @@ export default function ShopifySync() {
                   </tr>
                 )}
                 {!fetchProductsQuery.isFetching && fetchProductsQuery.data?.map((p) => (
-                  <tr key={p.shopifyId} className="hover:bg-royal-50/30 transition-colors">
+                  <tr key={p.shopifyId} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                     <td className="px-4 py-3">
                       <span className="font-medium text-royal-950 dark:text-white">{p.title}</span>
                       <span className="block text-[11px] text-gray-400 dark:text-gray-500">ID: {p.shopifyId}</span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-mono">{p.sku || '—'}</td>
-                    <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(Number(p.price))}</td>
+                    <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(Number(p.price))}</td>
                     <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.weight ? `${p.weight}${p.weightUnit || 'g'}` : '—'}</td>
                     <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.inventoryQuantity || 0}</td>
                     <td className="px-4 py-3 text-center">
@@ -249,9 +249,9 @@ export default function ShopifySync() {
                 {DEMO_LOGS.map((log, i) => {
                   const StatusIcon = statusIcon[log.status]
                   return (
-                    <tr key={i} className="hover:bg-royal-50/30 transition-colors">
+                    <tr key={i} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                       <td className="px-4 py-3"><Badge tone="purple">{log.entity}</Badge></td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{log.shopifyId}</td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{log.shopifyId}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{log.direction}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>
                       <td className="px-4 py-3 text-center">

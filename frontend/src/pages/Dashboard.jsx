@@ -164,7 +164,7 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-royal-300 transition-colors"
+          className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-royal-300 dark:border-white/10 transition-colors"
         >
           <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
           <span className="text-gray-700 dark:text-gray-300 font-medium">{selectedLabel}</span>
@@ -185,7 +185,7 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
                 }}
                 className={`w-full text-left px-3.5 py-2 text-sm transition-colors cursor-pointer ${
                   value === filter.value
-                    ? 'text-royal-700 bg-royal-50 font-semibold'
+                    ? 'text-royal-700 dark:text-gray-300 bg-royal-50 dark:bg-white/5 font-semibold'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-white/5'
                 }`}
               >
@@ -213,7 +213,7 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
           />
           <button
             onClick={() => setIsOpen(false)}
-            className="text-xs font-medium text-royal-600 hover:text-royal-800 px-2 py-1.5"
+            className="text-xs font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 px-2 py-1.5"
           >
             Apply
           </button>
@@ -248,7 +248,7 @@ function QuickActionBar() {
         <Link
           key={a.label}
           to={a.to}
-          className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 hover:bg-royal-50 text-gray-700 dark:text-gray-300 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
+          className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 dark:border-white/10 hover:bg-royal-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-royal-700 dark:text-gray-300 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
         >
           <a.icon size={13} />
           {a.label}
@@ -370,7 +370,7 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
                   <button
                     key={p.id}
                     onClick={() => { setSelectedProduct(p); setSearchTerm(`${p.name} (${p.sku})`) }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 flex justify-between items-center cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 dark:bg-white/5 flex justify-between items-center cursor-pointer"
                   >
                     <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
                     <span className="text-[11px] text-gray-400 dark:text-gray-500 font-mono">{p.sku}</span>
@@ -382,9 +382,9 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
 
           {/* Current stock display */}
           {selectedProduct && (
-            <div className="bg-royal-50 rounded-lg px-3 py-2 flex items-center justify-between">
+            <div className="bg-royal-50 dark:bg-white/5 rounded-lg px-3 py-2 flex items-center justify-between">
               <span className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Current Stock</span>
-              <span className="text-sm font-bold text-royal-800">{selectedProduct.inventory?.quantity ?? 0} pcs</span>
+              <span className="text-sm font-bold text-royal-800 dark:text-gray-200">{selectedProduct.inventory?.quantity ?? 0} pcs</span>
             </div>
           )}
 
@@ -459,7 +459,7 @@ export default function Dashboard() {
         <p className="text-xs mt-1 mb-4">Check your connection and try again</p>
         <button
           onClick={() => refetch()}
-          className="text-xs font-medium text-royal-600 hover:text-royal-800 px-4 py-2 bg-royal-50 rounded-lg"
+          className="text-xs font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 px-4 py-2 bg-royal-50 dark:bg-white/5 rounded-lg"
         >
           Retry
         </button>
@@ -501,7 +501,7 @@ export default function Dashboard() {
           <Link
             key={a.label}
             to={a.to}
-            className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 hover:bg-royal-50 text-gray-700 dark:text-gray-300 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 dark:border-white/10 hover:bg-royal-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-royal-700 dark:text-gray-300 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
           >
             <a.icon size={13} />
             {a.label}
@@ -601,7 +601,7 @@ export default function Dashboard() {
       <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm px-5 py-3">
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
           {[
-            { icon: Package, label: 'Total Products', value: d.products.active, sub: 'Active', color: 'text-royal-500' },
+            { icon: Package, label: 'Total Products', value: d.products.active, sub: 'Active', color: 'text-royal-500 dark:text-gray-400' },
             { icon: Users, label: 'Total Customers', value: d.customers, sub: 'Active', color: 'text-blue-500' },
             { icon: Truck, label: 'Total Suppliers', value: d.suppliers, sub: 'Active', color: 'text-emerald-500' },
             { icon: Boxes, label: 'Total Stock (Qty)', value: `${(d.stock.totalQuantity || 0).toLocaleString('en-IN')} pcs`, color: 'text-amber-500' },
@@ -699,7 +699,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-4 text-center text-xs font-semibold text-royal-600 hover:text-royal-800 py-2 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer">
+            <button className="w-full mt-4 text-center text-xs font-semibold text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 py-2 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer">
               View Details
             </button>
           </div>
@@ -711,7 +711,7 @@ export default function Dashboard() {
         title="Top Selling Products"
         icon={Gem}
         action={
-          <Link to="/products" className="text-xs font-semibold text-royal-600 hover:text-royal-800 flex items-center gap-1">
+          <Link to="/products" className="text-xs font-semibold text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 flex items-center gap-1">
             View All <ArrowRight size={12} />
           </Link>
         }
@@ -730,12 +730,12 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {d.topProducts.map((p) => (
-                  <tr key={p.sku} className="border-b border-gray-50 last:border-0 hover:bg-royal-50/30">
+                  <tr key={p.sku} className="border-b border-gray-50 last:border-0 hover:bg-royal-50 dark:hover:bg-white/5/30">
                     <td className="py-2.5 font-medium text-royal-950 dark:text-white">{p.name}</td>
                     <td className="py-2.5 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                     <td className="py-2.5 text-right font-semibold text-royal-900 dark:text-gray-200">{p.qty}</td>
                     <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{Number(p.weight).toFixed(2)}</td>
-                    <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(p.revenue)}</td>
+                    <td className="py-2.5 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -754,7 +754,7 @@ export default function Dashboard() {
           icon={Coins}
           action={
             d.silverRate && (
-              <span className="text-xs font-semibold text-royal-700 bg-royal-50 px-2.5 py-1 rounded-lg">
+              <span className="text-xs font-semibold text-royal-700 dark:text-gray-300 bg-royal-50 dark:bg-white/5 px-2.5 py-1 rounded-lg">
                 Today: ₹{d.silverRate.rate} / gm
               </span>
             )
@@ -782,7 +782,7 @@ export default function Dashboard() {
           title="Low Stock Alert"
           icon={AlertTriangle}
           action={
-            <Link to="/inventory" className="text-xs font-semibold text-royal-600 hover:text-royal-800 flex items-center gap-1">
+            <Link to="/inventory" className="text-xs font-semibold text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 flex items-center gap-1">
               View All <ArrowRight size={12} />
             </Link>
           }
@@ -828,7 +828,7 @@ export default function Dashboard() {
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{inv.customer?.name || 'Walk-in'}</p>
                   </div>
                   <div className="text-right shrink-0 ml-2">
-                    <p className="text-xs font-bold text-royal-800">{formatINR(inv.grandTotal)}</p>
+                    <p className="text-xs font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</p>
                     <Badge tone={inv.status === 'PAID' ? 'green' : inv.status === 'VOID' ? 'red' : 'orange'}>
                       {inv.status}
                     </Badge>

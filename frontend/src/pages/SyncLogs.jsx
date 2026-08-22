@@ -84,7 +84,7 @@ export default function SyncLogs() {
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Last Sync Time</p>
-          <p className="text-sm font-bold text-royal-700 mt-1">{lastSync ? lastSync.time : '—'}</p>
+          <p className="text-sm font-bold text-royal-700 dark:text-gray-300 mt-1">{lastSync ? lastSync.time : '—'}</p>
         </div>
       </div>
 
@@ -122,9 +122,9 @@ export default function SyncLogs() {
               {filtered.map((log, i) => {
                 const StatusIcon = statusIcon[log.status]
                 return (
-                  <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50/30 transition-colors`}>
+                  <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors`}>
                     <td className="px-4 py-2.5"><Badge tone={entityColor[log.entity]}>{log.entity}</Badge></td>
-                    <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 text-xs">{log.shopifyId}</td>
+                    <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300 text-xs">{log.shopifyId}</td>
                     <td className="px-4 py-2.5 font-medium text-royal-950 dark:text-white text-xs max-w-52 truncate">{log.entityName}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{log.direction}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>

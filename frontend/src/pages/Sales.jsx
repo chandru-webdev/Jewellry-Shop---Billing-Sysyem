@@ -247,7 +247,7 @@ function InvoiceDetail({ invoice }) {
           <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · GST invoicing</p>
         </div>
         <div className="text-right">
-          <p className="text-xl font-bold text-royal-800 font-mono">{invoice.invoiceNumber}</p>
+          <p className="text-xl font-bold text-royal-800 dark:text-gray-200 font-mono">{invoice.invoiceNumber}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(invoice.date)}</p>
           <Badge tone={statusTone[invoice.status]}>{invoice.status}</Badge>
         </div>
@@ -272,7 +272,7 @@ function InvoiceDetail({ invoice }) {
               {canEdit && !showAddCustomer && (
                 <button
                   onClick={() => setShowAddCustomer(true)}
-                  className="mt-1 text-xs font-medium text-royal-600 hover:text-royal-800 flex items-center gap-1 cursor-pointer"
+                  className="mt-1 text-xs font-medium text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 flex items-center gap-1 cursor-pointer"
                 >
                   <Plus size={12} /> Add Customer
                 </button>
@@ -325,7 +325,7 @@ function InvoiceDetail({ invoice }) {
                   onClick={() => setSelectedCustomer(c)}
                   className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
                     selectedCustomer?.id === c.id
-                      ? 'bg-royal-100 text-royal-900 dark:text-gray-200'
+                      ? 'bg-royal-100 dark:bg-white/10 text-royal-900 dark:text-gray-200'
                       : 'hover:bg-gray-100 dark:bg-white/10'
                   }`}
                 >
@@ -384,7 +384,7 @@ function InvoiceDetail({ invoice }) {
                   <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.silverRate)}</td>
                   <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.baseAmount)}</td>
                   <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.gstAmount)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-royal-800">{formatINR(it.finalAmount)}</td>
+                  <td className="px-3 py-2 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(it.finalAmount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -414,7 +414,7 @@ function InvoiceDetail({ invoice }) {
         )}
         <div className="flex justify-between font-bold text-lg border-t pt-2">
           <span className="text-royal-950 dark:text-white">Grand Total</span>
-          <span className="text-royal-800">{formatINR(invoice.grandTotal)}</span>
+          <span className="text-royal-800 dark:text-gray-200">{formatINR(invoice.grandTotal)}</span>
         </div>
       </div>
 
@@ -431,7 +431,7 @@ function InvoiceDetail({ invoice }) {
                   <CreditCard size={12} className="text-gray-400 dark:text-gray-500" />
                   <span>{p.method}</span>
                 </div>
-                <span className="font-medium text-royal-800">{formatINR(p.amount)}</span>
+                <span className="font-medium text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</span>
                 <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(p.createdAt)}</span>
               </div>
             ))}
@@ -555,7 +555,7 @@ export default function Sales() {
             }}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === tab.value
-                ? 'border-royal-700 text-royal-700'
+                ? 'border-royal-700 text-royal-700 dark:text-gray-300'
                 : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300'
             }`}
           >
@@ -669,9 +669,9 @@ export default function Sales() {
                     </tr>
                   )}
                   {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-royal-50/30 transition-colors">
+                    <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs font-semibold text-royal-700">{inv.invoiceNumber}</span>
+                        <span className="font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{inv.invoiceNumber}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-medium text-royal-950 dark:text-white">
@@ -682,7 +682,7 @@ export default function Sales() {
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(inv.date)}</td>
                       <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv._count?.items || 0}</td>
                       <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv.totalQuantity || 0}</td>
-                      <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(inv.grandTotal)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</td>
                       <td className="px-4 py-3 text-center">
                         {inv.paymentMethod ? (
                           <Badge tone={paymentTone[inv.paymentMethod]}>{inv.paymentMethod}</Badge>
@@ -697,14 +697,14 @@ export default function Sales() {
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => fetchInvoice(inv.id)}
-                            className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                            className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                             title="View Details"
                           >
                             <Eye size={14} />
                           </button>
                           <button
                             onClick={() => downloadPdf(inv)}
-                            className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                            className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                             title="Download PDF"
                           >
                             <Download size={14} />
@@ -729,9 +729,9 @@ export default function Sales() {
                       { key: 'PENDING', label: 'Pending', count: displayOrders.filter((o) => o.status === 'PENDING').length },
                       { key: 'CANCELLED', label: 'Cancelled', count: displayOrders.filter((o) => o.status === 'CANCELLED').length },
                     ].map((f) => (
-                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
+                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 dark:text-gray-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
                         {f.label}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 text-royal-700' : 'bg-gray-200 text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{f.count}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 dark:bg-white/10 text-royal-700 dark:text-gray-300' : 'bg-gray-200 text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{f.count}</span>
                       </button>
                     ))}
                   </div>
@@ -764,12 +764,12 @@ export default function Sales() {
                   )}
                   {!ordersLoading &&
                     filteredOrders.map((o) => (
-                      <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</td>
+                      <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || `#${o.id}`}</td>
                         <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
                         <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{o._count?.items || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
                         <td className="px-4 py-3 text-center">
                           <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>
                         </td>
@@ -777,7 +777,7 @@ export default function Sales() {
                           <div className="flex justify-end gap-1">
                             <button
                               onClick={() => fetchInvoice(o.id)}
-                              className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                               title="View"
                             >
                               <Eye size={14} />
@@ -818,7 +818,7 @@ export default function Sales() {
                   )}
                   {!customersLoading &&
                     displayCustomers.map((c) => (
-                      <tr key={c.id} className="hover:bg-royal-50/30 transition-colors">
+                      <tr key={c.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-500 to-royal-700 text-white flex items-center justify-center text-[10px] font-bold">
@@ -833,7 +833,7 @@ export default function Sales() {
                           <div className="flex justify-end gap-1">
                             <button
                               onClick={() => (window.location.href = `/customers`)}
-                              className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                               title="View"
                             >
                               <Eye size={14} />
@@ -868,11 +868,11 @@ export default function Sales() {
                     </tr>
                   ) : (
                     displayReturns.map((o) => (
-                      <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</td>
+                      <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || `#${o.id}`}</td>
                         <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
                         <td className="px-4 py-3 text-center">
                           <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>
                         </td>
@@ -880,7 +880,7 @@ export default function Sales() {
                           <div className="flex justify-end">
                             <button
                               onClick={() => null}
-                              className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer"
+                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                               title="View Details"
                             >
                               <Eye size={14} />

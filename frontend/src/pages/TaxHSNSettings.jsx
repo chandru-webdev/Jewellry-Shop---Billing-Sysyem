@@ -61,7 +61,7 @@ export default function TaxHSNSettings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total HSN Codes</p>
-              <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_HSN.length}</p>
+              <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{DEMO_HSN.length}</p>
             </div>
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Categories</p>
@@ -152,10 +152,10 @@ export default function TaxHSNSettings() {
                 <tbody>
                   {filteredHSN.map((h, i) => (
                     <tr key={h.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-mono font-semibold text-royal-800">{h.hsnCode}</td>
+                      <td className="px-4 py-2.5 font-mono font-semibold text-royal-800 dark:text-gray-200">{h.hsnCode}</td>
                       <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{h.description}</td>
                       <td className="px-4 py-2.5"><Badge tone={catColor[h.category] || 'gray'}>{h.category}</Badge></td>
-                      <td className="px-4 py-2.5 text-right font-medium text-royal-800">{h.gstRate}%</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-royal-800 dark:text-gray-200">{h.gstRate}%</td>
                       <td className="px-4 py-2.5"><Badge tone={h.isActive ? 'green' : 'gray'}>{h.isActive ? 'Active' : 'Inactive'}</Badge></td>
                       <td className="px-4 py-2.5 text-right">
                         <Button variant="ghost" size="sm"><Trash2 size={12} /></Button>
@@ -175,7 +175,7 @@ export default function TaxHSNSettings() {
             {DEMO_TAX_SLABS.map((s) => (
               <div key={s.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{s.name} Slab</p>
-                <p className="text-lg font-bold text-royal-800 mt-0.5">{s.rate}%</p>
+                <p className="text-lg font-bold text-royal-800 dark:text-gray-200 mt-0.5">{s.rate}%</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{s.items}</p>
               </div>
             ))}
@@ -195,8 +195,8 @@ export default function TaxHSNSettings() {
                 <tbody>
                   {filteredSlabs.map((s, i) => (
                     <tr key={s.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                      <td className="px-4 py-2.5 font-medium text-royal-800">{s.name}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{s.rate}%</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{s.name}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{s.rate}%</td>
                       <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.items}</td>
                       <td className="px-4 py-2.5 text-right">
                         <Button variant="ghost" size="sm">Edit</Button>

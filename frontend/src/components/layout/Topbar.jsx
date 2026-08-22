@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { searchApi } from '../../api/search'
 import { notificationsApi } from '../../api/notifications'
 import { useSilverRate } from '../../hooks/useSilverRate'
+import ThemeToggle from '../ui/ThemeToggle'
 
 function isDemoMode() {
   return localStorage.getItem('opal_token') === 'demo-token-opal-line'
@@ -329,7 +330,7 @@ export default function Topbar({ onMenuClick }) {
 
   return (
     <>
-      <header className="h-16 shrink-0 bg-white border-b border-gray-200/80 flex items-center justify-between px-4 lg:px-6 gap-3 z-20">
+      <header className="h-16 shrink-0 bg-white dark:bg-[#1a1025] border-b border-gray-200/80 dark:border-white/[0.08] flex items-center justify-between px-4 lg:px-6 gap-3 z-20">
 <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onMenuClick}
@@ -455,9 +456,10 @@ export default function Topbar({ onMenuClick }) {
               </div>
             )}
           </div>
+          <ThemeToggle />
           <button
             onClick={() => navigate('/settings')}
-            className="p-2 text-gray-400 hover:text-royal-700 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer"
+            className="p-2 text-gray-400 hover:text-royal-700 hover:bg-royal-50 dark:hover:text-royal-300 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             title="Settings"
           >
             <Settings size={18} />

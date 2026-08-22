@@ -36,6 +36,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
         className={cn(
           'fixed lg:static inset-y-0 left-0 z-40 flex flex-col',
           'bg-gradient-to-b from-[#1a0a3e] via-[#12083a] to-[#0d0530]',
+          'dark:from-[#0d0530] dark:via-[#0a0420] dark:to-[#060215]',
           'transition-all duration-300 ease-in-out',
           isCollapsed ? 'w-[72px]' : 'w-64',
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

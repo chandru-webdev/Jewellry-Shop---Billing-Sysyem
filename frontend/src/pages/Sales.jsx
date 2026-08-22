@@ -241,14 +241,14 @@ function InvoiceDetail({ invoice }) {
   return (
     <div className="space-y-5">
       {/* Invoice header */}
-      <div className="flex justify-between items-start pb-3 border-b border-gray-100">
+      <div className="flex justify-between items-start pb-3 border-b border-gray-100 dark:border-white/[0.05]">
         <div>
-          <h3 className="text-xl font-bold text-royal-950">OPAL LINE</h3>
-          <p className="text-xs text-gray-400">Silver Jewellery · GST invoicing</p>
+          <h3 className="text-xl font-bold text-royal-950 dark:text-white">OPAL LINE</h3>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · GST invoicing</p>
         </div>
         <div className="text-right">
           <p className="text-xl font-bold text-royal-800 font-mono">{invoice.invoiceNumber}</p>
-          <p className="text-xs text-gray-500">{formatDate(invoice.date)}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(invoice.date)}</p>
           <Badge tone={statusTone[invoice.status]}>{invoice.status}</Badge>
         </div>
       </div>
@@ -256,19 +256,19 @@ function InvoiceDetail({ invoice }) {
       {/* Customer & Payment info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 bg-royal-50/60 rounded-lg p-3">
-          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
+          <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-1">
             Billed To
           </p>
           {invoice.customer ? (
             <>
-              <p className="font-semibold text-royal-950">{invoice.customer.name}</p>
-              <p className="text-xs text-gray-600">{invoice.customer.phone}</p>
-              {invoice.customer.email && <p className="text-xs text-gray-600">{invoice.customer.email}</p>}
-              {invoice.customer.address && <p className="text-xs text-gray-600">{invoice.customer.address}</p>}
+              <p className="font-semibold text-royal-950 dark:text-white">{invoice.customer.name}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{invoice.customer.phone}</p>
+              {invoice.customer.email && <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{invoice.customer.email}</p>}
+              {invoice.customer.address && <p className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{invoice.customer.address}</p>}
             </>
           ) : (
             <>
-              <p className="font-semibold text-gray-400">Walk-in Customer</p>
+              <p className="font-semibold text-gray-400 dark:text-gray-500">Walk-in Customer</p>
               {canEdit && !showAddCustomer && (
                 <button
                   onClick={() => setShowAddCustomer(true)}
@@ -281,10 +281,10 @@ function InvoiceDetail({ invoice }) {
           )}
         </div>
         <div className="bg-royal-50/60 rounded-lg p-3">
-          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
+          <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-1">
             Payment
           </p>
-          <p className="font-semibold text-royal-950">
+          <p className="font-semibold text-royal-950 dark:text-white">
             {invoice.paymentMethod ? (
               <span className="flex items-center gap-2">
                 <Badge tone={paymentTone[invoice.paymentMethod]}>{invoice.paymentMethod}</Badge>
@@ -292,7 +292,7 @@ function InvoiceDetail({ invoice }) {
               </span>
             ) : '—'}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
             {invoice.salesperson?.name && `Salesperson: ${invoice.salesperson.name}`}
           </p>
         </div>
@@ -300,41 +300,41 @@ function InvoiceDetail({ invoice }) {
 
       {/* Add Customer inline form */}
       {showAddCustomer && (
-        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+        <div className="border border-gray-200 dark:border-white/[0.08] rounded-lg p-3 bg-gray-50 dark:bg-white/5">
           <div className="flex gap-2 mb-2">
             <input
               type="text"
               placeholder="Search customers (name, phone)..."
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
-              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="flex-1 text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-royal-500"
             />
             <button
               onClick={() => { setShowAddCustomer(false); setCustomerSearch(''); setSelectedCustomer(null) }}
-              className="p-1.5 text-gray-400 hover:text-gray-600 rounded cursor-pointer"
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500 rounded cursor-pointer"
               title="Cancel"
             >
               <X size={14} />
             </button>
           </div>
           {customerSearch.length >= 2 && (
-            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+            <div className="max-h-32 overflow-y-auto border border-gray-200 dark:border-white/[0.08] rounded-lg bg-white dark:bg-[#1a1025]">
               {(customerResults || []).map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedCustomer(c)}
                   className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer ${
                     selectedCustomer?.id === c.id
-                      ? 'bg-royal-100 text-royal-900'
-                      : 'hover:bg-gray-100'
+                      ? 'bg-royal-100 text-royal-900 dark:text-gray-200'
+                      : 'hover:bg-gray-100 dark:bg-white/10'
                   }`}
                 >
                   <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-gray-500">{c.phone}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{c.phone}</div>
                 </button>
               ))}
               {customerSearch.length >= 2 && customerResults?.length === 0 && (
-                <p className="px-3 py-2 text-xs text-gray-400">No customers found</p>
+                <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500">No customers found</p>
               )}
             </div>
           )}
@@ -356,10 +356,10 @@ function InvoiceDetail({ invoice }) {
 
       {/* Items table */}
       <div>
-        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
+        <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-2">
           Items ({invoice.items?.length || 0})
         </p>
-        <div className="overflow-x-auto border border-gray-100 rounded-lg">
+        <div className="overflow-x-auto border border-gray-100 dark:border-white/[0.05] rounded-lg">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-royal-700 text-white">
@@ -376,14 +376,14 @@ function InvoiceDetail({ invoice }) {
               {(invoice.items || []).map((it) => (
                 <tr key={it.id}>
                   <td className="px-3 py-2">
-                    <span className="font-medium text-royal-950">{it.name}</span>
-                    <span className="block text-[10px] text-gray-400 font-mono">{it.sku}</span>
+                    <span className="font-medium text-royal-950 dark:text-white">{it.name}</span>
+                    <span className="block text-[10px] text-gray-400 dark:text-gray-500 font-mono">{it.sku}</span>
                   </td>
-                  <td className="px-3 py-2 text-center text-gray-600">{it.quantity}</td>
-                  <td className="px-3 py-2 text-right text-gray-600">{formatWeight(it.weight)}</td>
-                  <td className="px-3 py-2 text-right text-gray-600">{formatINR(it.silverRate)}</td>
-                  <td className="px-3 py-2 text-right text-gray-600">{formatINR(it.baseAmount)}</td>
-                  <td className="px-3 py-2 text-right text-gray-600">{formatINR(it.gstAmount)}</td>
+                  <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{it.quantity}</td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatWeight(it.weight)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.silverRate)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.baseAmount)}</td>
+                  <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(it.gstAmount)}</td>
                   <td className="px-3 py-2 text-right font-bold text-royal-800">{formatINR(it.finalAmount)}</td>
                 </tr>
               ))}
@@ -393,27 +393,27 @@ function InvoiceDetail({ invoice }) {
       </div>
 
       {/* Totals */}
-      <div className="space-y-1.5 border-t border-gray-200 pt-3">
+      <div className="space-y-1.5 border-t border-gray-200 dark:border-white/[0.08] pt-3">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Total Weight</span>
-          <span className="text-gray-700 font-medium">{formatWeight(invoice.totalWeight)}</span>
+          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Total Weight</span>
+          <span className="text-gray-700 dark:text-gray-300 font-medium">{formatWeight(invoice.totalWeight)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Subtotal</span>
-          <span className="text-gray-700">{formatINR(invoice.subtotal)}</span>
+          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Subtotal</span>
+          <span className="text-gray-700 dark:text-gray-300">{formatINR(invoice.subtotal)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500">GST Total (3%)</span>
-          <span className="text-gray-700">{formatINR(invoice.gstTotal)}</span>
+          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">GST Total (3%)</span>
+          <span className="text-gray-700 dark:text-gray-300">{formatINR(invoice.gstTotal)}</span>
         </div>
         {Number(invoice.discount) > 0 && (
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Discount</span>
+            <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Discount</span>
             <span className="text-red-500">- {formatINR(invoice.discount)}</span>
           </div>
         )}
         <div className="flex justify-between font-bold text-lg border-t pt-2">
-          <span className="text-royal-950">Grand Total</span>
+          <span className="text-royal-950 dark:text-white">Grand Total</span>
           <span className="text-royal-800">{formatINR(invoice.grandTotal)}</span>
         </div>
       </div>
@@ -421,18 +421,18 @@ function InvoiceDetail({ invoice }) {
       {/* Payment info */}
       {invoice.payments && invoice.payments.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-2">
+          <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-2">
             Payment History
           </p>
           <div className="space-y-2">
             {invoice.payments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-100 text-xs">
+              <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/[0.05] text-xs">
                 <div className="flex items-center gap-2">
-                  <CreditCard size={12} className="text-gray-400" />
+                  <CreditCard size={12} className="text-gray-400 dark:text-gray-500" />
                   <span>{p.method}</span>
                 </div>
                 <span className="font-medium text-royal-800">{formatINR(p.amount)}</span>
-                <span className="text-gray-500">{formatDate(p.createdAt)}</span>
+                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(p.createdAt)}</span>
               </div>
             ))}
           </div>
@@ -540,7 +540,7 @@ export default function Sales() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center border-b border-gray-200 mb-4 overflow-x-auto">
+      <div className="flex items-center border-b border-gray-200 dark:border-white/[0.08] mb-4 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.value}
@@ -556,7 +556,7 @@ export default function Sales() {
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === tab.value
                 ? 'border-royal-700 text-royal-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300'
             }`}
           >
             <tab.icon size={14} />
@@ -567,8 +567,8 @@ export default function Sales() {
 
       {/* Search & Filters - visible for all tabs */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-72">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-72">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder={
@@ -591,7 +591,7 @@ export default function Sales() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
             >
               <option value="">All Statuses</option>
               <option value="PAID">Billed</option>
@@ -603,7 +603,7 @@ export default function Sales() {
             <select
               value={filterPayment}
               onChange={(e) => setFilterPayment(e.target.value)}
-              className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
             >
               <option value="">All Payments</option>
               <option value="CASH">Cash</option>
@@ -614,19 +614,19 @@ export default function Sales() {
             </select>
 
             <div className="flex items-center gap-2">
-              <Calendar size={14} className="text-gray-400" />
+              <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+                className="text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
               />
-              <span className="text-gray-400">to</span>
+              <span className="text-gray-400 dark:text-gray-500">to</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+                className="text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
               />
             </div>
           </>
@@ -641,29 +641,29 @@ export default function Sales() {
             {activeTab === 'invoices' && (
               <>
                 <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Invoice</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Date</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Items</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Qty</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Payment</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Sale Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Items</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Qty</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Payment</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Sale Status</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {isLoading && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         Loading sales records...
                       </td>
                     </tr>
                   )}
                   {!isLoading && filteredInvoices.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         No sales found. Click "New Sale" to create one.
                       </td>
                     </tr>
@@ -674,20 +674,20 @@ export default function Sales() {
                         <span className="font-mono text-xs font-semibold text-royal-700">{inv.invoiceNumber}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-royal-950">
+                        <span className="font-medium text-royal-950 dark:text-white">
                           {inv.customer?.name || 'Walk-in Customer'}
                         </span>
-                        {inv.customer?.phone && <span className="block text-[11px] text-gray-400">{inv.customer.phone}</span>}
+                        {inv.customer?.phone && <span className="block text-[11px] text-gray-400 dark:text-gray-500">{inv.customer.phone}</span>}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(inv.date)}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{inv._count?.items || 0}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{inv.totalQuantity || 0}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(inv.date)}</td>
+                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv._count?.items || 0}</td>
+                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv.totalQuantity || 0}</td>
                       <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(inv.grandTotal)}</td>
                       <td className="px-4 py-3 text-center">
                         {inv.paymentMethod ? (
                           <Badge tone={paymentTone[inv.paymentMethod]}>{inv.paymentMethod}</Badge>
                         ) : (
-                          <span className="text-gray-400 text-xs">—</span>
+                          <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -721,7 +721,7 @@ export default function Sales() {
             {activeTab === 'orders' && (
               <>
                 <div className="px-4 pt-4 pb-2">
-                  <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+                  <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 w-fit">
                     {[
                       { key: 'all', label: 'All', count: displayOrders.length },
                       { key: 'FULFILLED', label: 'Fulfilled', count: displayOrders.filter((o) => o.status === 'FULFILLED').length },
@@ -729,35 +729,35 @@ export default function Sales() {
                       { key: 'PENDING', label: 'Pending', count: displayOrders.filter((o) => o.status === 'PENDING').length },
                       { key: 'CANCELLED', label: 'Cancelled', count: displayOrders.filter((o) => o.status === 'CANCELLED').length },
                     ].map((f) => (
-                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white text-royal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
                         {f.label}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 text-royal-700' : 'bg-gray-200 text-gray-500'}`}>{f.count}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 text-royal-700' : 'bg-gray-200 text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{f.count}</span>
                       </button>
                     ))}
                   </div>
                 </div>
                 <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Order #</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Date</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Items</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Order #</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Items</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {ordersLoading && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         Loading orders...
                       </td>
                     </tr>
                   )}
                   {!ordersLoading && filteredOrders.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         {orderStatusFilter === 'all' ? 'No orders found.' : `No ${orderStatusFilter.toLowerCase()} orders found.`}
                       </td>
                     </tr>
@@ -766,9 +766,9 @@ export default function Sales() {
                     filteredOrders.map((o) => (
                       <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</td>
-                        <td className="px-4 py-3 font-medium text-royal-950">{o.customer?.name || '—'}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatDate(o.createdAt)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{o._count?.items || 0}</td>
+                        <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{o._count?.items || 0}</td>
                         <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
                         <td className="px-4 py-3 text-center">
                           <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>
@@ -794,24 +794,24 @@ export default function Sales() {
             {activeTab === 'customers' && (
               <>
                 <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Contact</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Orders</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Contact</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {customersLoading && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         Loading customers...
                       </td>
                     </tr>
                   )}
                   {!customersLoading && displayCustomers.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         No customers found.
                       </td>
                     </tr>
@@ -824,11 +824,11 @@ export default function Sales() {
                             <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-500 to-royal-700 text-white flex items-center justify-center text-[10px] font-bold">
                               {c.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                             </span>
-                            <span className="font-medium text-royal-950">{c.name}</span>
+                            <span className="font-medium text-royal-950 dark:text-white">{c.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{c.phone}</td>
-                        <td className="px-4 py-3 text-center text-gray-600">{c._count?.invoices || 0}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.phone}</td>
+                        <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{c._count?.invoices || 0}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
                             <button
@@ -850,19 +850,19 @@ export default function Sales() {
             {activeTab === 'returns' && (
               <>
                 <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Order #</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Date</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Order #</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {displayReturns.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                         No returns found.
                       </td>
                     </tr>
@@ -870,8 +870,8 @@ export default function Sales() {
                     displayReturns.map((o) => (
                       <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</td>
-                        <td className="px-4 py-3 font-medium text-royal-950">{o.customer?.name || '—'}</td>
-                        <td className="px-4 py-3 text-gray-600">{formatDate(o.createdAt)}</td>
+                        <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
                         <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
                         <td className="px-4 py-3 text-center">
                           <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>

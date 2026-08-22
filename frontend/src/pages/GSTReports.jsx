@@ -59,14 +59,14 @@ export default function GSTReports() {
 
       <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-600">Period:</span>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Period:</span>
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
         </div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-5 w-fit">
+      <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 mb-5 w-fit">
         {tabs.map((t) => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white text-royal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
             <t.icon size={14} /> {t.label}
           </button>
         ))}
@@ -75,38 +75,38 @@ export default function GSTReports() {
       {activeTab === 'gstr1' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Invoices</p><p className="text-xl font-bold text-royal-600 mt-0.5">{GSTR1_DATA.length}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalTaxable)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total CGST</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(totalCGST)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(totalTax)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Invoices</p><p className="text-xl font-bold text-royal-600 mt-0.5">{GSTR1_DATA.length}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalTaxable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total CGST</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(totalCGST)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(totalTax)}</p></Card>
           </div>
 
           <Card title="GSTR-1 - Outward Supplies" className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-3 font-medium text-gray-600">Invoice No</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">Date</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">Customer</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">GSTIN</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">Supply</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">Type</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">Taxable</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">CGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">SGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">IGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">Total</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice No</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">GSTIN</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Supply</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Taxable</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">CGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">SGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">IGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {GSTR1_DATA.map((r, i) => (
-                    <tr key={r.invoiceNo} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={r.invoiceNo} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-medium text-royal-700">{r.invoiceNo}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{r.date}</td>
-                      <td className="px-4 py-2.5 text-gray-800">{r.customerName}</td>
-                      <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{r.customerGSTIN || '-'}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{r.placeOfSupply}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.date}</td>
+                      <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{r.customerName}</td>
+                      <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 dark:text-gray-500 font-mono text-xs">{r.customerGSTIN || '-'}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.placeOfSupply}</td>
                       <td className="px-4 py-2.5"><Badge tone={r.invoiceType === 'B2B' ? 'blue' : 'purple'}>{r.invoiceType}</Badge></td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatINR(r.taxableAmount)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(r.cgst)}</td>
@@ -135,29 +135,29 @@ export default function GSTReports() {
       {activeTab === 'gstr3b' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Outward Taxable</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Tax Liability</p><p className="text-xl font-bold text-red-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalTax)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Input Tax Credit</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalITC)}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Net Tax Payable</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(GSTR3B_SUMMARY.netTaxPayable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Outward Taxable</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax Liability</p><p className="text-xl font-bold text-red-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalTax)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Input Tax Credit</p><p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(GSTR3B_SUMMARY.totalITC)}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Net Tax Payable</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(GSTR3B_SUMMARY.netTaxPayable)}</p></Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <Card title="3.1 Outward Supplies">
               <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">Total Taxable Value</span><span className="text-sm font-semibold">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">CGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.cgst)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">SGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.sgst)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">IGST</span><span className="text-sm font-semibold text-orange-600">{formatINR(GSTR3B_SUMMARY.igst)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Taxable Value</span><span className="text-sm font-semibold">{formatINR(GSTR3B_SUMMARY.outwardTaxable)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">CGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.cgst)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">SGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.sgst)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">IGST</span><span className="text-sm font-semibold text-orange-600">{formatINR(GSTR3B_SUMMARY.igst)}</span></div>
                 <div className="flex justify-between py-2 bg-royal-50 rounded-lg px-3"><span className="text-sm font-semibold text-royal-800">Total Tax</span><span className="text-sm font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.totalTax)}</span></div>
               </div>
             </Card>
 
             <Card title="4 Eligible ITC">
               <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">Inward Taxable Value</span><span className="text-sm font-semibold">{formatINR(GSTR3B_SUMMARY.inwardTaxable)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">ITC - CGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.itcCGST)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">ITC - SGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.itcSGST)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-sm text-gray-600">ITC - IGST</span><span className="text-sm font-semibold text-orange-600">{formatINR(GSTR3B_SUMMARY.itcIGST)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Inward Taxable Value</span><span className="text-sm font-semibold">{formatINR(GSTR3B_SUMMARY.inwardTaxable)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">ITC - CGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.itcCGST)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">ITC - SGST</span><span className="text-sm font-semibold text-emerald-700">{formatINR(GSTR3B_SUMMARY.itcSGST)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100 dark:border-white/[0.05]"><span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">ITC - IGST</span><span className="text-sm font-semibold text-orange-600">{formatINR(GSTR3B_SUMMARY.itcIGST)}</span></div>
                 <div className="flex justify-between py-2 bg-emerald-50 rounded-lg px-3"><span className="text-sm font-semibold text-emerald-800">Total ITC Available</span><span className="text-sm font-bold text-emerald-800">{formatINR(GSTR3B_SUMMARY.totalITC)}</span></div>
               </div>
             </Card>
@@ -166,19 +166,19 @@ export default function GSTReports() {
           <Card title="6.1 Payment of Tax" className="mt-5">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-royal-50 rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">CGST Payable</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">CGST Payable</p>
                 <p className="text-lg font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.cgst)}</p>
               </div>
               <div className="bg-royal-50 rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">SGST Payable</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">SGST Payable</p>
                 <p className="text-lg font-bold text-royal-800">{formatINR(GSTR3B_SUMMARY.sgst)}</p>
               </div>
               <div className="bg-emerald-50 rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">ITC Utilized</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">ITC Utilized</p>
                 <p className="text-lg font-bold text-emerald-800">{formatINR(GSTR3B_SUMMARY.totalITC)}</p>
               </div>
               <div className="bg-amber-50 rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">Net Payable</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Net Payable</p>
                 <p className="text-lg font-bold text-amber-800">{formatINR(GSTR3B_SUMMARY.netTaxPayable)}</p>
               </div>
             </div>
@@ -189,33 +189,33 @@ export default function GSTReports() {
       {activeTab === 'hsn' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total HSN Codes</p><p className="text-xl font-bold text-royal-600 mt-0.5">{HSN_DATA.length}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</p></Card>
-            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total HSN Codes</p><p className="text-xl font-bold text-royal-600 mt-0.5">{HSN_DATA.length}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Taxable Value</p><p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.taxableValue, 0))}</p></Card>
+            <Card><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Tax</p><p className="text-xl font-bold text-royal-800 mt-0.5">{formatINR(HSN_DATA.reduce((s, h) => s + h.cgstAmount + h.sgstAmount + h.igstAmount, 0))}</p></Card>
           </div>
 
           <Card title="HSN-wise Summary of Outward Supplies" className="p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-3 font-medium text-gray-600">HSN Code</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">Description</th>
-                    <th className="px-4 py-3 font-medium text-gray-600">UQC</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">Qty</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">Taxable Value</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">CGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">SGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">IGST</th>
-                    <th className="px-4 py-3 font-medium text-gray-600 text-right">Total</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">HSN Code</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Description</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">UQC</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Qty</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Taxable Value</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">CGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">SGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">IGST</th>
+                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {HSN_DATA.map((h, i) => (
-                    <tr key={h.hsnCode + i} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={h.hsnCode + i} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-mono font-medium text-royal-700">{h.hsnCode}</td>
-                      <td className="px-4 py-2.5 text-gray-800">{h.description}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{h.uqc}</td>
+                      <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{h.description}</td>
+                      <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 dark:text-gray-500">{h.uqc}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{h.quantity}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatINR(h.taxableValue)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-emerald-700">{formatINR(h.cgstAmount)}</td>

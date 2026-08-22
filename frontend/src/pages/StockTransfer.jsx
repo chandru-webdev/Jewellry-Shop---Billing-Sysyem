@@ -143,7 +143,7 @@ export default function StockTransfer() {
                 </Select>
               </div>
               <div className="col-span-1 flex justify-center">
-                <ArrowRight size={18} className="text-gray-400" />
+                <ArrowRight size={18} className="text-gray-400 dark:text-gray-500" />
               </div>
               <div className="col-span-2">
                 <Label htmlFor="to">To</Label>
@@ -171,7 +171,7 @@ export default function StockTransfer() {
                   placeholder={selectedProduct ? `Max: ${availableQty}` : 'Enter qty'}
                   required
                 />
-                <span className="text-xs text-gray-500 pb-2">available: {availableQty}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 pb-2">available: {availableQty}</span>
               </div>
             </div>
 
@@ -191,9 +191,9 @@ export default function StockTransfer() {
           <Card title={`Current stock: ${selectedProduct.name}`} icon={Package} className="xl:col-span-2">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {locations.map((l) => (
-                <div key={l.id} className="bg-royal-50/60 border border-gray-200 rounded-lg p-4 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{l.name}</p>
-                  <p className="text-2xl font-bold text-royal-950 mt-1">{selectedProduct.locations[l.id] ?? 0}</p>
+                <div key={l.id} className="bg-royal-50/60 border border-gray-200 dark:border-white/[0.08] rounded-lg p-4 text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{l.name}</p>
+                  <p className="text-2xl font-bold text-royal-950 dark:text-white mt-1">{selectedProduct.locations[l.id] ?? 0}</p>
                   <Badge tone={selectedProduct.locations[l.id] > 0 ? 'green' : 'gray'}>
                     {selectedProduct.locations[l.id] > 0 ? 'In stock' : 'Empty'}
                   </Badge>
@@ -206,8 +206,8 @@ export default function StockTransfer() {
         {/* Transfer history */}
         <Card title="Transfer History" icon={History} className="xl:col-span-3">
           <div className="flex flex-wrap items-center gap-3 mb-3">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-              <Search size={14} className="text-gray-400" />
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+              <Search size={14} className="text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder="Search by product, SKU or transfer ID..."
@@ -221,7 +221,7 @@ export default function StockTransfer() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50 text-royal-900 text-left">
+                <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
                   <th className="px-5 py-3 font-semibold">Date</th>
                   <th className="px-5 py-3 font-semibold">ID</th>
                   <th className="px-5 py-3 font-semibold">Product</th>
@@ -234,22 +234,22 @@ export default function StockTransfer() {
               <tbody className="divide-y divide-gray-100">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-6 text-center text-gray-400">
+                    <td colSpan={7} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">
                       No transfers recorded.
                     </td>
                   </tr>
                 ) : (
                   filteredHistory.map((t) => (
                     <tr key={t.id} className="hover:bg-royal-50/50">
-                      <td className="px-5 py-3 text-gray-500 text-xs">{formatDateTime(t.date)}</td>
-                      <td className="px-5 py-3 font-mono text-[11px] text-gray-500">{t.id}</td>
-                      <td className="px-5 py-3 font-medium text-royal-950">{t.name}</td>
-                      <td className="px-5 py-3 text-gray-600">
+                      <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDateTime(t.date)}</td>
+                      <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.id}</td>
+                      <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{t.name}</td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">
                         {locations.find((l) => l.id === t.from)?.name ?? t.from} → {locations.find((l) => l.id === t.to)?.name ?? t.to}
                       </td>
                       <td className="px-5 py-3 text-right font-semibold text-emerald-600">+{t.qty}</td>
-                      <td className="px-5 py-3 text-gray-600">{t.by}</td>
-                      <td className="px-5 py-3 text-gray-500">{t.note || '—'}</td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{t.by}</td>
+                      <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.note || '—'}</td>
                     </tr>
                   ))
                 )}

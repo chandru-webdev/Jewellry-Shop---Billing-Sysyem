@@ -82,13 +82,13 @@ export default function Reports() {
             <button
               key={cat.title}
               onClick={() => setSelectedCategory(cat)}
-              className="text-left bg-white rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md hover:border-royal-300 transition-all p-5 cursor-pointer group"
+              className="text-left bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm hover:shadow-md hover:border-royal-300 transition-all p-5 cursor-pointer group"
             >
               <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
                 <cat.icon size={20} className="text-white" />
               </div>
-              <h3 className="font-semibold text-royal-950 mb-1">{cat.title}</h3>
-              <p className="text-xs text-gray-500">{cat.reports.length} report{cat.reports.length === 1 ? '' : 's'} available</p>
+              <h3 className="font-semibold text-royal-950 dark:text-white mb-1">{cat.title}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{cat.reports.length} report{cat.reports.length === 1 ? '' : 's'} available</p>
             </button>
           ))}
         </div>
@@ -99,11 +99,11 @@ export default function Reports() {
           </button>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedCategory.reports.map((report) => (
-              <div key={report.name} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-5 hover:shadow-md transition-all">
+              <div key={report.name} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-5 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-royal-950">{report.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{report.desc}</p>
+                    <h3 className="font-semibold text-royal-950 dark:text-white">{report.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">{report.desc}</p>
                   </div>
                   <div className="flex gap-1.5">
                     <button className="p-2 text-royal-600 hover:bg-royal-50 rounded-lg transition-colors cursor-pointer" title="Export"><Download size={14} /></button>
@@ -111,9 +111,9 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <input type="date" className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-04" />
-                  <span className="text-gray-400 text-xs py-1.5">to</span>
-                  <input type="date" className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-10" />
+                  <input type="date" className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-04" />
+                  <span className="text-gray-400 dark:text-gray-500 text-xs py-1.5">to</span>
+                  <input type="date" className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-10" />
                   <Button variant="primary" size="sm">Generate</Button>
                 </div>
               </div>

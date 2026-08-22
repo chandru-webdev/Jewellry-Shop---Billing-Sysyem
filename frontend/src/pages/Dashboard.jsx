@@ -164,18 +164,18 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-royal-300 transition-colors"
+          className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-royal-300 transition-colors"
         >
-          <Calendar size={14} className="text-gray-400" />
-          <span className="text-gray-700 font-medium">{selectedLabel}</span>
-          <ChevronDown size={14} className="text-gray-400" />
+          <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
+          <span className="text-gray-700 dark:text-gray-300 font-medium">{selectedLabel}</span>
+          <ChevronDown size={14} className="text-gray-400 dark:text-gray-500" />
         </button>
       </div>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl border border-gray-200 shadow-xl py-1.5 z-40">
+          <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-xl py-1.5 z-40">
             {DATE_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -186,7 +186,7 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
                 className={`w-full text-left px-3.5 py-2 text-sm transition-colors cursor-pointer ${
                   value === filter.value
                     ? 'text-royal-700 bg-royal-50 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-white/5'
                 }`}
               >
                 {filter.label}
@@ -202,14 +202,14 @@ function DateFilterDropdown({ value, onChange, customStart, customEnd, onCustomS
             type="date"
             value={customStart}
             onChange={(e) => onCustomStartChange(e.target.value)}
-            className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+            className="text-xs bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
           />
-          <span className="text-xs text-gray-400">to</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">to</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => onCustomEndChange(e.target.value)}
-            className="text-xs bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+            className="text-xs bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
           />
           <button
             onClick={() => setIsOpen(false)}
@@ -231,9 +231,9 @@ function SystemStatusStrip() {
         { label: 'Razorpay', status: 'Connected', color: 'bg-emerald-400' },
         { label: 'System', status: 'Healthy', color: 'bg-emerald-400' },
       ].map((s) => (
-        <div key={s.label} className="flex items-center gap-2 bg-white border border-gray-200/80 rounded-lg px-3 py-1.5">
+        <div key={s.label} className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08]/80 rounded-lg px-3 py-1.5">
           <div className={`w-2 h-2 rounded-full ${s.color}`} />
-          <span className="text-[11px] font-medium text-gray-600">{s.label}</span>
+          <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.label}</span>
           <span className="text-[11px] font-semibold text-emerald-600">{s.status}</span>
         </div>
       ))}
@@ -248,7 +248,7 @@ function QuickActionBar() {
         <Link
           key={a.label}
           to={a.to}
-          className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:border-royal-300 hover:bg-royal-50 text-gray-700 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
+          className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 hover:bg-royal-50 text-gray-700 dark:text-gray-300 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
         >
           <a.icon size={13} />
           {a.label}
@@ -264,22 +264,22 @@ function LoadingSkeleton() {
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-white/10 rounded animate-pulse" />
         </div>
         <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse" />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+          <div key={i} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
             <div className="w-9 h-9 rounded-lg bg-gray-200 animate-pulse mb-3" />
-            <div className="h-3 w-20 bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-3 w-20 bg-gray-100 dark:bg-white/10 rounded animate-pulse mb-2" />
             <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
           </div>
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200/80 shadow-sm h-80 animate-pulse" />
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm h-80 animate-pulse" />
+        <div className="lg:col-span-2 bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm h-80 animate-pulse" />
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm h-80 animate-pulse" />
       </div>
     </div>
   )
@@ -332,48 +332,48 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-[#1a1025] rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.05]">
           <div>
-            <h3 className="text-base font-bold text-royal-950">Quick Stock Update</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Add or remove stock for any product</p>
+            <h3 className="text-base font-bold text-royal-950 dark:text-white">Quick Stock Update</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">Add or remove stock for any product</p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"><X size={18} /></button>
+          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-white/10 rounded-lg cursor-pointer"><X size={18} /></button>
         </div>
 
         <div className="p-5 space-y-4">
           {/* IN / OUT toggle */}
-          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+          <div className="flex rounded-lg border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <button onClick={() => setType('IN')}
-              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'IN' ? 'bg-emerald-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'IN' ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-[#1a1025] text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:bg-white/5'}`}>
               <Plus size={14} className="inline mr-1" /> Stock In
             </button>
             <button onClick={() => setType('OUT')}
-              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'OUT' ? 'bg-red-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+              className={`flex-1 py-2 text-sm font-semibold transition-colors cursor-pointer ${type === 'OUT' ? 'bg-red-500 text-white' : 'bg-white dark:bg-[#1a1025] text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:bg-white/5'}`}>
               <Minus size={14} className="inline mr-1" /> Stock Out
             </button>
           </div>
 
           {/* Product search */}
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1 block">Search Product</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">Search Product</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setSelectedProduct(null) }}
               placeholder="Type name or SKU..."
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
+              className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
             />
             {searchTerm && !selectedProduct && filteredProducts.length > 0 && (
-              <div className="mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="mt-1 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {filteredProducts.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => { setSelectedProduct(p); setSearchTerm(`${p.name} (${p.sku})`) }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 flex justify-between items-center cursor-pointer"
                   >
-                    <span className="font-medium text-royal-950">{p.name}</span>
-                    <span className="text-[11px] text-gray-400 font-mono">{p.sku}</span>
+                    <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
+                    <span className="text-[11px] text-gray-400 dark:text-gray-500 font-mono">{p.sku}</span>
                   </button>
                 ))}
               </div>
@@ -383,21 +383,21 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
           {/* Current stock display */}
           {selectedProduct && (
             <div className="bg-royal-50 rounded-lg px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-gray-600">Current Stock</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">Current Stock</span>
               <span className="text-sm font-bold text-royal-800">{selectedProduct.inventory?.quantity ?? 0} pcs</span>
             </div>
           )}
 
           {/* Quantity input */}
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1 block">Quantity</label>
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1 block">Quantity</label>
             <input
               type="number"
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="Enter quantity"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
+              className="w-full text-sm border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-400"
             />
           </div>
 
@@ -408,7 +408,7 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
           )}
         </div>
 
-        <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-5 py-4 border-t border-gray-100 dark:border-white/[0.05] flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button
             variant={type === 'IN' ? 'primary' : 'danger'}
@@ -453,7 +453,7 @@ export default function Dashboard() {
 
   if (!d) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
         <AlertTriangle size={40} className="mb-3 opacity-40" />
         <p className="text-sm font-medium">Failed to load dashboard data</p>
         <p className="text-xs mt-1 mb-4">Check your connection and try again</p>
@@ -480,8 +480,8 @@ export default function Dashboard() {
       {/* Page Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-royal-950">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your ecommerce business today.</p>
+          <h1 className="text-xl font-bold text-royal-950 dark:text-white">Dashboard</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">Here's what's happening with your ecommerce business today.</p>
         </div>
         <DateFilterDropdown
           value={dateFilter}
@@ -501,7 +501,7 @@ export default function Dashboard() {
           <Link
             key={a.label}
             to={a.to}
-            className="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:border-royal-300 hover:bg-royal-50 text-gray-700 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
+            className="inline-flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] hover:border-royal-300 hover:bg-royal-50 text-gray-700 dark:text-gray-300 hover:text-royal-700 text-[12px] font-medium px-3 py-1.5 rounded-lg transition-all duration-150"
           >
             <a.icon size={13} />
             {a.label}
@@ -566,7 +566,7 @@ export default function Dashboard() {
             accent: 'red',
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 hover:shadow-md transition-all">
+          <div key={kpi.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 hover:shadow-md transition-all">
             <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${
               kpi.accent === 'purple' ? 'from-royal-500 to-royal-700' :
               kpi.accent === 'blue' ? 'from-blue-500 to-blue-600' :
@@ -577,8 +577,8 @@ export default function Dashboard() {
             } flex items-center justify-center mb-3`}>
               <kpi.icon size={16} className="text-white" />
             </div>
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{kpi.label}</p>
-            <p className="text-lg font-bold text-royal-950 mt-0.5">{kpi.value}</p>
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{kpi.label}</p>
+            <p className="text-lg font-bold text-royal-950 dark:text-white mt-0.5">{kpi.value}</p>
             <div className="mt-1.5">
               {kpi.trend === 'up' && (
                 <span className="text-[11px] font-semibold text-emerald-600">{kpi.trendValue}</span>
@@ -587,10 +587,10 @@ export default function Dashboard() {
                 <span className="text-[11px] font-semibold text-red-500">{kpi.trendValue}</span>
               )}
               {kpi.sub && !kpi.trend && (
-                <span className="text-[11px] text-gray-400">{kpi.sub}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">{kpi.sub}</span>
               )}
               {kpi.trend !== 'up' && kpi.trend !== 'down' && kpi.sub && (
-                <span className="text-[11px] text-gray-400">{kpi.sub}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">{kpi.sub}</span>
               )}
             </div>
           </div>
@@ -598,7 +598,7 @@ export default function Dashboard() {
       </div>
 
       {/* Secondary Business Summary Strip */}
-      <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm px-5 py-3">
+      <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm px-5 py-3">
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
           {[
             { icon: Package, label: 'Total Products', value: d.products.active, sub: 'Active', color: 'text-royal-500' },
@@ -612,8 +612,8 @@ export default function Dashboard() {
             <div key={s.label} className="flex items-center gap-2.5 min-w-0">
               <s.icon size={15} className={`${s.color} shrink-0`} />
               <div className="min-w-0">
-                <p className="text-[11px] text-gray-500 font-medium truncate">{s.label}</p>
-                <p className="text-sm font-bold text-royal-950 truncate">{s.value}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium truncate">{s.label}</p>
+                <p className="text-sm font-bold text-royal-950 dark:text-white truncate">{s.value}</p>
                 {s.sub && <p className="text-[10px] text-emerald-600 font-medium">{s.sub}</p>}
               </div>
             </div>
@@ -629,7 +629,7 @@ export default function Dashboard() {
           icon={BarChart3}
           className="lg:col-span-2"
           action={
-            <span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">
               {dateRangeLabel}
             </span>
           }
@@ -652,7 +652,7 @@ export default function Dashboard() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 text-sm">No sales data for this period</div>
+              <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">No sales data for this period</div>
             )}
           </div>
         </Card>
@@ -681,8 +681,8 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Total</p>
-                <p className="text-lg font-bold text-royal-950">{formatINR(d.paymentTotal)}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium">Total</p>
+                <p className="text-lg font-bold text-royal-950 dark:text-white">{formatINR(d.paymentTotal)}</p>
               </div>
             </div>
             <div className="w-full space-y-2 mt-4">
@@ -690,11 +690,11 @@ export default function Dashboard() {
                 <div key={s.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
-                    <span className="text-xs font-medium text-gray-600">{s.name}</span>
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.name}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-royal-950">{formatINR(s.value)}</span>
-                    <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{s.pct}%</span>
+                    <span className="text-xs font-bold text-royal-950 dark:text-white">{formatINR(s.value)}</span>
+                    <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">{s.pct}%</span>
                   </div>
                 </div>
               ))}
@@ -720,28 +720,28 @@ export default function Dashboard() {
           {d.topProducts && d.topProducts.length > 0 ? (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
-                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Qty</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Weight (gm)</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Revenue</th>
+                <tr className="border-b border-gray-100 dark:border-white/[0.05]">
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Qty</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Weight (gm)</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Revenue</th>
                 </tr>
               </thead>
               <tbody>
                 {d.topProducts.map((p) => (
                   <tr key={p.sku} className="border-b border-gray-50 last:border-0 hover:bg-royal-50/30">
-                    <td className="py-2.5 font-medium text-royal-950">{p.name}</td>
-                    <td className="py-2.5 font-mono text-[11px] text-gray-500">{p.sku}</td>
-                    <td className="py-2.5 text-right font-semibold text-royal-900">{p.qty}</td>
-                    <td className="py-2.5 text-right text-gray-600">{Number(p.weight).toFixed(2)}</td>
+                    <td className="py-2.5 font-medium text-royal-950 dark:text-white">{p.name}</td>
+                    <td className="py-2.5 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
+                    <td className="py-2.5 text-right font-semibold text-royal-900 dark:text-gray-200">{p.qty}</td>
+                    <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{Number(p.weight).toFixed(2)}</td>
                     <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(p.revenue)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <div className="py-8 text-center text-sm text-gray-400">No sales in this period</div>
+            <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No sales in this period</div>
           )}
         </div>
       </Card>
@@ -772,7 +772,7 @@ export default function Dashboard() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 text-sm">No rate changes in this period</div>
+              <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">No rate changes in this period</div>
             )}
           </div>
         </Card>
@@ -791,28 +791,28 @@ export default function Dashboard() {
             {d.lowStock.items && d.lowStock.items.length > 0 ? (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
-                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">SKU</th>
-                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Stock</th>
-                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Reorder</th>
+                  <tr className="border-b border-gray-100 dark:border-white/[0.05]">
+                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Product</th>
+                    <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Stock</th>
+                    <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Reorder</th>
                   </tr>
                 </thead>
                 <tbody>
                   {d.lowStock.items.map((p) => (
                     <tr key={p.sku} className="border-b border-gray-50 last:border-0">
-                      <td className="py-2 font-medium text-royal-950 text-xs">{p.name}</td>
-                      <td className="py-2 font-mono text-[10px] text-gray-500">{p.sku}</td>
+                      <td className="py-2 font-medium text-royal-950 dark:text-white text-xs">{p.name}</td>
+                      <td className="py-2 font-mono text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                       <td className="py-2 text-right">
                         <Badge tone={p.quantity <= 3 ? 'red' : 'orange'}>{p.quantity} pcs</Badge>
                       </td>
-                      <td className="py-2 text-right text-xs text-gray-500">{p.threshold} pcs</td>
+                      <td className="py-2 text-right text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.threshold} pcs</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             ) : (
-              <div className="py-8 text-center text-sm text-gray-400">All products are well stocked</div>
+              <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">All products are well stocked</div>
             )}
           </div>
         </Card>
@@ -824,8 +824,8 @@ export default function Dashboard() {
               d.recentInvoices.map((inv) => (
                 <div key={inv.id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-royal-950 truncate">{inv.invoiceNumber}</p>
-                    <p className="text-[11px] text-gray-400 truncate">{inv.customer?.name || 'Walk-in'}</p>
+                    <p className="text-xs font-medium text-royal-950 dark:text-white truncate">{inv.invoiceNumber}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{inv.customer?.name || 'Walk-in'}</p>
                   </div>
                   <div className="text-right shrink-0 ml-2">
                     <p className="text-xs font-bold text-royal-800">{formatINR(inv.grandTotal)}</p>
@@ -836,7 +836,7 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-              <div className="py-8 text-center text-sm text-gray-400">No recent invoices</div>
+              <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No recent invoices</div>
             )}
           </div>
         </Card>
@@ -852,9 +852,9 @@ export default function Dashboard() {
           { label: 'Gross Profit Margin', value: `${d.profitMargin}%`, trend: 'up', trendVal: `Margin` },
           { label: 'Inventory Value', value: formatINR(d.inventoryValue), trend: null },
         ].map((c) => (
-          <div key={c.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm px-4 py-3">
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{c.label}</p>
-            <p className="text-base font-bold text-royal-950 mt-0.5">{c.value}</p>
+          <div key={c.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm px-4 py-3">
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{c.label}</p>
+            <p className="text-base font-bold text-royal-950 dark:text-white mt-0.5">{c.value}</p>
             {c.trend === 'up' && <span className="text-[11px] font-semibold text-emerald-600">{c.trendVal}</span>}
             {c.trend === 'down' && <span className="text-[11px] font-semibold text-emerald-600">{c.trendVal}</span>}
           </div>

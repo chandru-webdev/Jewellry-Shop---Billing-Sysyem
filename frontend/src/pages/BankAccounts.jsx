@@ -95,33 +95,33 @@ export default function BankAccounts() {
       <PageHeader title="Bank Accounts" subtitle="Manage all bank accounts and balances" actions={<Button onClick={() => { resetForm(); setFormOpen(true) }}><Plus size={14} className="mr-1" /> Add Account</Button>} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Balance</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Balance</p>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalBalance)}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Active Accounts</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Active Accounts</p>
           <p className="text-xl font-bold text-emerald-600 mt-0.5">{activeAccounts}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Accounts</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Accounts</p>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{totalAccounts}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input type="text" placeholder="Search accounts..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
         </div>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Types</option>
           <option value="Current">Current</option>
           <option value="Savings">Savings</option>
           <option value="Cash Credit">Cash Credit</option>
           <option value="Overdraft">Overdraft</option>
         </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Status</option>
           <option value="true">Active</option>
           <option value="false">Inactive</option>
@@ -132,22 +132,22 @@ export default function BankAccounts() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50/80 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Account Name</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Bank</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Type</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Balance</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Account No.</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">IFSC</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+              <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Account Name</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Bank</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Balance</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Account No.</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">IFSC</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((a) => (
                 <tr key={a.id} className="hover:bg-royal-50/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-royal-950">{a.name}</td>
-                  <td className="px-4 py-3 text-gray-700">{a.bank}</td>
+                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{a.name}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.bank}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={typeTone[a.type] || 'gray'}> {a.type}</Badge>
                   </td>
@@ -157,8 +157,8 @@ export default function BankAccounts() {
                   <td className="px-4 py-3 text-center">
                     <Badge tone={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Active' : 'Inactive'}</Badge>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{a.accountNumber}</td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{a.ifsc}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.accountNumber}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.ifsc}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => handleEdit(a)} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
@@ -176,20 +176,20 @@ export default function BankAccounts() {
         {selected && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Current Balance</p><p className="font-bold text-royal-950 text-xl">{formatINR(selected.balance)}</p></div>
-              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Status</p><Badge tone={selected.isActive ? 'green' : 'gray'}>{selected.isActive ? 'Active' : 'Inactive'}</Badge></div>
+              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Current Balance</p><p className="font-bold text-royal-950 dark:text-white text-xl">{formatINR(selected.balance)}</p></div>
+              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Status</p><Badge tone={selected.isActive ? 'green' : 'gray'}>{selected.isActive ? 'Active' : 'Inactive'}</Badge></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Type</p><Badge tone={typeTone[selected.type] || 'gray'}> {selected.type}</Badge></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Opening Balance</p><p className="font-medium">{formatINR(selected.openingBalance)}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Type</p><Badge tone={typeTone[selected.type] || 'gray'}> {selected.type}</Badge></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Opening Balance</p><p className="font-medium">{formatINR(selected.openingBalance)}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Account No.</p><p className="font-mono text-sm">{selected.accountNumber}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">IFSC</p><p className="font-mono text-sm">{selected.ifsc}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Account No.</p><p className="font-mono text-sm">{selected.accountNumber}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">IFSC</p><p className="font-mono text-sm">{selected.ifsc}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Bank</p><p className="font-medium">{selected.bank}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Opened On</p><p className="font-medium">{formatDate(selected.openingDate)}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Bank</p><p className="font-medium">{selected.bank}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Opened On</p><p className="font-medium">{formatDate(selected.openingDate)}</p></div>
             </div>
           </div>
         )}
@@ -204,16 +204,16 @@ export default function BankAccounts() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Account Name *</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Name *</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bank *</label>
-              <input type="text" value={formData.bank} onChange={(e) => setFormData({...formData, bank: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bank *</label>
+              <input type="text" value={formData.bank} onChange={(e) => setFormData({...formData, bank: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Account Type *</label>
-              <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type *</label>
+              <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required>
                 <option value="Current">Current</option>
                 <option value="Savings">Savings</option>
                 <option value="Cash Credit">Cash Credit</option>
@@ -221,20 +221,20 @@ export default function BankAccounts() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Opening Date *</label>
-              <input type="date" value={formData.openingDate} onChange={(e) => setFormData({...formData, openingDate: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opening Date *</label>
+              <input type="date" value={formData.openingDate} onChange={(e) => setFormData({...formData, openingDate: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
-              <input type="text" value={formData.accountNumber} onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Number *</label>
+              <input type="text" value={formData.accountNumber} onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code *</label>
-              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IFSC Code *</label>
+              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
-              <input type="number" step="0.01" value={formData.openingBalance} onChange={(e) => setFormData({...formData, openingBalance: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opening Balance</label>
+              <input type="number" step="0.01" value={formData.openingBalance} onChange={(e) => setFormData({...formData, openingBalance: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
           </div>
         </form>

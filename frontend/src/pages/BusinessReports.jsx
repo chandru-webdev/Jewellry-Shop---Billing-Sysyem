@@ -105,20 +105,20 @@ export default function BusinessReports() {
         subtitle="Profit & loss, cash flow and business performance overview"
         actions={
           <>
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
-              <label className="text-xs font-medium text-gray-500">From</label>
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">From</label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="text-xs bg-transparent text-gray-700 focus:outline-none cursor-pointer"
+                className="text-xs bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
               />
-              <span className="text-xs text-gray-400">to</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">to</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="text-xs bg-transparent text-gray-700 focus:outline-none cursor-pointer"
+                className="text-xs bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
               />
             </div>
             <Button onClick={() => window.print()}>
@@ -131,9 +131,9 @@ export default function BusinessReports() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 hover:shadow-md transition-all">
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{kpi.label}</p>
-            <p className="text-xl font-bold text-royal-950 mt-1">{formatINR(kpi.value)}</p>
+          <div key={kpi.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 hover:shadow-md transition-all">
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{kpi.label}</p>
+            <p className="text-xl font-bold text-royal-950 dark:text-white mt-1">{formatINR(kpi.value)}</p>
             <div className="flex items-center gap-1 mt-1.5">
               {kpi.up ? (
                 <TrendingUp size={13} className={kpi.good ? 'text-emerald-600' : 'text-red-500'} />
@@ -149,7 +149,7 @@ export default function BusinessReports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card title="Revenue vs Expenses" action={<span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
+        <Card title="Revenue vs Expenses" action={<span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={MONTHLY_REVENUE} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -164,7 +164,7 @@ export default function BusinessReports() {
           </div>
         </Card>
 
-        <Card title="Net Profit Trend" action={<span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
+        <Card title="Net Profit Trend" action={<span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={MONTHLY_REVENUE} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -180,7 +180,7 @@ export default function BusinessReports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card title="Cash Flow" action={<span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
+        <Card title="Cash Flow" action={<span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">Feb – Aug 2026</span>}>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={CASH_FLOW} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
@@ -195,7 +195,7 @@ export default function BusinessReports() {
           </div>
         </Card>
 
-        <Card title="Top Customers" action={<span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">By purchase value</span>}>
+        <Card title="Top Customers" action={<span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">By purchase value</span>}>
           <div className="space-y-3">
             {TOP_CUSTOMERS.map((c, idx) => (
               <div key={c.name} className="flex items-center gap-3">
@@ -203,23 +203,23 @@ export default function BusinessReports() {
                   idx === 0 ? 'bg-gold-500/20 text-gold-600' :
                   idx === 1 ? 'bg-royal-100 text-royal-700' :
                   idx === 2 ? 'bg-amber-50 text-amber-600' :
-                  'bg-gray-100 text-gray-500'
+                  'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 dark:text-gray-500'
                 }`}>
                   {idx + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-royal-950 truncate">{c.name}</p>
+                    <p className="text-sm font-medium text-royal-950 dark:text-white truncate">{c.name}</p>
                     <p className="text-sm font-bold text-royal-800 shrink-0">{formatINR(c.amount)}</p>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 flex-1 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-royal-400 to-royal-600"
                         style={{ width: `${(c.amount / TOP_CUSTOMERS[0].amount) * 100}%` }}
                       />
                     </div>
-                    <span className="text-[11px] text-gray-400 shrink-0">{c.invoices} invoices</span>
+                    <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{c.invoices} invoices</span>
                   </div>
                 </div>
               </div>
@@ -230,24 +230,24 @@ export default function BusinessReports() {
 
       <Card
         title="Profit & Loss Statement"
-        action={<span className="text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">{fromDate} to {toDate}</span>}
+        action={<span className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5">{fromDate} to {toDate}</span>}
       >
         <div className="max-w-2xl">
           {PNL_ITEMS.map((section, sIdx) => {
             const sectionTotal = section.items.reduce((s, i) => s + i.amount, 0)
             return (
-              <div key={section.section} className={sIdx > 0 ? 'mt-6 pt-4 border-t border-gray-100' : ''}>
+              <div key={section.section} className={sIdx > 0 ? 'mt-6 pt-4 border-t border-gray-100 dark:border-white/[0.05]' : ''}>
                 <div className="flex items-center justify-between py-1.5">
-                  <h4 className="text-sm font-bold text-royal-900">{section.section}</h4>
+                  <h4 className="text-sm font-bold text-royal-900 dark:text-gray-200">{section.section}</h4>
                 </div>
                 {section.items.map((item) => (
                   <div key={item.label} className="flex items-center justify-between py-1.5 pl-4">
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                    <span className="text-sm font-medium text-royal-900">{formatINR(item.amount)}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">{item.label}</span>
+                    <span className="text-sm font-medium text-royal-900 dark:text-gray-200">{formatINR(item.amount)}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between py-2 mt-1 border-t border-gray-100">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Total {section.section}</span>
+                <div className="flex items-center justify-between py-2 mt-1 border-t border-gray-100 dark:border-white/[0.05]">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Total {section.section}</span>
                   <span className="text-sm font-bold text-royal-800">{formatINR(sectionTotal)}</span>
                 </div>
               </div>
@@ -256,16 +256,16 @@ export default function BusinessReports() {
 
           <div className="mt-6 pt-4 border-t-2 border-royal-200 space-y-2">
             <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-semibold text-royal-900">Gross Profit</span>
+              <span className="text-sm font-semibold text-royal-900 dark:text-gray-200">Gross Profit</span>
               <span className="text-sm font-bold text-emerald-600">{formatINR(grossProfit)}</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-semibold text-royal-900">Less: Operating Expenses</span>
+              <span className="text-sm font-semibold text-royal-900 dark:text-gray-200">Less: Operating Expenses</span>
               <span className="text-sm font-semibold text-red-500">-{formatINR(totalExpenses)}</span>
             </div>
             <div className="flex items-center justify-between py-2.5 px-4 bg-royal-50 rounded-lg">
-              <span className="text-sm font-bold text-royal-950">Net Profit</span>
-              <span className="text-base font-bold text-royal-950">{formatINR(netProfit)}</span>
+              <span className="text-sm font-bold text-royal-950 dark:text-white">Net Profit</span>
+              <span className="text-base font-bold text-royal-950 dark:text-white">{formatINR(netProfit)}</span>
             </div>
           </div>
         </div>

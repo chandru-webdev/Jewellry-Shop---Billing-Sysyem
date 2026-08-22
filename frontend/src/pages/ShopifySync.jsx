@@ -78,8 +78,8 @@ export default function ShopifySync() {
           <div className="flex gap-2">
             {tab === 'products' && (
               <>
-                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-                  <Search size={14} className="text-gray-400" />
+                <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+                  <Search size={14} className="text-gray-400 dark:text-gray-500" />
                   <input
                     type="text"
                     placeholder="Search Shopify products..."
@@ -104,13 +104,13 @@ export default function ShopifySync() {
       />
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 border-b border-gray-200">
+      <div className="flex gap-1 mb-5 border-b border-gray-200 dark:border-white/[0.08]">
         {['dashboard', 'products', 'sync-logs'].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-              tab === t ? 'border-royal-700 text-royal-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t ? 'border-royal-700 text-royal-700' : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'
             }`}
           >
             {t === 'dashboard' ? 'Dashboard' : t === 'products' ? 'Products' : 'Sync Logs'}
@@ -128,12 +128,12 @@ export default function ShopifySync() {
               { icon: AlertCircle, label: 'Sync Failures', value: DEMO_SYNC.syncFailures, accent: 'from-red-500 to-red-600' },
               { icon: Package, label: 'Products Synced', value: DEMO_SYNC.productsSynced, accent: 'from-royal-500 to-royal-700' },
             ].map((c) => (
-              <div key={c.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+              <div key={c.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
                 <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.accent} flex items-center justify-center mb-3`}>
                   <c.icon size={16} className="text-white" />
                 </div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{c.label}</p>
-                <p className="text-xl font-bold text-royal-950 mt-0.5">{c.value}</p>
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{c.label}</p>
+                <p className="text-xl font-bold text-royal-950 dark:text-white mt-0.5">{c.value}</p>
               </div>
             ))}
           </div>
@@ -145,12 +145,12 @@ export default function ShopifySync() {
               { label: 'Price Sync', value: DEMO_SYNC.priceSync, icon: DollarSign, color: 'amber' },
               { label: 'Razorpay Payments', value: formatINR(DEMO_SYNC.razorpayPayments), icon: CreditCard, color: 'blue' },
             ].map((h) => (
-              <div key={h.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3">
+              <div key={h.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg bg-${h.color}-50 flex items-center justify-center`}>
                   <h.icon size={18} className={`text-${h.color}-500`} />
                 </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{h.label}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{h.label}</p>
                   <p className={`text-sm font-bold ${h.color === 'emerald' ? 'text-emerald-600' : h.color === 'amber' ? 'text-amber-600' : 'text-blue-600'}`}>{h.value}</p>
                 </div>
               </div>
@@ -184,26 +184,26 @@ export default function ShopifySync() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50/80 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Product</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">SKU</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Price</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Weight</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Stock</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
+                <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Price</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Weight</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Stock</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {fetchProductsQuery.isFetching && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                       Fetching products from Shopify...
                     </td>
                   </tr>
                 )}
                 {!fetchProductsQuery.isFetching && fetchProductsQuery.data?.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                       No products found. Click "Fetch Products" to load them.
                     </td>
                   </tr>
@@ -211,13 +211,13 @@ export default function ShopifySync() {
                 {!fetchProductsQuery.isFetching && fetchProductsQuery.data?.map((p) => (
                   <tr key={p.shopifyId} className="hover:bg-royal-50/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-medium text-royal-950">{p.title}</span>
-                      <span className="block text-[11px] text-gray-400">ID: {p.shopifyId}</span>
+                      <span className="font-medium text-royal-950 dark:text-white">{p.title}</span>
+                      <span className="block text-[11px] text-gray-400 dark:text-gray-500">ID: {p.shopifyId}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">{p.sku || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-mono">{p.sku || '—'}</td>
                     <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(Number(p.price))}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{p.weight ? `${p.weight}${p.weightUnit || 'g'}` : '—'}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">{p.inventoryQuantity || 0}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.weight ? `${p.weight}${p.weightUnit || 'g'}` : '—'}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.inventoryQuantity || 0}</td>
                     <td className="px-4 py-3 text-center">
                       <Badge tone={p.status === 'active' ? 'green' : 'gray'}>{p.status}</Badge>
                     </td>
@@ -234,15 +234,15 @@ export default function ShopifySync() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50/80 border-b border-gray-200">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Entity</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Shopify ID</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Direction</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Action</th>
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Time</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Error</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+                <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Entity</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Shopify ID</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Direction</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Action</th>
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Time</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Error</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -252,14 +252,14 @@ export default function ShopifySync() {
                     <tr key={i} className="hover:bg-royal-50/30 transition-colors">
                       <td className="px-4 py-3"><Badge tone="purple">{log.entity}</Badge></td>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{log.shopifyId}</td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">{log.direction}</td>
-                      <td className="px-4 py-3 text-gray-600">{log.action}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{log.direction}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge tone={statusBadge[log.status]}>
                           <StatusIcon size={10} className="mr-1" /> {log.status}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{log.time}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{log.time}</td>
                       <td className="px-4 py-3 text-xs text-red-500 max-w-48 truncate">{log.error || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         {log.status === 'FAILED' && (

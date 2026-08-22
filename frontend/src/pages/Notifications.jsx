@@ -52,20 +52,20 @@ export default function Notifications() {
       <PageHeader title="Notifications" subtitle="System alerts and event log" />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total</p>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_NOTIFICATIONS.length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Unread</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Unread</p>
           <p className="text-xl font-bold text-red-600 mt-0.5">{unreadCount}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Succeeded</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Succeeded</p>
           <p className="text-xl font-bold text-green-600 mt-0.5">{DEMO_NOTIFICATIONS.filter((n) => n.status === 'SUCCESS').length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Failed</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Failed</p>
           <p className="text-xl font-bold text-red-600 mt-0.5">{DEMO_NOTIFICATIONS.filter((n) => n.status === 'FAILED').length}</p>
         </div>
       </div>
@@ -74,7 +74,7 @@ export default function Notifications() {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="all">All Notifications</option>
           <option value="SUCCESS">Succeeded</option>
@@ -90,37 +90,37 @@ export default function Notifications() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-600">#</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Type</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Title</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Time</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Entity</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Actions</th>
+              <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">#</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Title</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Time</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Entity</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody>
               {notifications.map((n, i) => (
-                <tr key={n.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                <tr key={n.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                   <td className="px-4 py-2.5 font-medium text-royal-800">{n.id}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      {(() => { const Icon = getTypeIcon(n.type); return <Icon size={14} className={n.status === 'SUCCESS' ? 'text-green-500' : n.status === 'FAILED' ? 'text-red-500' : n.status === 'WARNING' ? 'text-orange-500' : 'text-gray-400'} />; })()}
-                      <span className="text-sm font-medium text-royal-900">{n.type}</span>
+                      {(() => { const Icon = getTypeIcon(n.type); return <Icon size={14} className={n.status === 'SUCCESS' ? 'text-green-500' : n.status === 'FAILED' ? 'text-red-500' : n.status === 'WARNING' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />; })()}
+                      <span className="text-sm font-medium text-royal-900 dark:text-gray-200">{n.type}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 truncate">{n.title}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{n.time}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{n.time}</td>
                   <td className="px-4 py-2.5">
                     <Badge tone={statusColor[n.status]}>
                       {n.status === 'SUCCESS' ? '✓' : n.status === 'FAILED' ? '✗' : '⚠'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600">{n.entity}</td>
+                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{n.entity}</td>
                   <td className="px-4 py-2.5 text-right">
                     {markedRead.has(n.id) ? (
-                      <span className="text-[10px] text-gray-400">Read</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">Read</span>
                     ) : (
                       <button
                         onClick={() => markAsRead(n.id)}

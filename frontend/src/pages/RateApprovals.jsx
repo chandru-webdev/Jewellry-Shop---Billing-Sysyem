@@ -35,20 +35,20 @@ export default function RateApprovals() {
       <PageHeader title="Rate Approvals" subtitle="Admin approval workflow for silver rate changes" />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Pending</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Pending</p>
           <p className="text-xl font-bold text-orange-600 mt-0.5">{pending}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Approved</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Approved</p>
           <p className="text-xl font-bold text-green-600 mt-0.5">{approved}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Rejected</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Rejected</p>
           <p className="text-xl font-bold text-red-600 mt-0.5">{rejected}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Requests</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Requests</p>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_REQUESTS.length}</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function RateApprovals() {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="all">All Requests</option>
           <option value="PENDING">Pending</option>
@@ -67,16 +67,16 @@ export default function RateApprovals() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setFilter('all')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'all' ? 'bg-white text-royal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+        <button onClick={() => setFilter('all')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'all' ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}">
           All
         </button>
-        <button onClick={() => setFilter('PENDING')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'PENDING' ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+        <button onClick={() => setFilter('PENDING')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'PENDING' ? 'bg-white dark:bg-[#1a1025] text-orange-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}">
           Pending {pending}
         </button>
-        <button onClick={() => setFilter('APPROVED')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'APPROVED' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+        <button onClick={() => setFilter('APPROVED')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'APPROVED' ? 'bg-white dark:bg-[#1a1025] text-green-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}">
           Approved {approved}
         </button>
-        <button onClick={() => setFilter('REJECTED')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'REJECTED' ? 'bg-white text-red-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+        <button onClick={() => setFilter('REJECTED')} className="px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer {filter === 'REJECTED' ? 'bg-white dark:bg-[#1a1025] text-red-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}">
           Rejected {rejected}
         </button>
       </div>
@@ -85,29 +85,29 @@ export default function RateApprovals() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-600">#</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Silver Rate (₹/gm)</th>
-                <th className="px-4 py-3 font-medium text-gray-600">New Rate</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Requested By</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Affected Products</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Created At</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-right">Actions</th>
+              <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">#</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Silver Rate (₹/gm)</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">New Rate</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Requested By</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Affected Products</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Created At</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {requests.map((r, i) => (
-                <tr key={r.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                <tr key={r.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                   <td className="px-4 py-2.5 font-medium text-royal-800">{r.id}</td>
-                  <td className="px-4 py-2.5 font-mono text-gray-600">{r.silverRate}</td>
+                  <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.silverRate}</td>
                   <td className="px-4 py-2.5 font-mono font-semibold text-royal-800">{r.newRate}</td>
-                  <td className="px-4 py-2.5 text-gray-800">{r.requestedBy}</td>
+                  <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{r.requestedBy}</td>
                   <td className="px-4 py-2.5">
                     <Badge tone={statusColor[r.status]}>{statusLabel[r.status]}</Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600">{r.quantityAffected}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{r.createdAt}</td>
+                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.quantityAffected}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.createdAt}</td>
                   <td className="px-4 py-2.5 text-right">
                     {r.status === 'PENDING' && (
                       <>

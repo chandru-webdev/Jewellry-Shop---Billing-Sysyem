@@ -129,8 +129,8 @@ export default function PurchaseOrders() {
         subtitle="Manage purchase orders from suppliers"
         actions={
           <div className="flex gap-2">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-              <Search size={14} className="text-gray-400" />
+            <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+              <Search size={14} className="text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder="Search by PO # or supplier..."
@@ -142,7 +142,7 @@ export default function PurchaseOrders() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
             >
               <option value="">All Statuses</option>
               <option value="PENDING">Pending</option>
@@ -169,11 +169,11 @@ export default function PurchaseOrders() {
                   setPOForm({ supplierId: '', notes: '' })
                 }} className="space-y-4 text-sm">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Supplier *</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Supplier *</label>
                     <select
                       value={poForm.supplierId}
                       onChange={(e) => setPOForm({ ...poForm, supplierId: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                      className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                       required
                     >
                       <option value="">Select a supplier</option>
@@ -183,12 +183,12 @@ export default function PurchaseOrders() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Notes</label>
                     <textarea
                       value={poForm.notes}
                       onChange={(e) => setPOForm({ ...poForm, notes: e.target.value })}
                       placeholder="Optional notes for this PO..."
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                      className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                       rows={3}
                     />
                   </div>
@@ -210,28 +210,28 @@ export default function PurchaseOrders() {
       <Card>
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-royal-50/80 border-b border-gray-200">
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">PO #</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Supplier</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Date</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Items</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Qty</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Total</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+            <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">PO #</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Supplier</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Items</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Qty</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                   Loading purchase orders...
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
+                <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                   No purchase orders found.
                 </td>
               </tr>
@@ -242,12 +242,12 @@ export default function PurchaseOrders() {
                   <span className="font-mono text-xs font-semibold text-royal-700">{o.orderNumber || `#${o.id}`}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-royal-950">{o.supplier?.name || (o.customer?.name || '—')}</span>
-                  {o.supplier?.phone && <span className="block text-[11px] text-gray-400">{o.supplier.phone}</span>}
+                  <span className="font-medium text-royal-950 dark:text-white">{o.supplier?.name || (o.customer?.name || '—')}</span>
+                  {o.supplier?.phone && <span className="block text-[11px] text-gray-400 dark:text-gray-500">{o.supplier.phone}</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{formatDate(o.createdAt || o.date)}</td>
-                <td className="px-4 py-3 text-center text-gray-600">{o.totalItems || o._count?.items || 0}</td>
-                <td className="px-4 py-3 text-center text-gray-600">{o.totalQuantity || 0}</td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt || o.date)}</td>
+                <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{o.totalItems || o._count?.items || 0}</td>
+                <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{o.totalQuantity || 0}</td>
                 <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.totalAmount)}</td>
                 <td className="px-4 py-3 text-center">
                   <Badge tone={statusTone[o.status] || 'gray'}>{statusLabel[o.status] || o.status}</Badge>
@@ -274,32 +274,32 @@ export default function PurchaseOrders() {
           <div className="text-sm space-y-4">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-bold text-royal-950">OPAL LINE</h3>
-                <p className="text-xs text-gray-400">Silver Jewellery · Purchase Management</p>
+                <h3 className="text-lg font-bold text-royal-950 dark:text-white">OPAL LINE</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Silver Jewellery · Purchase Management</p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-royal-800 font-mono">{selected.orderNumber}</p>
-                <p className="text-xs text-gray-500">{formatDate(selected.createdAt)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDate(selected.createdAt)}</p>
                 <Badge tone={statusTone[selected.status] || 'gray'}>{statusLabel[selected.status] || selected.status}</Badge>
               </div>
             </div>
 
             <div className="bg-royal-50/60 rounded-lg p-3">
-              <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 font-semibold">Supplier</p>
-              <p className="font-semibold text-royal-950">{selected.supplier?.name || (selected.customer?.name || '—')}</p>
-              {selected.supplier?.phone && <p className="text-gray-600 text-xs">{selected.supplier.phone}</p>}
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 font-semibold">Supplier</p>
+              <p className="font-semibold text-royal-950 dark:text-white">{selected.supplier?.name || (selected.customer?.name || '—')}</p>
+              {selected.supplier?.phone && <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{selected.supplier.phone}</p>}
             </div>
 
-            <div className="space-y-2 border-t border-gray-100 pt-3 text-sm">
+            <div className="space-y-2 border-t border-gray-100 dark:border-white/[0.05] pt-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Total Items</span>
+                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Total Items</span>
                 <span className="font-medium">{selected.totalItems || selected._count?.items || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Total Quantity</span>
+                <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Total Quantity</span>
                 <span className="font-medium">{selected.totalQuantity || 0}</span>
               </div>
-              <div className="flex justify-between font-bold text-royal-950 border-t pt-2">
+              <div className="flex justify-between font-bold text-royal-950 dark:text-white border-t pt-2">
                 <span>Grand Total</span>
                 <span>{formatINR(selected.totalAmount)}</span>
               </div>

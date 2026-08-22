@@ -81,31 +81,31 @@ export default function SalesAnalysis() {
 
       <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-600">From:</span>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
-          <span className="text-gray-600">To:</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">From:</span>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+          <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">To:</span>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><IndianRupee size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Sales</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><IndianRupee size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Sales</p></div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(totalSales)}</p>
           <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600"><TrendingUp size={12} /> +14.2%</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><ShoppingCart size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Avg Order Value</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><ShoppingCart size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Avg Order Value</p></div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{formatINR(avgOrderValue)}</p>
           <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600"><TrendingUp size={12} /> +5.8%</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><ShoppingCart size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Orders</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><ShoppingCart size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Orders</p></div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{totalOrders}</p>
           <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600"><TrendingUp size={12} /> +11.3%</div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><RotateCcw size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Return Rate</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><RotateCcw size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Return Rate</p></div>
           <p className="text-xl font-bold text-amber-600 mt-0.5">{returnRate}%</p>
           <div className="flex items-center gap-1 mt-1 text-xs text-red-600"><TrendingUp size={12} /> +0.3%</div>
         </div>
@@ -141,7 +141,7 @@ export default function SalesAnalysis() {
             {PAYMENT_METHODS.map((p) => (
               <div key={p.name} className="flex items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.color }} />
-                <span className="text-gray-600">{p.name}</span>
+                <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.name}</span>
                 <span className="font-semibold ml-auto">{formatINR(p.value)}</span>
               </div>
             ))}
@@ -168,20 +168,20 @@ export default function SalesAnalysis() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-2.5 font-medium text-gray-600">Category</th>
-                  <th className="px-3 py-2.5 font-medium text-gray-600 text-right">Qty</th>
-                  <th className="px-3 py-2.5 font-medium text-gray-600 text-right">Revenue</th>
-                  <th className="px-3 py-2.5 font-medium text-gray-600 text-right">Avg Price</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-3 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Category</th>
+                  <th className="px-3 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Qty</th>
+                  <th className="px-3 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Revenue</th>
+                  <th className="px-3 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Avg Price</th>
                 </tr>
               </thead>
               <tbody>
                 {CATEGORY_SALES.map((c, i) => (
-                  <tr key={c.category} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={c.category} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-3 py-2.5 font-medium text-royal-800">{c.category}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-gray-600">{c.quantity}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.quantity}</td>
                     <td className="px-3 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(c.revenue)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-gray-600">{formatINR(c.avgPrice)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(c.avgPrice)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -194,13 +194,13 @@ export default function SalesAnalysis() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-2.5 font-medium text-gray-600">#</th>
-                <th className="px-4 py-2.5 font-medium text-gray-600">Salesperson</th>
-                <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Orders</th>
-                <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Revenue</th>
-                <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Avg Order</th>
-                <th className="px-4 py-2.5 font-medium text-gray-600">Performance</th>
+              <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">#</th>
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Salesperson</th>
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Orders</th>
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Revenue</th>
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Avg Order</th>
+                <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Performance</th>
               </tr>
             </thead>
             <tbody>
@@ -208,14 +208,14 @@ export default function SalesAnalysis() {
                 const maxRevenue = SALESPERSONS[0].revenue
                 const pct = (s.revenue / maxRevenue) * 100
                 return (
-                  <tr key={s.name} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                    <td className="px-4 py-2.5 text-gray-500">{i + 1}</td>
+                  <tr key={s.name} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
+                    <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 dark:text-gray-500">{i + 1}</td>
                     <td className="px-4 py-2.5 font-medium text-royal-800">{s.name}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-600">{s.orders}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.orders}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(s.revenue)}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-600">{formatINR(s.avgOrder)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(s.avgOrder)}</td>
                     <td className="px-4 py-2.5">
-                      <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
                         <div className="bg-royal-500 rounded-full h-2 transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </td>

@@ -176,8 +176,8 @@ export default function Billing() {
           {/* Search */}
           <Card>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 flex-1 border border-gray-200">
-                <Search size={15} className="text-gray-400" />
+              <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2 flex-1 border border-gray-200 dark:border-white/[0.08]">
+                <Search size={15} className="text-gray-400 dark:text-gray-500" />
                 <input type="text" placeholder="Search products by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
               </div>
               <div className="flex items-center gap-2 bg-royal-50 rounded-lg px-3 py-2 border border-royal-200">
@@ -194,8 +194,8 @@ export default function Billing() {
                 {filteredProducts.map((p) => (
                   <button key={p.id} onClick={() => addItem(p)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-royal-50/30 transition-colors cursor-pointer text-left">
                     <div>
-                      <p className="text-sm font-medium text-royal-950">{p.name}</p>
-                      <p className="text-[11px] font-mono text-gray-500">{p.sku} · {formatWeight(p.weight)} · ₹{p.makingCharge}/g making</p>
+                      <p className="text-sm font-medium text-royal-950 dark:text-white">{p.name}</p>
+                      <p className="text-[11px] font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku} · {formatWeight(p.weight)} · ₹{p.makingCharge}/g making</p>
                     </div>
                     <Badge tone="green">+ Add</Badge>
                   </button>
@@ -207,7 +207,7 @@ export default function Billing() {
           {/* Cart Items */}
           <Card title={`Items (${items.length})`} icon={ShoppingCart}>
             {items.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-gray-400 dark:text-gray-500">
                 <ShoppingCart size={32} className="mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Search and add products to begin billing</p>
               </div>
@@ -215,26 +215,26 @@ export default function Billing() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Product</th>
-                      <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Qty</th>
-                      <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Weight</th>
-                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Silver ₹</th>
-                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Making ₹</th>
-                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">GST ₹</th>
-                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Total ₹</th>
+                    <tr className="border-b border-gray-100 dark:border-white/[0.05]">
+                      <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Product</th>
+                      <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Qty</th>
+                      <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Weight</th>
+                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Silver ₹</th>
+                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Making ₹</th>
+                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">GST ₹</th>
+                      <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Total ₹</th>
                       <th className="w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {items.map((item) => (
                       <tr key={item.id}>
-                        <td className="py-2.5"><p className="font-medium text-royal-950">{item.name}</p><p className="text-[10px] font-mono text-gray-400">{item.sku}</p></td>
-                        <td className="py-2.5 text-center"><input type="number" value={item.qty} min={1} className="w-14 text-center border border-gray-200 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-royal-500" onChange={(e) => updateQty(item.id, e.target.value)} /></td>
-                        <td className="py-2.5 text-center text-gray-600">{formatWeight(item.weight)}</td>
-                        <td className="py-2.5 text-right text-gray-600">{formatINR(item.silverValue * item.qty)}</td>
-                        <td className="py-2.5 text-right text-gray-600">{formatINR(item.makingValue * item.qty)}</td>
-                        <td className="py-2.5 text-right text-gray-600">{formatINR(item.gst * item.qty)}</td>
+                        <td className="py-2.5"><p className="font-medium text-royal-950 dark:text-white">{item.name}</p><p className="text-[10px] font-mono text-gray-400 dark:text-gray-500">{item.sku}</p></td>
+                        <td className="py-2.5 text-center"><input type="number" value={item.qty} min={1} className="w-14 text-center border border-gray-200 dark:border-white/[0.08] rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-royal-500" onChange={(e) => updateQty(item.id, e.target.value)} /></td>
+                        <td className="py-2.5 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatWeight(item.weight)}</td>
+                        <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.silverValue * item.qty)}</td>
+                        <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.makingValue * item.qty)}</td>
+                        <td className="py-2.5 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(item.gst * item.qty)}</td>
                         <td className="py-2.5 text-right font-bold text-royal-800">{formatINR(item.total)}</td>
                         <td className="py-2.5"><button onClick={() => removeItem(item.id)} className="p-1 text-red-400 hover:text-red-600 cursor-pointer"><Trash2 size={14} /></button></td>
                       </tr>
@@ -262,7 +262,7 @@ export default function Billing() {
           <Card title="Payment" icon={CreditCard}>
             <div className="grid grid-cols-2 gap-2">
               {PAYMENT_METHODS.map((m) => (
-                <button key={m.value} onClick={() => setPaymentMethod(m.value)} className={`py-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer flex flex-col items-center gap-1 ${paymentMethod === m.value ? 'bg-royal-700 text-white border-royal-700' : 'bg-white text-gray-600 border-gray-200 hover:border-royal-300'}`}>
+                <button key={m.value} onClick={() => setPaymentMethod(m.value)} className={`py-2.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer flex flex-col items-center gap-1 ${paymentMethod === m.value ? 'bg-royal-700 text-white border-royal-700' : 'bg-white dark:bg-[#1a1025] text-gray-600 dark:text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/[0.08] hover:border-royal-300'}`}>
                   <CreditCard size={12} />
                   {m.label}
                 </button>
@@ -273,12 +273,12 @@ export default function Billing() {
           {/* Totals */}
           <Card title="Order Summary" icon={Calculator}>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600"><span>Total Weight</span><span>{formatWeight(totals.weight)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>Silver Value</span><span>{formatINR(totals.silverValue)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>Making Charges</span><span>{formatINR(totals.makingValue)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatINR(totals.subtotal)}</span></div>
-              <div className="flex justify-between text-gray-600"><span>GST (3%)</span><span>{formatINR(totals.gst)}</span></div>
-              <div className="flex justify-between font-bold text-royal-950 text-base border-t border-gray-200 pt-2">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 dark:text-gray-500"><span>Total Weight</span><span>{formatWeight(totals.weight)}</span></div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 dark:text-gray-500"><span>Silver Value</span><span>{formatINR(totals.silverValue)}</span></div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 dark:text-gray-500"><span>Making Charges</span><span>{formatINR(totals.makingValue)}</span></div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 dark:text-gray-500"><span>Subtotal</span><span>{formatINR(totals.subtotal)}</span></div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400 dark:text-gray-500"><span>GST (3%)</span><span>{formatINR(totals.gst)}</span></div>
+              <div className="flex justify-between font-bold text-royal-950 dark:text-white text-base border-t border-gray-200 dark:border-white/[0.08] pt-2">
                 <span>Grand Total</span><span>{formatINR(totals.total)}</span>
               </div>
             </div>

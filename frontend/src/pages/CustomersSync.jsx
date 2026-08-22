@@ -46,39 +46,39 @@ export default function CustomersSync() {
       } />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Customers</p>
+            <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Customers</p>
             <Users size={14} className="text-royal-400" />
           </div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_CUSTOMERS.length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Synced</p>
+            <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Synced</p>
             <CheckCircle2 size={14} className="text-emerald-400" />
           </div>
           <p className="text-xl font-bold text-emerald-600 mt-0.5">{synced}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Pending</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Pending</p>
           <p className="text-xl font-bold text-amber-600 mt-0.5">{pending}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Failed</p>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Failed</p>
           <p className="text-xl font-bold text-red-600 mt-0.5">{failed}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, email, phone or Shopify ID..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] focus:outline-none focus:ring-2 focus:ring-royal-200 focus:border-royal-300"
           />
         </div>
       </div>
@@ -87,31 +87,31 @@ export default function CustomersSync() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-600">Customer</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Phone</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-right">Orders</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-right">Total Spent</th>
-                <th className="px-4 py-3 font-medium text-gray-600">ERP ID</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600">Last Synced</th>
-                <th className="px-4 py-3 font-medium text-gray-600 text-right">Action</th>
+              <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Phone</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Orders</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Total Spent</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">ERP ID</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Synced</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((c, i) => (
-                <tr key={c.shopifyId} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                <tr key={c.shopifyId} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                   <td className="px-4 py-2.5">
-                    <p className="font-medium text-royal-950">{c.name}</p>
-                    <p className="text-[11px] text-gray-400">{c.email}</p>
-                    <p className="text-[11px] font-mono text-gray-400">Shopify {c.shopifyId}</p>
+                    <p className="font-medium text-royal-950 dark:text-white">{c.name}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{c.email}</p>
+                    <p className="text-[11px] font-mono text-gray-400 dark:text-gray-500">Shopify {c.shopifyId}</p>
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-gray-600">{c.phone}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-gray-600">{c.orders}</td>
+                  <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.phone}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.orders}</td>
                   <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{formatINR(c.totalSpent)}</td>
                   <td className="px-4 py-2.5 font-mono font-semibold text-royal-700">{c.erpId || '—'}</td>
                   <td className="px-4 py-2.5"><Badge tone={statusColor[c.status]}>{c.status}</Badge></td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500">{c.syncedAt || '—'}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{c.syncedAt || '—'}</td>
                   <td className="px-4 py-2.5 text-right">
                     {c.status === 'Failed' && <Button variant="ghost" size="sm"><RefreshCw size={12} /> Retry</Button>}
                     {c.status === 'Pending' && <Button variant="ghost" size="sm"><Download size={12} /> Import</Button>}
@@ -120,7 +120,7 @@ export default function CustomersSync() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="px-4 py-10 text-center text-sm text-gray-400">No customers found</td>
+                  <td colSpan="8" className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-500">No customers found</td>
                 </tr>
               )}
             </tbody>

@@ -27,7 +27,7 @@ export default function Login() {
     }
   }
 
-  const inputClass = 'w-full rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 backdrop-blur-sm transition-shadow'
+  const inputClass = 'w-full rounded-lg bg-white dark:bg-[#1a1025]/10 border border-white/20 text-white placeholder-white/40 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 backdrop-blur-sm transition-shadow'
 
   return (
     <div className="relative min-h-screen w-full flex items-stretch overflow-hidden">
@@ -85,7 +85,7 @@ export default function Login() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="rounded border-white/20 bg-white/10 text-gold-500 focus:ring-gold-500"
+                  className="rounded border-white/20 bg-white dark:bg-[#1a1025]/10 text-gold-500 focus:ring-gold-500"
                 />
                 <span className="text-sm text-white/60">Remember me</span>
               </label>
@@ -94,7 +94,7 @@ export default function Login() {
               </button>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-gold-500 hover:bg-gold-400 text-royal-950 font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer text-sm shadow-lg shadow-gold-500/25 hover:shadow-gold-500/40">
+            <button type="submit" disabled={loading} className="w-full bg-gold-500 hover:bg-gold-400 text-royal-950 dark:text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer text-sm shadow-lg shadow-gold-500/25 hover:shadow-gold-500/40">
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>

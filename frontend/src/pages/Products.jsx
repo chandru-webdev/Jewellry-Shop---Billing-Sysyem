@@ -127,8 +127,8 @@ export default function Products() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search by name or SKU..."
@@ -140,7 +140,7 @@ export default function Products() {
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="">All Categories</option>
           {(categories || []).map((c) => (
@@ -150,7 +150,7 @@ export default function Products() {
         <select
           value={filterStock}
           onChange={(e) => setFilterStock(e.target.value)}
-          className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="">All Stock</option>
           <option value="in">In Stock</option>
@@ -163,33 +163,33 @@ export default function Products() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50/80 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Product</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">SKU</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Purity</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Net Weight</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Making Charge</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Selling Price</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Stock</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Shopify</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                {canEdit && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>}
+              <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Purity</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Net Weight</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Making Charge</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Selling Price</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Stock</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Shopify</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                {canEdit && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading && (
-                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm">Loading products...</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">Loading products...</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm">No products found. Click "Add Product" to create one.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No products found. Click "Add Product" to create one.</td></tr>
               )}
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-royal-50/30 transition-colors">
                   <td className="px-4 py-3">
-                    <span className="font-medium text-royal-950">{p.name}</span>
+                    <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
-                  <td className="px-4 py-3 text-gray-600">{p.purity || '92.5'}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.purity || '92.5'}</td>
                   <td className="px-4 py-3 text-right">
                     {isEditing(p.id, 'weight') ? (
                       <div className="flex items-center justify-end gap-1">
@@ -201,10 +201,10 @@ export default function Products() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-end gap-1 group">
-                        <span className="text-gray-600">{formatWeight(p.weight)}</span>
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatWeight(p.weight)}</span>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'weight', p.weight)}
-                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit weight">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit weight">
                             <Weight size={12} />
                           </button>
                         )}
@@ -222,10 +222,10 @@ export default function Products() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-end gap-1 group">
-                        <span className="text-gray-600">{formatINR(p.makingCharge)}/g</span>
+                        <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(p.makingCharge)}/g</span>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'makingCharge', p.makingCharge)}
-                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit making charge">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit making charge">
                             <DollarSign size={12} />
                           </button>
                         )}
@@ -249,7 +249,7 @@ export default function Products() {
                         </Badge>
                         {canEdit && (
                           <button onClick={() => startInlineEdit(p.id, 'stock', p.inventory?.quantity ?? 0)}
-                            className="p-1 text-gray-400 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit stock">
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-royal-600 hover:bg-royal-50 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" title="Edit stock">
                             <Package size={12} />
                           </button>
                         )}

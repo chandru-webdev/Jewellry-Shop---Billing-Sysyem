@@ -75,7 +75,7 @@ function Barcode({ value, size = 120 }) {
       viewBox={`0 0 ${totalW} ${height + 26}`}
       width={displayWidth}
       height={(height + 26) * (displayWidth / totalW)}
-      className="border border-gray-200 bg-white rounded"
+      className="border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] rounded"
       preserveAspectRatio="xMidYMid meet"
     >
       {modules.reduce((acc, m, i) => {
@@ -210,14 +210,14 @@ export default function BarcodeLabels() {
       <div className="flex flex-col min-w-0">
         {isProduct ? (
           <>
-            <span className="name text-sm font-medium text-royal-950 truncate">{item.name}</span>
-            <span className="sku text-[11px] text-gray-500">{item.sku}</span>
+            <span className="name text-sm font-medium text-royal-950 dark:text-white truncate">{item.name}</span>
+            <span className="sku text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.sku}</span>
             <span className="price text-xs font-semibold text-royal-800">{formatINR(item.sellingPrice)}</span>
           </>
         ) : (
           <>
-            <span className="name text-sm font-medium text-royal-950">Custom: {item.value}</span>
-            <span className="sku text-[11px] text-gray-500">Custom barcode</span>
+            <span className="name text-sm font-medium text-royal-950 dark:text-white">Custom: {item.value}</span>
+            <span className="sku text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">Custom barcode</span>
           </>
         )}
       </div>
@@ -269,7 +269,7 @@ export default function BarcodeLabels() {
       <Card title="Create New Barcode" icon={Plus} className="mb-6">
         <form className="flex items-end gap-3" onSubmit={handleCreateCustom}>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-royal-900 mb-1">Barcode value (10 digits)</label>
+            <label className="block text-sm font-medium text-royal-900 dark:text-gray-200 mb-1">Barcode value (10 digits)</label>
             <Input
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -303,8 +303,8 @@ export default function BarcodeLabels() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search by name, SKU or barcode..."
@@ -313,19 +313,19 @@ export default function BarcodeLabels() {
             className="bg-transparent text-sm focus:outline-none w-full"
           />
         </div>
-        <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1">
-          <Filter size={14} className="text-gray-400" />
+        <div className="flex items-center gap-1.5 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-2 py-1">
+          <Filter size={14} className="text-gray-400 dark:text-gray-500" />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="text-sm bg-transparent text-gray-700 focus:outline-none"
+            className="text-sm bg-transparent text-gray-700 dark:text-gray-300 focus:outline-none"
           >
             {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 cursor-pointer">
           <input
             type="checkbox"
             checked={showLowStock}
@@ -347,7 +347,7 @@ export default function BarcodeLabels() {
         <Card title="Label Preview" icon={Tag} id="print-labels" className="p-0 overflow-hidden">
           <div className="p-4 max-h-[640px] overflow-y-auto space-y-2">
             {allItems.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No products match your filters.</div>
+              <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">No products match your filters.</div>
             ) : (
               allItems.map((item) => labelNode(item, item._kind === 'product'))
             )}
@@ -359,7 +359,7 @@ export default function BarcodeLabels() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50 text-royal-900 text-left">
+                <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
                   <th className="px-4 py-2 font-semibold">Product</th>
                   <th className="px-4 py-2 font-mono text-[11px]">Barcode</th>
                   <th className="px-4 py-2 text-right">Price</th>
@@ -371,10 +371,10 @@ export default function BarcodeLabels() {
                 {products.map((p) => (
                   <tr key={p.id} className="hover:bg-royal-50/30">
                     <td className="px-4 py-2">
-                      <span className="font-medium text-royal-950">{p.name}</span>
-                      <p className="text-[11px] text-gray-500">{p.sku}</p>
+                      <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</p>
                     </td>
-                    <td className="px-4 py-2 font-mono text-[11px] text-gray-600">{p.barcode}</td>
+                    <td className="px-4 py-2 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.barcode}</td>
                     <td className="px-4 py-2 text-right font-semibold text-royal-800">{formatINR(p.sellingPrice)}</td>
                     <td className="px-4 py-2 text-center">
                       <div className="flex justify-center">
@@ -402,29 +402,29 @@ export default function BarcodeLabels() {
       {/* Full view modal */}
       {fullView && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
+          <div className="bg-white dark:bg-[#1a1025] rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
             <button
               onClick={() => setFullView(null)}
-              className="absolute top-3 right-3 p-1 text-gray-500 hover:text-gray-800 cursor-pointer"
+              className="absolute top-3 right-3 p-1 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-200 cursor-pointer"
               title="Close"
             >
               <X size={18} />
             </button>
 
             <div className="flex flex-col items-center gap-4">
-              <div className="p-3 border border-gray-200 bg-white rounded">
+              <div className="p-3 border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] rounded">
                 <Barcode value={fullView.barcode || fullView.value} size={320} />
               </div>
               {fullView._kind === 'product' ? (
                 <div className="text-center">
-                  <h3 className="font-semibold text-royal-950">{fullView.name}</h3>
-                  <p className="text-xs text-gray-500">{fullView.sku}</p>
+                  <h3 className="font-semibold text-royal-950 dark:text-white">{fullView.name}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{fullView.sku}</p>
                   <p className="text-sm font-bold text-royal-800 mt-1">{formatINR(fullView.sellingPrice)}</p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <h3 className="font-semibold text-royal-950">Custom Barcode</h3>
-                  <p className="text-xs text-gray-500">{fullView.value}</p>
+                  <h3 className="font-semibold text-royal-950 dark:text-white">Custom Barcode</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{fullView.value}</p>
                 </div>
               )}
 

@@ -52,7 +52,7 @@ export default function PriceHistory() {
       <Card title="Rate Trend" icon={Coins} className="mb-5">
         <div className="h-80">
           {isLoading ? (
-            <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-gray-400" size={20} /></div>
+            <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-gray-400 dark:text-gray-500" size={20} /></div>
           ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -64,7 +64,7 @@ export default function PriceHistory() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-sm text-gray-400">No rate history yet</div>
+            <div className="h-full flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">No rate history yet</div>
           )}
         </div>
       </Card>
@@ -72,24 +72,24 @@ export default function PriceHistory() {
       <Card title="Rate History" icon={History}>
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="py-12 flex items-center justify-center"><Loader2 className="animate-spin text-gray-400" size={20} /></div>
+            <div className="py-12 flex items-center justify-center"><Loader2 className="animate-spin text-gray-400 dark:text-gray-500" size={20} /></div>
           ) : tableData.length > 0 ? (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Date</th>
-                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Changed By</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Old Rate</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">New Rate</th>
-                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Change</th>
+                <tr className="border-b border-gray-200 dark:border-white/[0.08]">
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Date</th>
+                  <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Changed By</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Old Rate</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">New Rate</th>
+                  <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Change</th>
                 </tr>
               </thead>
               <tbody>
                 {tableData.map((h) => (
                   <tr key={h.id} className="border-b border-gray-50 last:border-0">
-                    <td className="py-2.5 font-medium text-royal-950">{formatDateTime(h.date)}</td>
-                    <td className="py-2.5 text-gray-600">{h.changedBy}</td>
-                    <td className="py-2.5 text-right text-gray-500">₹{h.oldRate.toFixed(2)}</td>
+                    <td className="py-2.5 font-medium text-royal-950 dark:text-white">{formatDateTime(h.date)}</td>
+                    <td className="py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{h.changedBy}</td>
+                    <td className="py-2.5 text-right text-gray-500 dark:text-gray-400 dark:text-gray-500">₹{h.oldRate.toFixed(2)}</td>
                     <td className="py-2.5 text-right font-bold text-royal-800">₹{h.newRate.toFixed(2)}</td>
                     <td className={`py-2.5 text-right font-semibold ${h.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                       {h.change !== 0 ? `${h.change >= 0 ? '+' : ''}₹${Math.abs(h.change).toFixed(2)}` : '—'}
@@ -99,7 +99,7 @@ export default function PriceHistory() {
               </tbody>
             </table>
           ) : (
-            <div className="py-12 text-center text-sm text-gray-400">No rate history yet</div>
+            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">No rate history yet</div>
           )}
         </div>
       </Card>

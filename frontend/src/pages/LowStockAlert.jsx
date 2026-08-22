@@ -23,8 +23,8 @@ export default function LowStockAlert() {
       <PageHeader title="Low Stock Alert" subtitle="Products at or below their reorder level" />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search product or SKU..."
@@ -38,7 +38,7 @@ export default function LowStockAlert() {
 
       {lowStock.length === 0 ? (
         <Card className="p-8 text-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400">
+          <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-gray-500">
             <Package size={32} />
             <p className="text-sm">All products are above their reorder levels.</p>
           </div>
@@ -48,14 +48,14 @@ export default function LowStockAlert() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-royal-50/80 border-b border-gray-200">
-                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">⚠</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Product</th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">SKU</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Qty On Hand</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Reorder Level</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Cost Value</th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Sell Value</th>
+                <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                  <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">⚠</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Qty On Hand</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Reorder Level</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Cost Value</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Sell Value</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -64,11 +64,11 @@ export default function LowStockAlert() {
                     <td className="px-4 py-3 text-center">
                       <AlertTriangle size={14} className="text-amber-500 mx-auto" />
                     </td>
-                    <td className="px-4 py-3 font-medium text-royal-950">{p.name}</td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
+                    <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{p.name}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                     <td className="px-4 py-3 text-right font-bold text-red-600">{p.quantity} pcs</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{p.reorderLevel} pcs</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatINR(p.costValue)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.reorderLevel} pcs</td>
+                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(p.costValue)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-royal-800">{formatINR(p.sellingPrice)}</td>
                   </tr>
                 ))}

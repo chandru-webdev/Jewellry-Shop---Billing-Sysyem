@@ -49,7 +49,7 @@ export default function TaxHSNSettings() {
         <select
           value={tab}
           onChange={(e) => setTab(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="hsn">HSN Master</option>
           <option value="tax">Tax Slabs</option>
@@ -59,16 +59,16 @@ export default function TaxHSNSettings() {
       {tab === 'hsn' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total HSN Codes</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total HSN Codes</p>
               <p className="text-xl font-bold text-royal-600 mt-0.5">{DEMO_HSN.length}</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Categories</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Categories</p>
               <p className="text-xl font-bold text-blue-600 mt-0.5">{new Set(DEMO_HSN.map((h) => h.category)).size}</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Default GST Rate</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Default GST Rate</p>
               <p className="text-xl font-bold text-amber-600 mt-0.5">3%</p>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function TaxHSNSettings() {
               placeholder="Search HSN codes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+              className="flex-1 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
             />
             <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
               {showForm ? 'Cancel' : '+ Add HSN'}
@@ -90,41 +90,41 @@ export default function TaxHSNSettings() {
             <Card title="Add New HSN" className="mb-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HSN Code</label>
                   <input
                     type="text"
                     value={formData.hsnCode}
                     onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                     placeholder="e.g., 7113"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                   <input
                     type="text"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                     placeholder="e.g., Silver jewellery articles"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">GST Rate (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GST Rate (%)</label>
                   <input
                     type="number"
                     value={formData.gstRate}
                     onChange={(e) => setFormData({ ...formData, gstRate: Number(e.target.value) })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
                   <input
                     type="text"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
                     placeholder="e.g., Silver"
                   />
                 </div>
@@ -140,20 +140,20 @@ export default function TaxHSNSettings() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2.5 font-medium text-gray-600">HSN Code</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Description</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Category</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">GST Rate</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Active</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">HSN Code</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Description</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Category</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">GST Rate</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Active</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredHSN.map((h, i) => (
-                    <tr key={h.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={h.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-mono font-semibold text-royal-800">{h.hsnCode}</td>
-                      <td className="px-4 py-2.5 text-gray-600">{h.description}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{h.description}</td>
                       <td className="px-4 py-2.5"><Badge tone={catColor[h.category] || 'gray'}>{h.category}</Badge></td>
                       <td className="px-4 py-2.5 text-right font-medium text-royal-800">{h.gstRate}%</td>
                       <td className="px-4 py-2.5"><Badge tone={h.isActive ? 'green' : 'gray'}>{h.isActive ? 'Active' : 'Inactive'}</Badge></td>
@@ -173,10 +173,10 @@ export default function TaxHSNSettings() {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
             {DEMO_TAX_SLABS.map((s) => (
-              <div key={s.id} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{s.name} Slab</p>
+              <div key={s.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{s.name} Slab</p>
                 <p className="text-lg font-bold text-royal-800 mt-0.5">{s.rate}%</p>
-                <p className="text-xs text-gray-500 mt-1">{s.items}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">{s.items}</p>
               </div>
             ))}
           </div>
@@ -185,19 +185,19 @@ export default function TaxHSNSettings() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Slab</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Rate</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Applicable Items</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Slab</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Rate</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Applicable Items</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSlabs.map((s, i) => (
-                    <tr key={s.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={s.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-medium text-royal-800">{s.name}</td>
                       <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800">{s.rate}%</td>
-                      <td className="px-4 py-2.5 text-gray-600">{s.items}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.items}</td>
                       <td className="px-4 py-2.5 text-right">
                         <Button variant="ghost" size="sm">Edit</Button>
                         <Button variant="ghost" size="sm"><Trash2 size={12} /></Button>

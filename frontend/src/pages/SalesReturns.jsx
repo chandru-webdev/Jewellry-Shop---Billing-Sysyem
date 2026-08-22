@@ -159,9 +159,9 @@ export default function SalesReturns() {
       )}
 
       <Card title="Return Requests" icon={RotateCw} className="p-0 overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-100">
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-            <Search size={14} className="text-gray-400" />
+        <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-100 dark:border-white/[0.05]">
+          <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+            <Search size={14} className="text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search customer, SKU or product..."
@@ -180,7 +180,7 @@ export default function SalesReturns() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50 text-royal-900 text-left">
+              <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
                 <th className="px-5 py-3 font-semibold">Return #</th>
                 <th className="px-5 py-3 font-semibold">Date</th>
                 <th className="px-5 py-3 font-semibold">Customer</th>
@@ -195,20 +195,20 @@ export default function SalesReturns() {
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-6 text-center text-gray-400">No return requests found.</td>
+                  <td colSpan={9} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">No return requests found.</td>
                 </tr>
               ) : (
                 filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-royal-50/50">
-                    <td className="px-5 py-3 font-mono text-[11px] text-gray-500">{r.returnNo}</td>
-                    <td className="px-5 py-3 text-gray-500 text-xs">{r.date}</td>
-                    <td className="px-5 py-3 font-medium text-royal-950">{r.customer}</td>
+                    <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.returnNo}</td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{r.date}</td>
+                    <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{r.customer}</td>
                     <td className="px-5 py-3">
-                      <span className="text-royal-950">{r.name}</span>
-                      <p className="text-[11px] text-gray-500">{r.sku}</p>
+                      <span className="text-royal-950 dark:text-white">{r.name}</span>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.sku}</p>
                     </td>
                     <td className="px-5 py-3 text-right font-semibold">{r.qty} pcs</td>
-                    <td className="px-5 py-3 text-gray-600">{r.reason}</td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.reason}</td>
                     <td className="px-5 py-3 text-right font-semibold text-emerald-700">{formatINR(r.refund)}</td>
                     <td className="px-5 py-3 text-center"><Badge tone={statusTone[r.status] || 'gray'}>{r.status}</Badge></td>
                     <td className="px-5 py-3 text-center">

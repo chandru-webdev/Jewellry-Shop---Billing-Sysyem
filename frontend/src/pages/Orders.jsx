@@ -58,11 +58,11 @@ export default function Orders() {
       />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input type="text" placeholder="Search order or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-royal-500">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Status</option>
           <option value="IMPORTED">Imported</option>
           <option value="CONFIRMED">Confirmed</option>
@@ -78,27 +78,27 @@ export default function Orders() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50/80 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Shopify Order</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Internal ID</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Value</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Payment</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Fulfillment</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Invoice</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Status</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Date</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Actions</th>
+              <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Shopify Order</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Internal ID</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Value</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Payment</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Fulfillment</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {isLoading && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">Loading orders...</td></tr>}
-              {!isLoading && filtered.length === 0 && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">No orders found.</td></tr>}
+              {isLoading && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">Loading orders...</td></tr>}
+              {!isLoading && filtered.length === 0 && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">No orders found.</td></tr>}
               {filtered.map((o) => (
                 <tr key={o.id} className="hover:bg-royal-50/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700">{o.shopifyId || o.orderNumber || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.internalId}</td>
-                  <td className="px-4 py-3 font-medium text-royal-950">{o.customer?.name || o.customer}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.internalId}</td>
+                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || o.customer}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(o.value || o.totalAmount)}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={o.payment === 'Paid' || o.paymentStatus === 'PAID' ? 'green' : 'orange'}>{o.payment || o.paymentStatus || '—'}</Badge>
@@ -107,12 +107,12 @@ export default function Orders() {
                     <Badge tone={o.fulfillment === 'Fulfilled' ? 'green' : o.fulfillment === 'Cancelled' ? 'red' : 'blue'}>{o.fulfillment || '—'}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {o.invoice ? <span className="font-mono text-xs text-royal-700">{o.invoice}</span> : <span className="text-gray-400 text-xs">—</span>}
+                    {o.invoice ? <span className="font-mono text-xs text-royal-700">{o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={statusTone[o.status]}>{o.status}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">{formatDate(o.date || o.createdAt)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.date || o.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(o); setViewOpen(true) }} className="p-1.5 text-royal-600 hover:bg-royal-100 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
@@ -132,21 +132,21 @@ export default function Orders() {
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-royal-50/60 rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Shopify Order</p>
-                <p className="font-bold text-royal-950 text-lg">{selected.shopifyId || selected.orderNumber}</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Shopify Order</p>
+                <p className="font-bold text-royal-950 dark:text-white text-lg">{selected.shopifyId || selected.orderNumber}</p>
               </div>
               <div className="bg-royal-50/60 rounded-lg p-3">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Status</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Status</p>
                 <Badge tone={statusTone[selected.status]}>{selected.status}</Badge>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Value</p><p className="font-bold text-royal-950">{formatINR(selected.value || selected.totalAmount)}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Value</p><p className="font-bold text-royal-950 dark:text-white">{formatINR(selected.value || selected.totalAmount)}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Payment</p><Badge tone={selected.payment === 'Paid' ? 'green' : 'orange'}>{selected.payment || selected.paymentStatus || '—'}</Badge></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Fulfillment</p><Badge tone="blue">{selected.fulfillment || '—'}</Badge></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Payment</p><Badge tone={selected.payment === 'Paid' ? 'green' : 'orange'}>{selected.payment || selected.paymentStatus || '—'}</Badge></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Fulfillment</p><Badge tone="blue">{selected.fulfillment || '—'}</Badge></div>
             </div>
           </div>
         )}

@@ -43,7 +43,7 @@ export default function PricingRules() {
         <select
           value={tab}
           onChange={(e) => setTab(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="pricing">Pricing Rules</option>
           <option value="tax">Tax / HSN Settings</option>
@@ -54,12 +54,12 @@ export default function PricingRules() {
         <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           {PRICING_RULES.map((r) => (
-            <div key={r.id} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+            <div key={r.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <div className="flex items-between justify-between">
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{r.name}</p>
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{r.name}</p>
                 <p className="text-sm font-medium text-royal-800">{r.value}%</p>
               </div>
-              <p className="text-xs text-gray-500">{r.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.description}</p>
             </div>
           ))}
         </div>
@@ -70,7 +70,7 @@ export default function PricingRules() {
             placeholder="Search pricing rules..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+            className="flex-1 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
           />
           <Button variant="primary" size="sm"><RefreshCw size={14} /> Refresh</Button>
         </div>
@@ -79,23 +79,23 @@ export default function PricingRules() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-2 font-medium text-gray-600">Rule</th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Type</th>
-                  <th className="px-3 py-2 font-medium text-gray-600 text-right">Value</th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Description</th>
-                  <th className="px-3 py-2 font-medium text-gray-600 text-right">Actions</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Rule</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Value</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Description</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRules.map((r) => (
-                  <tr key={r.id} className={`border-t border-gray-100 ${filteredRules.indexOf(r) % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={r.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${filteredRules.indexOf(r) % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-3 py-2 font-medium text-royal-800">{r.name}</td>
                     <td className="px-3 py-2">
                       <Badge tone={r.type === '%' ? 'blue' : 'amber'}>{r.type}</Badge>
                     </td>
                     <td className="px-3 py-2 text-right font-medium text-royal-800">{r.value}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.description}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.description}</td>
                     <td className="px-3 py-2 text-right">
                       <Button variant="ghost" size="sm" title="Edit">
                         <Calendar size={12} />
@@ -117,9 +117,9 @@ export default function PricingRules() {
         <>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
           {TAX_SLABS.map((t) => (
-            <div key={t.id} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{t.name}</p>
-              <p className="text-sm text-gray-500">{t.slabs.join(', ')}</p>
+            <div key={t.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{t.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.slabs.join(', ')}</p>
             </div>
           ))}
         </div>
@@ -130,7 +130,7 @@ export default function PricingRules() {
             placeholder="Search tax slabs..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+            className="flex-1 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
           />
           <Button variant="primary" size="sm"><RefreshCw size={14} /> Refresh</Button>
         </div>
@@ -139,17 +139,17 @@ export default function PricingRules() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-2 font-medium text-gray-600">Tax Slab</th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Description</th>
-                  <th className="px-3 py-2 font-medium text-gray-600">Actions</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Tax Slab</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Description</th>
+                  <th className="px-3 py-2 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {TAX_SLABS.map((t) => (
-                  <tr key={t.id} className={`border-t border-gray-100 ${TAX_SLABS.indexOf(t) % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={t.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${TAX_SLABS.indexOf(t) % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-3 py-2 font-medium text-royal-800">{t.name}</td>
-                    <td className="px-3 py-2 text-gray-600">{t.slabs.join(', ')}</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 dark:text-gray-500">{t.slabs.join(', ')}</td>
                     <td className="px-3 py-2 text-right">
                       <Button variant="ghost" size="sm" title="Edit"><Calendar size={12} /></Button>
                       <Button variant="ghost" size="sm" title="Delete"><XCircle size={12} /></Button>

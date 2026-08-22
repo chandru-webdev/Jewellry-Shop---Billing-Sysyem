@@ -47,7 +47,7 @@ export default function Roles() {
       <PageHeader title="Roles & Permissions" subtitle="Configure role-based access control" />
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
+        <div className="flex items-center justify-center py-20 text-gray-400 dark:text-gray-500">
           <Loader2 size={20} className="animate-spin mr-2" />
           Loading roles...
         </div>
@@ -65,13 +65,13 @@ export default function Roles() {
                       <Shield size={14} className="text-royal-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-royal-950 text-sm">{role.name.replace(/_/g, ' ')}</h3>
-                      <p className="text-[11px] text-gray-400">{role._count?.users || 0} user{role._count?.users !== 1 ? 's' : ''}</p>
+                      <h3 className="font-semibold text-royal-950 dark:text-white text-sm">{role.name.replace(/_/g, ' ')}</h3>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{role._count?.users || 0} user{role._count?.users !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <Badge tone={roleTone[role.name] || 'gray'}>{role.name.replace(/_/g, ' ')}</Badge>
                 </div>
-                {role.description && <p className="text-xs text-gray-500 mb-3">{role.description}</p>}
+                {role.description && <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-3">{role.description}</p>}
                 <div className="flex flex-wrap gap-1.5">
                   {isWildcard ? (
                     <Badge tone="green">Full Access — All Permissions</Badge>

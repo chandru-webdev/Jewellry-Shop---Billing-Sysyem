@@ -40,8 +40,8 @@ export default function Customers() {
       <PageHeader title="Customers" subtitle="Manage your ecommerce customer database" actions={<Button size="sm"><Plus size={14} /> Add Customer</Button>} />
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-72">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-72">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input type="text" placeholder="Search by name, phone or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
         </div>
       </div>
@@ -50,13 +50,13 @@ export default function Customers() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50/80 border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Customer</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Contact</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Orders</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600">Total Spent</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600">Last Order</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600">Source</th>
+              <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Contact</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Spent</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Order</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Source</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -65,18 +65,18 @@ export default function Customers() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-500 to-royal-700 text-white flex items-center justify-center text-[10px] font-bold">{c.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</span>
-                      <span className="font-medium text-royal-950">{c.name}</span>
+                      <span className="font-medium text-royal-950 dark:text-white">{c.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-1 text-xs text-gray-600"><Phone size={10} /> {c.phone}</span>
-                      {c.email && <span className="flex items-center gap-1 text-xs text-gray-500"><Mail size={10} /> {c.email}</span>}
+                      <span className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500"><Phone size={10} /> {c.phone}</span>
+                      {c.email && <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500"><Mail size={10} /> {c.email}</span>}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold text-royal-900">{c.orders}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{c.orders}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800">{formatINR(c.totalSpent)}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600">{formatDate(c.lastOrder)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(c.lastOrder)}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">Shopify</Badge></td>
                 </tr>
               ))}

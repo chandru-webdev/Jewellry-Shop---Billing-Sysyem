@@ -84,13 +84,13 @@ export default function ShopifyDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {SYNC_STATS.map((c) => (
-          <div key={c.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
+          <div key={c.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
             <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.accent} flex items-center justify-center mb-3`}>
               <c.icon size={16} className="text-white" />
             </div>
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{c.label}</p>
+            <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{c.label}</p>
             <div className="flex items-end justify-between mt-0.5">
-              <p className="text-xl font-bold text-royal-950">{c.value}</p>
+              <p className="text-xl font-bold text-royal-950 dark:text-white">{c.value}</p>
               <span className="text-xs text-emerald-600 font-medium">{c.change}</span>
             </div>
           </div>
@@ -99,12 +99,12 @@ export default function ShopifyDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {HEALTH_CARDS.map((h) => (
-          <div key={h.label} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 flex items-center gap-3">
+          <div key={h.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-lg bg-${h.color}-50 flex items-center justify-center`}>
               <h.icon size={18} className={`text-${h.color}-500`} />
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{h.label}</p>
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{h.label}</p>
               <p className={`text-sm font-bold ${h.color === 'emerald' ? 'text-emerald-600' : h.color === 'amber' ? 'text-amber-600' : h.color === 'blue' ? 'text-blue-600' : 'text-purple-600'}`}>{h.value}</p>
             </div>
           </div>
@@ -157,20 +157,20 @@ export default function ShopifyDashboard() {
       <Card title="Recent Shopify Orders">
         <div className="space-y-3">
           {RECENT_ORDERS.map((o) => (
-            <div key={o.id} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+            <div key={o.id} className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-white/[0.05] last:border-0">
               <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
                 <ShoppingBag size={16} className="text-blue-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-royal-950">{o.id}</p>
+                  <p className="text-sm font-semibold text-royal-950 dark:text-white">{o.id}</p>
                   <Badge tone={statusColor[o.status]}>{o.status}</Badge>
                 </div>
-                <p className="text-xs text-gray-500">{o.customer}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.customer}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold text-royal-800">{formatINR(o.amount)}</p>
-                <p className="text-[11px] text-gray-400">{o.time}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">{o.time}</p>
               </div>
             </div>
           ))}

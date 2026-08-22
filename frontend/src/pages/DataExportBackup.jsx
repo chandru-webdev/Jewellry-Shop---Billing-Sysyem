@@ -42,7 +42,7 @@ export default function DataExportBackup() {
         <select
           value={tab}
           onChange={(e) => setTab(e.target.value)}
-          className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="export">Data Export</option>
           <option value="backup">Database Backup</option>
@@ -53,10 +53,10 @@ export default function DataExportBackup() {
         <div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
             {EXPORT_TYPES.map((t) => (
-              <div key={t.id} className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 hover:border-royal-300 cursor-pointer transition-all">
+              <div key={t.id} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 hover:border-royal-300 cursor-pointer transition-all">
                 <t.icon size={20} className="text-royal-500 mb-2" />
                 <p className="text-sm font-medium text-royal-800">{t.label}</p>
-                <p className="text-xs text-gray-500">{t.count > 0 ? `${t.count} records` : 'Report'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.count > 0 ? `${t.count} records` : 'Report'}</p>
                 <Button variant="outline" size="sm" className="mt-2 w-full"><Download size={12} /> Export</Button>
               </div>
             ))}
@@ -67,25 +67,25 @@ export default function DataExportBackup() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2.5 font-medium text-gray-600">#</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Export Name</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Format</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Size</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Status</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Created</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">#</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Export Name</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Format</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Size</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Created</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {DEMO_EXPORTS.map((e, i) => (
-                    <tr key={e.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={e.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-medium text-royal-800">{e.id}</td>
                       <td className="px-4 py-2.5 font-medium text-royal-800">{e.name}</td>
                       <td className="px-4 py-2.5"><Badge tone={e.format === 'CSV' ? 'blue' : 'red'}>{e.format}</Badge></td>
-                      <td className="px-4 py-2.5 text-gray-600">{e.size}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{e.size}</td>
                       <td className="px-4 py-2.5"><Badge tone={statusColor[e.status]}>{e.status}</Badge></td>
-                      <td className="px-4 py-2.5 text-xs text-gray-500">{e.createdAt}</td>
+                      <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{e.createdAt}</td>
                       <td className="px-4 py-2.5 text-right">
                         {e.status === 'SUCCESS' && (
                           <Button variant="ghost" size="sm"><Download size={12} /> Download</Button>
@@ -103,16 +103,16 @@ export default function DataExportBackup() {
       {tab === 'backup' && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Last Backup</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Last Backup</p>
               <p className="text-sm font-bold text-green-600 mt-0.5">Today 06:00 AM</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Backup Size</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Backup Size</p>
               <p className="text-sm font-bold text-royal-600 mt-0.5">45 MB</p>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-              <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Backups</p>
+            <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Backups</p>
               <p className="text-sm font-bold text-royal-600 mt-0.5">{DEMO_BACKUPS.length}</p>
             </div>
           </div>
@@ -127,25 +127,25 @@ export default function DataExportBackup() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2.5 font-medium text-gray-600">#</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Backup Name</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Type</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Size</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Status</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Created</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">#</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Backup Name</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Size</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Created</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {DEMO_BACKUPS.map((b, i) => (
-                    <tr key={b.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <tr key={b.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                       <td className="px-4 py-2.5 font-medium text-royal-800">{b.id}</td>
                       <td className="px-4 py-2.5 font-medium text-royal-800">{b.name}</td>
                       <td className="px-4 py-2.5"><Badge tone={b.type === 'auto' ? 'blue' : 'amber'}>{b.type}</Badge></td>
-                      <td className="px-4 py-2.5 text-gray-600">{b.size}</td>
+                      <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{b.size}</td>
                       <td className="px-4 py-2.5"><Badge tone={statusColor[b.status]}>{b.status}</Badge></td>
-                      <td className="px-4 py-2.5 text-xs text-gray-500">{b.createdAt}</td>
+                      <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{b.createdAt}</td>
                       <td className="px-4 py-2.5 text-right">
                         <Button variant="ghost" size="sm"><Download size={12} /> Download</Button>
                       </td>

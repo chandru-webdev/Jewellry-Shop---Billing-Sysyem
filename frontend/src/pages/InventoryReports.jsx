@@ -80,27 +80,27 @@ export default function InventoryReports() {
       } />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total SKUs</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total SKUs</p></div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{totalSKUs}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Warehouse size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Units</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><Warehouse size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Units</p></div>
           <p className="text-xl font-bold text-royal-600 mt-0.5">{totalUnits}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Total Value</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total Value</p></div>
           <p className="text-xl font-bold text-emerald-600 mt-0.5">{formatINR(totalValue)}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-1"><AlertTriangle size={14} className="text-amber-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Below Reorder</p></div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1"><AlertTriangle size={14} className="text-amber-500" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Below Reorder</p></div>
           <p className="text-xl font-bold text-red-600 mt-0.5">{belowReorder}</p>
         </div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-5 w-fit">
+      <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 mb-5 w-fit">
         {tabs.map((t) => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white text-royal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === t.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
             <t.icon size={14} /> {t.label}
           </button>
         ))}
@@ -109,31 +109,31 @@ export default function InventoryReports() {
       {activeTab === 'summary' && (
         <Card title="Stock Summary" className="p-0 overflow-hidden">
           <div className="px-4 pt-4">
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-72 mb-4">
-              <Package size={14} className="text-gray-400" />
+            <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2 w-72 mb-4">
+              <Package size={14} className="text-gray-400 dark:text-gray-500" />
               <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent text-sm focus:outline-none w-full" />
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Product</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">SKU</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Category</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Qty</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Reorder Level</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Status</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Category</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Qty</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Reorder Level</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSummary.map((p, i) => (
-                  <tr key={p.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={p.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-4 py-2.5 font-medium text-royal-800">{p.name}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{p.sku}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{p.category}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
+                    <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold">{p.quantity}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-500">{p.reorderLevel}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.reorderLevel}</td>
                     <td className="px-4 py-2.5"><Badge tone={statusColor[p.status] || 'gray'}>{p.status}</Badge></td>
                   </tr>
                 ))}
@@ -148,24 +148,24 @@ export default function InventoryReports() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Date</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Product</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Type</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Qty</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Reference</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Balance</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Qty</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Reference</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Balance</th>
                 </tr>
               </thead>
               <tbody>
                 {STOCK_MOVEMENT.map((m, i) => (
-                  <tr key={i} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                    <td className="px-4 py-2.5 text-gray-600">{m.date}</td>
+                  <tr key={i} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
+                    <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{m.date}</td>
                     <td className="px-4 py-2.5 font-medium text-royal-800">{m.product}</td>
                     <td className="px-4 py-2.5"><Badge tone={m.type === 'IN' ? 'green' : 'red'}>{m.type === 'IN' ? 'IN' : 'OUT'}</Badge></td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold">{m.quantity}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{m.reference}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-600">{m.balance}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{m.reference}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{m.balance}</td>
                   </tr>
                 ))}
               </tbody>
@@ -179,25 +179,25 @@ export default function InventoryReports() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-2.5 font-medium text-gray-600">Product</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600">SKU</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Qty</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Cost Price</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Sell Price</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Cost Value</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Sell Value</th>
-                  <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Margin %</th>
+                <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Qty</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Cost Price</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Sell Price</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Cost Value</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Sell Value</th>
+                  <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Margin %</th>
                 </tr>
               </thead>
               <tbody>
                 {VALUATION.map((v, i) => (
-                  <tr key={v.sku} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                  <tr key={v.sku} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                     <td className="px-4 py-2.5 font-medium text-royal-800">{v.name}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{v.sku}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{v.sku}</td>
                     <td className="px-4 py-2.5 text-right font-mono">{v.quantity}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-600">{formatINR(v.costPrice)}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-gray-600">{formatINR(v.sellPrice)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(v.costPrice)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatINR(v.sellPrice)}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-red-700">{formatINR(v.costValue)}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-semibold text-emerald-700">{formatINR(v.sellValue)}</td>
                     <td className="px-4 py-2.5 text-right font-mono"><Badge tone="green">{v.margin.toFixed(1)}%</Badge></td>
@@ -223,14 +223,14 @@ export default function InventoryReports() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Product</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">SKU</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Category</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Current Qty</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Reorder Level</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600 text-right">Shortage</th>
-                    <th className="px-4 py-2.5 font-medium text-gray-600">Urgency</th>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Category</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Current Qty</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Reorder Level</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 text-right">Shortage</th>
+                    <th className="px-4 py-2.5 font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">Urgency</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,12 +239,12 @@ export default function InventoryReports() {
                     const urgency = p.quantity === 0 ? 'Out of Stock' : p.quantity <= p.reorderLevel * 0.3 ? 'Critical' : 'Low'
                     const urgencyColor = urgency === 'Critical' || urgency === 'Out of Stock' ? 'red' : 'orange'
                     return (
-                      <tr key={p.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                      <tr key={p.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                         <td className="px-4 py-2.5 font-medium text-royal-800">{p.name}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{p.sku}</td>
-                        <td className="px-4 py-2.5 text-gray-600">{p.category}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
+                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.category}</td>
                         <td className="px-4 py-2.5 text-right font-mono font-bold text-red-600">{p.quantity}</td>
-                        <td className="px-4 py-2.5 text-right font-mono text-gray-500">{p.reorderLevel}</td>
+                        <td className="px-4 py-2.5 text-right font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.reorderLevel}</td>
                         <td className="px-4 py-2.5 text-right font-mono font-semibold text-red-600">{shortage}</td>
                         <td className="px-4 py-2.5"><Badge tone={urgencyColor}>{urgency}</Badge></td>
                       </tr>

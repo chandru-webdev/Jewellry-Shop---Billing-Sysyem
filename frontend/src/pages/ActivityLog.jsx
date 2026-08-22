@@ -36,8 +36,8 @@ export default function ActivityLog() {
       <PageHeader title="Activity Log" subtitle="Audit trail of recent system actions" />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 w-64">
-          <Search size={14} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
+          <Search size={14} className="text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search by user or action..."
@@ -59,7 +59,7 @@ export default function ActivityLog() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-royal-50 text-royal-900 text-left">
+              <tr className="bg-royal-50 text-royal-900 dark:text-gray-200 text-left">
                 <th className="px-5 py-3 font-semibold">Time</th>
                 <th className="px-5 py-3 font-semibold">Type</th>
                 <th className="px-5 py-3 font-semibold">User</th>
@@ -70,7 +70,7 @@ export default function ActivityLog() {
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-6 text-center text-gray-400">No activity matches your filters.</td>
+                  <td colSpan={5} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">No activity matches your filters.</td>
                 </tr>
               ) : (
                 filtered.map((a) => {
@@ -78,15 +78,15 @@ export default function ActivityLog() {
                   const Icon = cfg.icon
                   return (
                     <tr key={a.id} className="hover:bg-royal-50/50">
-                      <td className="px-5 py-3 text-gray-500 text-xs">{formatDateTime(a.time)}</td>
+                      <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDateTime(a.time)}</td>
                       <td className="px-5 py-3">
                         <Badge tone={cfg.tone} className="flex items-center gap-1 w-fit">
                           <Icon size={10} /> {cfg.label}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3 text-royal-950">{a.user}</td>
-                      <td className="px-5 py-3 font-medium text-royal-950">{a.action}</td>
-                      <td className="px-5 py-3 text-gray-600">{a.detail}</td>
+                      <td className="px-5 py-3 text-royal-950 dark:text-white">{a.user}</td>
+                      <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{a.action}</td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{a.detail}</td>
                     </tr>
                   )
                 })

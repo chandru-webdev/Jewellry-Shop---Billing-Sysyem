@@ -38,6 +38,11 @@ import Users from './pages/Users'
 import Roles from './pages/Roles'
 import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
+import RateApprovals from './pages/RateApprovals'
+import PricingRules from './pages/PricingRules'
+import Notifications from './pages/Notifications'
+import TaxHSNSettings from './pages/TaxHSNSettings'
+import DataExportBackup from './pages/DataExportBackup'
 import Expenses from './pages/Expenses'
 import BankAccounts from './pages/BankAccounts'
 import Ledger from './pages/Ledger'
@@ -107,6 +112,11 @@ function App() {
         <Route path="/audit-logs" element={<ProtectedRoute permission="users:manage"><AuditLogs /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute permission="users:manage"><Settings /></ProtectedRoute>} />
         <Route path="/activity-log" element={<ProtectedRoute permission="users:manage"><ActivityLog /></ProtectedRoute>} />
+        <Route path="/rate-approvals" element={<ProtectedRoute permission="users:manage"><RateApprovals /></ProtectedRoute>} />
+        <Route path="/pricing-rules" element={<ProtectedRoute permission="users:manage"><PricingRules /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute permission="users:manage"><Notifications /></ProtectedRoute>} />
+        <Route path="/tax-hsn-settings" element={<ProtectedRoute permission="users:manage"><TaxHSNSettings /></ProtectedRoute>} />
+        <Route path="/data-export" element={<ProtectedRoute permission="users:manage"><DataExportBackup /></ProtectedRoute>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

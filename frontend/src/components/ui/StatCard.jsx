@@ -13,7 +13,7 @@ const accents = {
 
 export default function StatCard({ icon: Icon, label, value, sub, trend, trendValue, accent = 'purple' }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm hover:shadow-md transition-all p-4 flex items-start gap-3.5">
+    <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200/80 dark:border-white/[0.08] shadow-sm hover:shadow-md transition-all p-4 flex items-start gap-3.5">
       <div className={cn(
         'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
         accents[accent]
@@ -21,8 +21,8 @@ export default function StatCard({ icon: Icon, label, value, sub, trend, trendVa
         <Icon size={18} className="text-white" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">{label}</p>
-        <p className="text-xl font-bold text-royal-950 mt-0.5 truncate">{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+        <p className="text-xl font-bold text-royal-950 dark:text-white mt-0.5 truncate">{value}</p>
         <div className="flex items-center gap-1.5 mt-1">
           {trend === 'up' && (
             <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600">

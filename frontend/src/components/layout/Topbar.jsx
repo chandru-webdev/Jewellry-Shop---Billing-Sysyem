@@ -343,11 +343,11 @@ export default function Topbar({ onMenuClick }) {
           {/* Search trigger — wider, responsive */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden md:flex items-center gap-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3.5 py-2 w-[280px] lg:w-[360px] xl:w-[400px] transition-colors cursor-pointer shrink-0"
+            className="hidden md:flex items-center gap-2.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-lg px-3.5 py-2 w-[280px] lg:w-[360px] xl:w-[400px] transition-colors cursor-pointer shrink-0"
           >
             <Search size={15} className="text-gray-400 group-hover:text-gray-500 shrink-0" />
             <span className="text-sm text-gray-400 flex-1 text-left truncate">Search products, invoices, orders...</span>
-            <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-white border border-gray-200 rounded shrink-0">
+            <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded shrink-0">
               <Command size={10} />K
             </kbd>
           </button>
@@ -380,18 +380,18 @@ export default function Topbar({ onMenuClick }) {
 
             {/* Help Popover */}
             {helpOpen && (
-              <div className="absolute right-0 top-full mt-2 w-[360px] bg-white rounded-xl border border-gray-200 shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 bg-royal-50/50">
-                  <h3 className="text-sm font-semibold text-royal-950 flex items-center gap-2">
+              <div className="absolute right-0 top-full mt-2 w-[360px] bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.08] bg-royal-50/50 dark:bg-royal-500/5">
+                  <h3 className="text-sm font-semibold text-royal-950 dark:text-white flex items-center gap-2">
                     <HelpCircle size={14} className="text-royal-500" />
                     Opal Line ERP — Help
                   </h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">Quick reference for your ERP system</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Quick reference for your ERP system</p>
                 </div>
 
                 <div className="max-h-[400px] overflow-y-auto">
                   {/* Keyboard Shortcuts */}
-                  <div className="px-4 py-3 border-b border-gray-50">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-white/[0.05]">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
                       <Keyboard size={10} />
                       Keyboard Shortcuts
@@ -402,15 +402,15 @@ export default function Topbar({ onMenuClick }) {
                         { keys: 'Escape', action: 'Close any modal/dropdown' },
                       ].map((s) => (
                         <div key={s.keys} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">{s.action}</span>
-                          <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded">{s.keys}</kbd>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">{s.action}</span>
+                          <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded">{s.keys}</kbd>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Quick Module Guide */}
-                  <div className="px-4 py-3 border-b border-gray-50">
+                  <div className="px-4 py-3 border-b border-gray-50 dark:border-white/[0.05]">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
                       <BookOpen size={10} />
                       Module Guide
@@ -427,7 +427,7 @@ export default function Topbar({ onMenuClick }) {
                         { module: 'Reports', desc: 'Sales, inventory, GST, and analytics reports' },
                       ].map((m) => (
                         <div key={m.module} className="flex items-start gap-2">
-                          <span className="text-xs font-semibold text-royal-700 min-w-0">{m.module}</span>
+                          <span className="text-xs font-semibold text-royal-700 dark:text-royal-400 min-w-0">{m.module}</span>
                           <span className="text-[11px] text-gray-400">— {m.desc}</span>
                         </div>
                       ))}
@@ -482,9 +482,9 @@ export default function Topbar({ onMenuClick }) {
 
             {/* Notification Dropdown */}
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-[380px] max-h-[480px] bg-white rounded-xl border border-gray-200 shadow-2xl z-50 flex flex-col overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-[380px] max-h-[480px] bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-2xl z-50 flex flex-col overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/[0.08]">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-royal-950">Notifications</h3>
                     {unreadCount > 0 && (
@@ -520,8 +520,8 @@ export default function Topbar({ onMenuClick }) {
                     notifications.map((notif) => (
                       <div
                         key={notif.id}
-                        className={`flex gap-3 px-4 py-3 border-b border-gray-50 last:border-0 transition-colors cursor-pointer ${
-                          notif.isRead ? 'bg-white hover:bg-gray-50/50' : 'bg-royal-50/30 hover:bg-royal-50/50'
+                        className={`flex gap-3 px-4 py-3 border-b border-gray-50 dark:border-white/[0.05] last:border-0 transition-colors cursor-pointer ${
+                          notif.isRead ? 'bg-white dark:bg-transparent hover:bg-gray-50/50 dark:hover:bg-white/5' : 'bg-royal-50/30 dark:bg-royal-500/5 hover:bg-royal-50/50 dark:hover:bg-royal-500/10'
                         }`}
                         onClick={() => handleNotificationClick(notif)}
                       >
@@ -542,7 +542,7 @@ export default function Topbar({ onMenuClick }) {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
-                            <p className={`text-xs font-medium leading-snug ${notif.isRead ? 'text-gray-700' : 'text-royal-950'}`}>
+                            <p className={`text-xs font-medium leading-snug ${notif.isRead ? 'text-gray-700 dark:text-gray-400' : 'text-royal-950 dark:text-white'}`}>
                               {notif.title}
                             </p>
                             {!notif.isRead && (
@@ -589,9 +589,9 @@ export default function Topbar({ onMenuClick }) {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl border border-gray-200 shadow-xl py-1.5 z-50">
-                <div className="px-3.5 py-2 border-b border-gray-100">
-                  <p className="text-sm font-semibold text-royal-950">{user?.name || 'Admin'}</p>
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-xl py-1.5 z-50">
+                <div className="px-3.5 py-2 border-b border-gray-100 dark:border-white/[0.08]">
+                  <p className="text-sm font-semibold text-royal-950 dark:text-white">{user?.name || 'Admin'}</p>
                   <p className="text-xs text-gray-400">{user?.email || 'admin@opalline.in'}</p>
                 </div>
                 <button
@@ -614,10 +614,10 @@ export default function Topbar({ onMenuClick }) {
           onClick={() => { setSearchOpen(false); setSearchQuery('') }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-[95vw] max-w-xl overflow-hidden border border-gray-200"
+            className="bg-white dark:bg-[#1a1025] rounded-2xl shadow-2xl w-[95vw] max-w-xl overflow-hidden border border-gray-200 dark:border-white/[0.08]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/[0.08]">
               {searchLoading ? (
                 <Loader2 size={18} className="text-gray-400 shrink-0 animate-spin" />
               ) : (
@@ -640,7 +640,7 @@ export default function Topbar({ onMenuClick }) {
                   <X size={16} />
                 </button>
               )}
-              <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded">
+              <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/10 rounded">
                 ESC
               </kbd>
               <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="text-gray-400 hover:text-gray-600 cursor-pointer">
@@ -676,17 +676,17 @@ export default function Topbar({ onMenuClick }) {
                     <div key={category}>
                       <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
                       {items.map((item) => (
-                        <button
-                          key={item.id}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 rounded-lg transition-colors cursor-pointer flex items-center gap-3"
-                          onClick={() => handleSearchResultClick(category, item)}
-                        >
-                          <Icon size={14} className="text-gray-400 shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-royal-950 font-medium truncate">
-                              {item.name || item.invoiceNumber || item.orderNumber}
-                            </p>
-                            <p className="text-[11px] text-gray-400 truncate">
+                          <button
+                            key={item.id}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer flex items-center gap-3"
+                            onClick={() => handleSearchResultClick(category, item)}
+                          >
+                            <Icon size={14} className="text-gray-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-royal-950 dark:text-white font-medium truncate">
+                                {item.name || item.invoiceNumber || item.orderNumber}
+                              </p>
+                              <p className="text-[11px] text-gray-400 truncate">
                               {category === 'products' && `SKU: ${item.sku} — ₹${Number(item.sellingPrice).toLocaleString('en-IN')}`}
                               {category === 'invoices' && `${item.customer?.name || 'Walk-in'} — ₹${Number(item.grandTotal).toLocaleString('en-IN')} — ${item.status}`}
                               {category === 'orders' && `${item.customer?.name || 'Walk-in'} — ₹${Number(item.totalAmount).toLocaleString('en-IN')} — ${item.status}`}

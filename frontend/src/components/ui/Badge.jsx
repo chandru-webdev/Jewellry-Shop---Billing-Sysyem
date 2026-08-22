@@ -1,13 +1,13 @@
 import { cn } from '../../utils/cn'
 
 const tones = {
-  gold: 'bg-amber-50 text-amber-700 border border-amber-200',
-  purple: 'bg-royal-50 text-royal-700 border border-royal-200',
-  green: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  red: 'bg-red-50 text-red-700 border border-red-200',
-  gray: 'bg-gray-100 text-gray-600 border border-gray-200',
-  blue: 'bg-blue-50 text-blue-700 border border-blue-200',
-  orange: 'bg-orange-50 text-orange-700 border border-orange-200',
+  gold: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20',
+  purple: 'bg-royal-50 dark:bg-royal-500/10 text-royal-700 dark:text-royal-400 border border-royal-200 dark:border-royal-500/20',
+  green: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20',
+  red: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20',
+  gray: 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10',
+  blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20',
+  orange: 'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20',
 }
 
 export default function Badge({ tone = 'gray', className, children }) {

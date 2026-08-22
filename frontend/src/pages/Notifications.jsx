@@ -29,7 +29,6 @@ function getTypeIcon(type) {
 }
 
 export default function Notifications() {
-  const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [markedRead, setMarkedRead] = useState(new Set())
 
@@ -37,8 +36,6 @@ export default function Notifications() {
     if (filter === 'all') return true
     return n.status === filter
   })
-
-  const markedReadArr = Array.from(markedRead)
 
   const markAsRead = (id) => {
     setMarkedRead(prev => new Set([...prev, id]))

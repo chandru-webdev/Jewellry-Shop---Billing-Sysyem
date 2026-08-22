@@ -27,6 +27,20 @@ const authController = {
     await authService.changePassword(req.user.id, currentPassword, newPassword)
     success(res, 200, null, 'Password changed successfully')
   }),
+
+  // POST /api/auth/forgot-password  ->  send reset code to email
+  forgotPassword: asyncHandler(async (req, res) => {
+    const { email } = req.body
+    const result = await authService.forgotPassword(email)
+    success(res, 200, null, result.message)
+  }),
+
+  // POST /api/auth/reset-password  ->  verify code and set new password
+  resetPassword: asyncHandler(async (req, res) => {
+    const { email, code, newPassword } = req.body
+    const result = await authService.resetPassword(email, code, newPassword)
+    success(res, 200, null, result.message)
+  }),
 }
 
 module.exports = authController

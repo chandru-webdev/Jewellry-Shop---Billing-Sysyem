@@ -98,15 +98,20 @@ export const navGroups = [
       { to: '/shopify/sync-logs', label: 'Sync Logs', icon: ScrollText, permission: 'shopify:view' },
     ],
   },
-  {
+{
     label: 'System',
-    permission: 'users:manage', // entire group requires this permission
+    permission: 'users:manage',
     items: [
       { to: '/users', label: 'User Management', icon: Users, permission: 'users:manage' },
       { to: '/metal-rates', label: 'Silver Rate', icon: Coins, permission: 'metal-rates:view' },
+      { to: '/rate-approvals', label: 'Rate Approvals', icon: AlertTriangle, permission: 'metal-rates:manage' },
       { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'users:manage' },
       { to: '/settings', label: 'Settings', icon: Settings, permission: 'users:manage' },
+      { to: '/pricing-rules', label: 'Pricing Rules', icon: DollarSign, permission: 'pricing:manage' },
+      { to: '/tax-hsn-settings', label: 'Tax / HSN Settings', icon: FileText, permission: 'tax:manage' },
       { to: '/activity-log', label: 'Activity Log', icon: Activity, permission: 'users:manage' },
+      { to: '/data-export', label: 'Data Export / Backup', icon: Boxes, permission: 'reports:view' },
+      { to: '/notifications', label: 'Notifications', icon: AlertTriangle, permission: 'system:view' },
     ],
   },
 ]

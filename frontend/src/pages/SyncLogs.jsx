@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download } from 'lucide-react'
+import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -34,6 +34,8 @@ export default function SyncLogs() {
   const [filterEntity, setFilterEntity] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [search, setSearch] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [toast, setToast] = useState(null)
 
   const synced = DEMO_LOGS.filter((l) => l.status === 'SUCCESS').length
   const failed = DEMO_LOGS.filter((l) => l.status === 'FAILED').length
@@ -60,12 +62,28 @@ export default function SyncLogs() {
     URL.revokeObjectURL(url)
   }
 
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 2200)
+  }
+
+  const handleRefresh = () => {
+    if (refreshing) return
+    setRefreshing(true)
+    setTimeout(() => {
+      setRefreshing(false)
+      showToast('Sync logs refreshed')
+    }, 1000)
+  }
+
   return (
     <div>
       <PageHeader title="Sync Logs" subtitle="Detailed Shopify ↔ ERP synchronization history" actions={
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCSV}><Download size={14} /> Export CSV</Button>
-          <Button variant="primary" size="sm"><RefreshCw size={14} /> Refresh</Button>
+          <Button variant="primary" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
+          </Button>
         </div>
       } />
 
@@ -139,7 +157,7 @@ export default function SyncLogs() {
                       {log.error ? <span className="text-red-600">{log.error}</span> : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      {log.status === 'FAILED' && <Button variant="ghost" size="sm"><RefreshCw size={12} /> Retry</Button>}
+                      {log.status === 'FAILED' && <Button variant="ghost" size="sm" onClick={() => showToast(`Retrying sync for ${log.shopifyId}...`)}><RefreshCw size={12} /> Retry</Button>}
                     </td>
                   </tr>
                 )
@@ -161,6 +179,12 @@ export default function SyncLogs() {
           </div>
         </div>
       </Card>
+
+      {toast && (
+        <div className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-lg bg-royal-950 text-white text-sm shadow-lg dark:bg-white dark:text-gray-900">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

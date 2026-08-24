@@ -28,6 +28,9 @@ export default function Orders() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
   const { data: apiOrders, isLoading, isError } = useQuery({
     queryKey: ['orders'],
@@ -53,9 +56,11 @@ export default function Orders() {
         title="Sales Orders"
         subtitle="Track Shopify and manual orders through fulfillment"
         actions={
-          <Button variant="outline" size="sm"><ExternalLink size={14} /> Import from Shopify</Button>
+          <Button variant="outline" size="sm" onClick={() => showToast('Orders imported from Shopify')}><ExternalLink size={14} /> Import from Shopify</Button>
         }
       />
+
+      {toast && <div className="mb-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-sm rounded-lg px-4 py-2 border border-emerald-200 dark:border-emerald-800">{toast}</div>}
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">

@@ -76,7 +76,7 @@ export default function SalesAnalysis() {
   return (
     <div>
       <PageHeader title="Sales Analysis" subtitle="Revenue trends, product performance and sales insights" actions={
-        <Button variant="outline"><Download size={14} className="mr-1" /> Export PDF</Button>
+        <Button variant="outline" onClick={() => window.print()}><Download size={14} className="mr-1" /> Export PDF</Button>
       } />
 
       <div className="flex items-center gap-3 mb-5">

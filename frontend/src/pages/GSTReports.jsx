@@ -48,12 +48,31 @@ export default function GSTReports() {
   const totalIGST = GSTR1_DATA.reduce((s, r) => s + r.igst, 0)
   const totalTax = totalCGST + totalSGST + totalIGST
 
+  const handleExportCSV = () => {
+    const headers = ['Invoice No', 'Date', 'Customer Name', 'Customer GSTIN', 'Place of Supply', 'Invoice Type', 'Taxable Amount', 'CGST', 'SGST', 'IGST', 'Total Amount']
+    const rows = GSTR1_DATA.map((r) =>
+      [r.invoiceNo, r.date, r.customerName, r.customerGSTIN, r.placeOfSupply, r.invoiceType, r.taxableAmount, r.cgst, r.sgst, r.igst, r.totalAmount]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'gstr1-export.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <PageHeader title="GST Reports" subtitle="GSTR-1, GSTR-3B and HSN-wise summary for tax filing" actions={
         <div className="flex gap-2">
-          <Button variant="outline"><Download size={14} className="mr-1" /> Export CSV</Button>
-          <Button variant="outline"><FileText size={14} className="mr-1" /> Print</Button>
+          <Button variant="outline" onClick={handleExportCSV}><Download size={14} className="mr-1" /> Export CSV</Button>
+          <Button variant="outline" onClick={() => window.print()}><FileText size={14} className="mr-1" /> Print</Button>
         </div>
       } />
 

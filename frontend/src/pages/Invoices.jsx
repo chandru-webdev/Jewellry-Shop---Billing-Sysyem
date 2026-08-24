@@ -183,7 +183,7 @@ export default function Invoices() {
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(inv); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
                       <button onClick={() => printInvoice(inv)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Print"><Printer size={14} /></button>
-                      <button className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Download"><Download size={14} /></button>
+                      <button onClick={() => printInvoice(inv)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Download"><Download size={14} /></button>
                     </div>
                   </td>
                 </tr>

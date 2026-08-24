@@ -73,10 +73,29 @@ export default function InventoryReports() {
     return true
   })
 
+  const handleExportCSV = () => {
+    const headers = ['Product Name', 'SKU', 'Category', 'Quantity', 'Reorder Level', 'Status']
+    const rows = STOCK_SUMMARY.map((p) =>
+      [p.name, p.sku, p.category, p.quantity, p.reorderLevel, p.status]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'stock-summary-export.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <PageHeader title="Inventory Reports" subtitle="Stock levels, movements, valuation and reorder alerts" actions={
-        <Button variant="outline"><Download size={14} className="mr-1" /> Export CSV</Button>
+        <Button variant="outline" onClick={handleExportCSV}><Download size={14} className="mr-1" /> Export CSV</Button>
       } />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">

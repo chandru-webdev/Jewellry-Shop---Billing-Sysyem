@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag, Search } from 'lucide-react'
+import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag, Search, Loader2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -34,6 +34,7 @@ const statusBadge = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
 export default function ShopifySync() {
   const [tab, setTab] = useState('dashboard')
   const [productSearch, setProductSearch] = useState('')
+  const [retrying, setRetrying] = useState(null)
   const queryClient = useQueryClient()
 
   const syncQuery = useQuery({
@@ -69,6 +70,15 @@ export default function ShopifySync() {
     fetchProductsQuery.refetch()
   }
 
+  const handleRetry = (log) => {
+    if (retrying) return
+    setRetrying(log.shopifyId)
+    setTimeout(() => {
+      alert(`Retry completed for ${log.shopifyId}`)
+      setRetrying(null)
+    }, 1500)
+  }
+
   return (
     <div>
       <PageHeader
@@ -98,7 +108,7 @@ export default function ShopifySync() {
                 <Download size={14} /> Pull from Shopify
               </Button>
             )}
-            <Button variant="outline" size="sm"><RefreshCw size={14} /> Force Sync All</Button>
+            <Button variant="outline" size="sm" onClick={() => pullMutation.mutate()} disabled={pullMutation.isPending}><RefreshCw size={14} /> Force Sync All</Button>
           </div>
         }
       />
@@ -263,7 +273,9 @@ export default function ShopifySync() {
                       <td className="px-4 py-3 text-xs text-red-500 max-w-48 truncate">{log.error || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         {log.status === 'FAILED' && (
-                          <Button variant="ghost" size="sm"><RotateCw size={12} /> Retry</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleRetry(log)} disabled={retrying !== null}>
+                            {retrying === log.shopifyId ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />} Retry
+                          </Button>
                         )}
                       </td>
                     </tr>

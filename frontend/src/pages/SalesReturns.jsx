@@ -29,6 +29,7 @@ export default function SalesReturns() {
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [toast, setToast] = useState('')
 
   const selectedProduct = mockProducts.find((p) => String(p.id) === product)
 
@@ -80,6 +81,18 @@ export default function SalesReturns() {
     setSuccess(`Sales return #SRN-${String(history.length + 1).padStart(4, '0')} created (refund: ${formatINR(refund)}).`)
     resetForm()
     setShowForm(false)
+  }
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 2500)
+  }
+
+  const handleDelete = (id) => {
+    if (window.confirm('Delete this return request?')) {
+      setHistory((prev) => prev.filter((r) => r.id !== id))
+      showToast('Return deleted')
+    }
   }
 
   const filtered = history.filter((r) => {
@@ -158,6 +171,12 @@ export default function SalesReturns() {
         </Card>
       )}
 
+      {toast && (
+        <div className="mb-4 inline-block bg-royal-950 dark:bg-white/10 text-white dark:text-gray-100 text-sm rounded-lg px-4 py-2.5 shadow-lg">
+          {toast}
+        </div>
+      )}
+
       <Card title="Return Requests" icon={RotateCw} className="p-0 overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-100 dark:border-white/[0.05]">
           <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
@@ -212,7 +231,11 @@ export default function SalesReturns() {
                     <td className="px-5 py-3 text-right font-semibold text-emerald-700">{formatINR(r.refund)}</td>
                     <td className="px-5 py-3 text-center"><Badge tone={statusTone[r.status] || 'gray'}>{r.status}</Badge></td>
                     <td className="px-5 py-3 text-center">
-                      <button className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer" title="Delete">
+                      <button
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                        title="Delete"
+                        onClick={() => handleDelete(r.id)}
+                      >
                         <Trash2 size={14} />
                       </button>
                     </td>

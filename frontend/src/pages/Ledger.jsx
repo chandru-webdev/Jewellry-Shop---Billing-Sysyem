@@ -80,12 +80,31 @@ export default function Ledger() {
   const totalDebits = trialBalanceData.reduce((s, a) => s + a.debit, 0)
   const totalCredits = trialBalanceData.reduce((s, a) => s + a.credit, 0)
 
+  const handleExport = () => {
+    const headers = ['Code', 'Account Name', 'Type', 'Sub-Type', 'Opening Balance', 'Current Balance', 'Status']
+    const rows = accounts.map((a) =>
+      [a.code, a.name, a.type, a.subType, a.openingBalance, a.currentBalance, a.isActive ? 'Active' : 'Inactive']
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'ledger-accounts-export.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <PageHeader title="General Ledger" subtitle="Chart of accounts, trial balance, and financial position" actions={
         <div className="flex gap-2">
-          <Button variant="outline"><Download size={14} className="mr-1" /> Export</Button>
-          <Button><Calculator size={14} className="mr-1" /> Trial Balance</Button>
+          <Button variant="outline" onClick={handleExport}><Download size={14} className="mr-1" /> Export</Button>
+          <Button onClick={() => setView('trial')}><Calculator size={14} className="mr-1" /> Trial Balance</Button>
         </div>
       } />
 
@@ -178,7 +197,7 @@ export default function Ledger() {
         <Card title="Trial Balance" icon={Calculator}>
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">As of {new Date().toLocaleDateString('en-IN')}</p>
-            <Button variant="outline"><Download size={14} className="mr-1" /> Export PDF</Button>
+            <Button variant="outline" onClick={() => window.print()}><Download size={14} className="mr-1" /> Export PDF</Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

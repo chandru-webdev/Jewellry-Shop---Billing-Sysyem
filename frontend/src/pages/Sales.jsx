@@ -452,6 +452,8 @@ export default function Sales() {
   const [dateTo, setDateTo] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [orderDetailOpen, setOrderDetailOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
 
   const { data: invoices, isLoading, error: invoicesError } = useQuery({
     queryKey: ['invoices', search, filterStatus, filterPayment, dateFrom, dateTo],
@@ -879,7 +881,7 @@ export default function Sales() {
                         <td className="px-4 py-3">
                           <div className="flex justify-end">
                             <button
-                              onClick={() => null}
+                              onClick={() => { setSelectedOrder(o); setOrderDetailOpen(true) }}
                               className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
                               title="View Details"
                             >
@@ -916,6 +918,23 @@ export default function Sales() {
         }
       >
         {selectedInvoice && <InvoiceDetail invoice={selectedInvoice} />}
+      </Modal>
+
+      <Modal open={orderDetailOpen} title={`Order — ${selectedOrder?.orderNumber || ''}`} onClose={() => setOrderDetailOpen(false)} footer={
+        <Button variant="ghost" onClick={() => setOrderDetailOpen(false)}>Close</Button>
+      }>
+        {selectedOrder && (
+          <div className="text-sm space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="text-gray-500 dark:text-gray-400">Order #:</span> <span className="font-semibold text-royal-950 dark:text-white">{selectedOrder.orderNumber}</span></div>
+              <div><span className="text-gray-500 dark:text-gray-400">Status:</span> <Badge tone={orderStatusTone[selectedOrder.status]}>{orderStatusLabel[selectedOrder.status]}</Badge></div>
+              <div><span className="text-gray-500 dark:text-gray-400">Customer:</span> <span className="font-medium text-royal-950 dark:text-white">{selectedOrder.customer?.name || 'Walk-in'}</span></div>
+              <div><span className="text-gray-500 dark:text-gray-400">Amount:</span> <span className="font-bold text-royal-800 dark:text-gray-200">{formatINR(selectedOrder.totalAmount)}</span></div>
+              <div><span className="text-gray-500 dark:text-gray-400">Items:</span> <span className="text-royal-950 dark:text-white">{selectedOrder._count?.items || 0}</span></div>
+              <div><span className="text-gray-500 dark:text-gray-400">Date:</span> <span className="text-royal-950 dark:text-white">{formatDate(selectedOrder.createdAt || selectedOrder.date)}</span></div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

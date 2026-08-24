@@ -71,6 +71,18 @@ const reportCategories = [
 
 export default function Reports() {
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [generated, setGenerated] = useState(false)
+
+  const handleExport = (reportName) => {
+    const csv = `"Report","${reportName}","Date: ${new Date().toLocaleDateString('en-IN')}"\n`
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${reportName.replace(/\s+/g, '-').toLowerCase()}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div>
@@ -106,16 +118,17 @@ export default function Reports() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">{report.desc}</p>
                   </div>
                   <div className="flex gap-1.5">
-                    <button className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Export"><Download size={14} /></button>
-                    <button className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Print"><Printer size={14} /></button>
+                    <button onClick={() => handleExport(report.name)} className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Export"><Download size={14} /></button>
+                    <button onClick={() => window.print()} className="p-2 text-royal-600 dark:text-gray-300 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer" title="Print"><Printer size={14} /></button>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
                   <input type="date" className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-04" />
                   <span className="text-gray-400 dark:text-gray-500 text-xs py-1.5">to</span>
                   <input type="date" className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" defaultValue="2026-08-10" />
-                  <Button variant="primary" size="sm">Generate</Button>
+                  <Button variant="primary" size="sm" onClick={() => setGenerated(true)}>Generate</Button>
                 </div>
+                {generated && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">Report generated successfully</p>}
               </div>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   IndianRupee, TrendingUp, ShoppingCart, FileText, AlertTriangle,
@@ -425,6 +425,7 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [dateFilter, setDateFilter] = useState('last7days')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
@@ -699,7 +700,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-4 text-center text-xs font-semibold text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 py-2 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer">
+            <button onClick={() => navigate('/reports')} className="w-full mt-4 text-center text-xs font-semibold text-royal-600 dark:text-gray-300 hover:text-royal-800 dark:text-gray-200 py-2 hover:bg-royal-50 dark:bg-white/5 rounded-lg transition-colors cursor-pointer">
               View Details
             </button>
           </div>

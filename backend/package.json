@@ -10,7 +10,7 @@
     "db:seed": "node prisma/seed.js",
     "db:demo": "node prisma/demo-products.js",
     "studio": "prisma studio",
-    "test": "node --test \"tests/unit/*.test.js\"",
+    "test": "node --test tests/unit/*.test.js",
     "test:integration": "node --test \"tests/integration/*.test.js\"",
     "postinstall": "prisma generate"
   },

@@ -1,0 +1,13 @@
+{
+  "name": "jewellry-shop---billing-sysyem",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm --prefix backend --if-present run build && npm --prefix frontend run build",
+    "test": "npm --prefix backend test"
+  }
+}

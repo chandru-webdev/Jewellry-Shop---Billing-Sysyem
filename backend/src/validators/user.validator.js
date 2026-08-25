@@ -12,6 +12,7 @@ const updateUserSchema = z.object({
   email: z.email('Please provide a valid email').optional(),
   roleId: z.coerce.number().int().positive().optional(),
   isActive: z.boolean().optional(),
+  customPermissions: z.array(z.string()).nullable().optional(),
 })
 
 const setPasswordSchema = z.object({

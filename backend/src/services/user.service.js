@@ -51,7 +51,7 @@ const userService = {
         name: data.name,
         email,
         password: hashed,
-        roleId: role.id,
+        role: { connect: { id: role.id } },
         mustChangePassword: mustChange,
       },
     })
@@ -88,7 +88,7 @@ const userService = {
     if (data.roleId) {
       const role = await prisma.role.findUnique({ where: { id: Number(data.roleId) } })
       if (!role) throw new ApiError(400, 'Role not found')
-      patch.roleId = role.id
+      patch.role = { connect: { id: role.id } }
     }
 
     if (typeof data.isActive === 'boolean') {
@@ -96,6 +96,10 @@ const userService = {
         throw new ApiError(400, 'You cannot disable your own account')
       }
       patch.isActive = data.isActive
+    }
+
+    if (data.customPermissions !== undefined) {
+      patch.customPermissions = data.customPermissions
     }
 
     if (Object.keys(patch).length === 0) {

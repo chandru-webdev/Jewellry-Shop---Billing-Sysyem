@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Shield, Plus, Pencil, Search, Key, UserX, UserCheck, Copy, X, Loader2, ChevronDown } from 'lucide-react'
+import { Shield, Plus, Pencil, Search, Key, UserX, UserCheck, Copy, X, Loader2, ChevronDown, Lock, Unlock } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -10,6 +10,57 @@ import { usersApi, rolesApi } from '../api/users'
 import { formatDateTime } from '../utils/format'
 
 const roleTone = { SUPER_ADMIN: 'purple', MANAGER: 'blue', EMPLOYEE: 'green' }
+
+const SECTION_ACCESS = [
+  {
+    label: 'Dashboard',
+    permissions: ['dashboard:view'],
+  },
+  {
+    label: 'Sales',
+    permissions: ['invoices:view', 'invoices:create', 'billing:view', 'billing:create', 'orders:view', 'orders:manage', 'customers:view', 'customers:manage'],
+  },
+  {
+    label: 'Purchase',
+    permissions: ['suppliers:view', 'suppliers:manage'],
+  },
+  {
+    label: 'Inventory',
+    permissions: ['products:view', 'products:manage', 'categories:view', 'categories:manage', 'inventory:view', 'inventory:manage'],
+  },
+  {
+    label: 'Accounts',
+    permissions: ['payments:view', 'payments:manage', 'reports:view'],
+  },
+  {
+    label: 'Reports',
+    permissions: ['reports:view', 'inventory:view'],
+  },
+  {
+    label: 'Shopify',
+    permissions: ['shopify:view', 'shopify:manage'],
+  },
+  {
+    label: 'Metal Rates',
+    permissions: ['metal-rates:view', 'metal-rates:manage'],
+  },
+]
+
+function isSectionEnabled(section, customPermissions) {
+  if (!Array.isArray(customPermissions) || customPermissions.length === 0) return false
+  return section.permissions.some((p) => customPermissions.includes(p))
+}
+
+function toggleSection(section, currentPerms) {
+  const enabled = isSectionEnabled(section, currentPerms)
+  const perms = Array.isArray(currentPerms) ? [...currentPerms] : []
+  if (enabled) {
+    return perms.filter((p) => !section.permissions.includes(p))
+  } else {
+    const existing = perms.filter((p) => !section.permissions.some((sp) => sp === p))
+    return [...existing, ...section.permissions]
+  }
+}
 
 export default function Users() {
   const queryClient = useQueryClient()
@@ -21,9 +72,8 @@ export default function Users() {
   const [resetModal, setResetModal] = useState(false)
   const [resetResult, setResetResult] = useState(null)
   const [copied, setCopied] = useState(false)
-  const [formData, setFormData] = useState({ name: '', email: '', roleId: '', password: '' })
+  const [formData, setFormData] = useState({ name: '', email: '', roleId: '', password: '', useCustomPerms: false, customPermissions: [] })
   const [formError, setFormError] = useState('')
-  const [formLoading, setFormLoading] = useState(false)
 
   const { data: apiUsers, isLoading } = useQuery({
     queryKey: ['users'],
@@ -80,7 +130,7 @@ export default function Users() {
   })
 
   function resetForm() {
-    setFormData({ name: '', email: '', roleId: '', password: '' })
+    setFormData({ name: '', email: '', roleId: '', password: '', useCustomPerms: false, customPermissions: [] })
     setSelectedUser(null)
     setFormError('')
   }
@@ -91,8 +141,16 @@ export default function Users() {
   }
 
   function openEdit(user) {
+    const hasCustom = Array.isArray(user.customPermissions) && user.customPermissions.length > 0
     setSelectedUser(user)
-    setFormData({ name: user.name, email: user.email, roleId: String(user.roleId || user.role?.id || ''), password: '' })
+    setFormData({
+      name: user.name,
+      email: user.email,
+      roleId: String(user.roleId || user.role?.id || ''),
+      password: '',
+      useCustomPerms: hasCustom,
+      customPermissions: hasCustom ? user.customPermissions : [],
+    })
     setUserModal(true)
   }
 
@@ -106,11 +164,11 @@ export default function Users() {
   async function handleSubmit(e) {
     e.preventDefault()
     setFormError('')
-    setFormLoading(true)
     try {
       if (selectedUser) {
         const payload = { name: formData.name, email: formData.email }
         if (formData.roleId) payload.roleId = Number(formData.roleId)
+        payload.customPermissions = formData.useCustomPerms ? formData.customPermissions : null
         await updateMutation.mutateAsync({ id: selectedUser.id, data: payload })
       } else {
         const payload = { name: formData.name, email: formData.email, roleId: Number(formData.roleId) }
@@ -119,8 +177,6 @@ export default function Users() {
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong')
-    } finally {
-      setFormLoading(false)
     }
   }
 
@@ -134,6 +190,8 @@ export default function Users() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const isEditingManagerEmployee = selectedUser && selectedUser.role?.name !== 'SUPER_ADMIN'
 
   return (
     <div>
@@ -172,6 +230,7 @@ export default function Users() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Name</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Email</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Role</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Access</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Login</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
@@ -179,42 +238,59 @@ export default function Users() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan="6" className="px-4 py-12 text-center text-gray-400 dark:text-gray-500"><Loader2 size={20} className="animate-spin mx-auto mb-2" />Loading users...</td></tr>
+                <tr><td colSpan="7" className="px-4 py-12 text-center text-gray-400 dark:text-gray-500"><Loader2 size={20} className="animate-spin mx-auto mb-2" />Loading users...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="6" className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No users found</td></tr>
+                <tr><td colSpan="7" className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No users found</td></tr>
               ) : (
-                filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-600 to-royal-800 text-white flex items-center justify-center text-[10px] font-bold">{u.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</span>
-                        <div>
-                          <span className="font-medium text-royal-950 dark:text-white">{u.name}</span>
-                          {u.mustChangePassword && <span className="ml-1.5 text-[10px] text-amber-500 font-medium">(temp pw)</span>}
+                filtered.map((u) => {
+                  const hasCustom = Array.isArray(u.customPermissions) && u.customPermissions.length > 0
+                  const enabledSections = hasCustom
+                    ? SECTION_ACCESS.filter((s) => isSectionEnabled(s, u.customPermissions)).map((s) => s.label)
+                    : []
+                  return (
+                    <tr key={u.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-600 to-royal-800 text-white flex items-center justify-center text-[10px] font-bold">{u.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()}</span>
+                          <div>
+                            <span className="font-medium text-royal-950 dark:text-white">{u.name}</span>
+                            {u.mustChangePassword && <span className="ml-1.5 text-[10px] text-amber-500 font-medium">(temp pw)</span>}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{u.email}</td>
-                    <td className="px-4 py-3 text-center"><Badge tone={roleTone[u.role?.name] || 'gray'}>{u.role?.name?.replace(/_/g, ' ')}</Badge></td>
-                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{u.lastLogin ? formatDateTime(u.lastLogin) : <span className="text-gray-300">Never</span>}</td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(u)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Pencil size={14} /></button>
-                        <button onClick={() => openReset(u)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer" title="Reset Password"><Key size={14} /></button>
-                        <button
-                          onClick={() => toggleActiveMutation.mutate({ id: u.id, isActive: !u.isActive })}
-                          className={`p-1.5 rounded-lg cursor-pointer ${u.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                          title={u.isActive ? 'Deactivate' : 'Activate'}
-                        >
-                          {u.isActive ? <UserX size={14} /> : <UserCheck size={14} />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{u.email}</td>
+                      <td className="px-4 py-3 text-center"><Badge tone={roleTone[u.role?.name] || 'gray'}>{u.role?.name?.replace(/_/g, ' ')}</Badge></td>
+                      <td className="px-4 py-3 text-center">
+                        {u.role?.name === 'SUPER_ADMIN' ? (
+                          <Badge tone="purple">Full Access</Badge>
+                        ) : hasCustom ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <Badge tone="gold">{enabledSections.length} section{enabledSections.length !== 1 ? 's' : ''}</Badge>
+                          </div>
+                        ) : (
+                          <Badge tone="gray">Role Default</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{u.lastLogin ? formatDateTime(u.lastLogin) : <span className="text-gray-300">Never</span>}</td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge tone={u.isActive ? 'green' : 'gray'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => openEdit(u)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Pencil size={14} /></button>
+                          <button onClick={() => openReset(u)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer" title="Reset Password"><Key size={14} /></button>
+                          <button
+                            onClick={() => toggleActiveMutation.mutate({ id: u.id, isActive: !u.isActive })}
+                            className={`p-1.5 rounded-lg cursor-pointer ${u.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                            title={u.isActive ? 'Deactivate' : 'Activate'}
+                          >
+                            {u.isActive ? <UserX size={14} /> : <UserCheck size={14} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -229,8 +305,8 @@ export default function Users() {
         footer={
           <>
             <Button variant="ghost" onClick={() => { setUserModal(false); resetForm() }}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={formLoading}>
-              {formLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+            <Button onClick={handleSubmit} disabled={updateMutation.isPending || createMutation.isPending}>
+              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 size={14} className="animate-spin" /> : null}
               {selectedUser ? 'Update' : 'Create'}
             </Button>
           </>
@@ -250,7 +326,20 @@ export default function Users() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-            <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" required>
+            <select
+              value={formData.roleId}
+              onChange={(e) => {
+                const newRoleId = e.target.value
+                const selectedRole = roles?.find((r) => r.id === Number(newRoleId))
+                setFormData({
+                  ...formData,
+                  roleId: newRoleId,
+                  useCustomPerms: selectedRole?.name === 'SUPER_ADMIN' ? false : formData.useCustomPerms,
+                })
+              }}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+              required
+            >
               <option value="">Select role</option>
               {(roles || []).map((r) => <option key={r.id} value={r.id}>{r.name.replace(/_/g, ' ')}</option>)}
             </select>
@@ -261,6 +350,63 @@ export default function Users() {
                 Password <span className="text-gray-400 dark:text-gray-500 font-normal">(leave blank for auto-generated temporary password)</span>
               </label>
               <input type="text" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Optional — will generate temp password if empty" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+            </div>
+          )}
+
+          {/* Section Access — only for MANAGER / EMPLOYEE */}
+          {selectedUser && isEditingManagerEmployee && (
+            <div className="border-t border-gray-200 dark:border-white/[0.08] pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Lock size={14} className="text-royal-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Section Access</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({
+                    ...formData,
+                    useCustomPerms: !formData.useCustomPerms,
+                    customPermissions: !formData.useCustomPerms ? [] : formData.customPermissions,
+                  })}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
+                    formData.useCustomPerms ? 'bg-royal-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    formData.useCustomPerms ? 'translate-x-4.5' : 'translate-x-0.5'
+                  }`} />
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+                {formData.useCustomPerms
+                  ? 'Custom access enabled — toggle sections below to control what this user can see.'
+                  : 'Uses role default permissions. Enable custom access to override.'}
+              </p>
+              {formData.useCustomPerms && (
+                <div className="grid grid-cols-2 gap-2">
+                  {SECTION_ACCESS.map((section) => {
+                    const enabled = isSectionEnabled(section, formData.customPermissions)
+                    return (
+                      <button
+                        key={section.label}
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          customPermissions: toggleSection(section, formData.customPermissions),
+                        })}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                          enabled
+                            ? 'bg-royal-50 dark:bg-royal-900/30 border-royal-300 dark:border-royal-600 text-royal-700 dark:text-royal-300'
+                            : 'bg-white dark:bg-transparent border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
+                        }`}
+                      >
+                        {enabled ? <Unlock size={12} /> : <Lock size={12} />}
+                        {section.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </form>

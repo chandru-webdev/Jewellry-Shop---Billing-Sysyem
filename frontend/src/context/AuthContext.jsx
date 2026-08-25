@@ -13,9 +13,15 @@ function getStoredUser() {
 }
 
 // Check if user has a specific permission
+// If user has customPermissions set, use those; otherwise fall back to role permissions
 function hasPermission(user, permission) {
   if (!user?.role) return false
-  const perms = user.role.permissions
+
+  // Use per-user custom permissions if set (admin overrides)
+  const perms = Array.isArray(user.customPermissions) && user.customPermissions.length > 0
+    ? user.customPermissions
+    : user.role.permissions
+
   if (!Array.isArray(perms)) return false
   if (perms.includes('*')) return true
   return perms.includes(permission)

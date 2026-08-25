@@ -38,6 +38,14 @@ async function ensureSchema() {
       END $$
     `)
     console.log('ProductPriceHistory schema ensured.')
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "User" ADD COLUMN "customPermissions" JSONB;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('User.customPermissions column ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

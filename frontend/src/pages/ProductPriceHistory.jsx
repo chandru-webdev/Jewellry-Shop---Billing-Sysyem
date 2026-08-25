@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, RefreshCw, Download, Plus, TrendingUp, TrendingDown,
@@ -74,14 +74,14 @@ function getDateRange(value) {
 
 function StatCardKpi({ icon: Icon, label, value, accent, sub }) {
   return (
-    <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] p-4 flex items-start gap-3 hover:border-[#D4AF37]/20 transition-all">
+    <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-[#2A2A2A] p-4 flex items-start gap-3 hover:border-[#D4AF37]/20 transition-all">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br ${accent}`}>
         <Icon size={18} className="text-[#0B0B0B]" />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium">{label}</p>
-        <p className="text-xl font-bold text-[#F5F5F5] mt-0.5">{value}</p>
-        {sub && <p className="text-[11px] text-[#A3A3A3] mt-1">{sub}</p>}
+        <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+        <p className="text-xl font-bold text-gray-900 dark:text-[#F5F5F5] mt-0.5">{value}</p>
+        {sub && <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{sub}</p>}
       </div>
     </div>
   )
@@ -93,7 +93,7 @@ function PriceChangeIndicator({ oldPrice, newPrice }) {
   const change = newP - oldP
   const pct = oldP ? ((change / oldP) * 100).toFixed(2) : 0
 
-  if (change === 0) return <span className="text-[#A3A3A3] flex items-center gap-1"><Minus size={12} /> No change</span>
+  if (change === 0) return <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1"><Minus size={12} /> No change</span>
   if (change > 0) return (
     <span className="text-[#22C55E] font-semibold flex items-center gap-1">
       <ArrowUpRight size={14} /> +{formatINR(change)} (+{pct}%)
@@ -110,11 +110,11 @@ function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
   return (
-    <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-3 py-2 shadow-xl text-xs">
-      <p className="font-semibold text-[#F5F5F5] mb-1">{d?.fullDate || label}</p>
+    <div className="bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] rounded-lg px-3 py-2 shadow-xl text-xs">
+      <p className="font-semibold text-gray-900 dark:text-[#F5F5F5] mb-1">{d?.fullDate || label}</p>
       <p className="text-[#D4AF37] font-bold">Price: {formatINR(payload[0]?.value)}</p>
-      {d?.oldPrice && <p className="text-[#A3A3A3]">Prev: {formatINR(d.oldPrice)}</p>}
-      {d?.changedBy && <p className="text-[#A3A3A3]">By: {d.changedBy}</p>}
+      {d?.oldPrice && <p className="text-gray-500 dark:text-gray-400">Prev: {formatINR(d.oldPrice)}</p>}
+      {d?.changedBy && <p className="text-gray-500 dark:text-gray-400">By: {d.changedBy}</p>}
     </div>
   )
 }
@@ -188,23 +188,23 @@ function AddPriceUpdateModal({ open, onClose, onSuccess }) {
       {step === 'form' ? (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#A3A3A3] mb-1">Product *</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Product *</label>
             {selectedProduct ? (
-              <div className="flex items-center justify-between bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-3 py-2">
-                <span className="text-sm text-[#F5F5F5]">{selectedProduct.name} ({selectedProduct.sku})</span>
-                <button onClick={() => setSelectedProduct(null)} className="text-[#A3A3A3] hover:text-[#EF4444] cursor-pointer"><X size={14} /></button>
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] rounded-lg px-3 py-2">
+                <span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{selectedProduct.name} ({selectedProduct.sku})</span>
+                <button onClick={() => setSelectedProduct(null)} className="text-gray-500 dark:text-gray-400 hover:text-[#EF4444] cursor-pointer"><X size={14} /></button>
               </div>
             ) : (
               <div className="relative">
                 <input type="text" value={form.search} onChange={(e) => setForm({ ...form, search: e.target.value })}
                   placeholder="Search product name or SKU..."
-                  className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
+                  className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
                 {searchResults && searchResults.length > 0 && (
-                  <div className="absolute z-10 top-full mt-1 w-full bg-[#141414] border border-[#2A2A2A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 top-full mt-1 w-full bg-white dark:bg-[#141414] border border-gray-200 dark:border-[#2A2A2A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
                     {searchResults.slice(0, 10).map((p) => (
                       <button key={p.id} onClick={() => { setSelectedProduct(p); setForm({ ...form, search: '' }) }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-[#1A1A1A] text-[#F5F5F5] cursor-pointer">
-                        {p.name} <span className="text-[#A3A3A3]">({p.sku})</span>
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#1A1A1A] text-gray-900 dark:text-[#F5F5F5] cursor-pointer">
+                        {p.name} <span className="text-gray-500 dark:text-gray-400">({p.sku})</span>
                       </button>
                     ))}
                   </div>
@@ -214,9 +214,9 @@ function AddPriceUpdateModal({ open, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#A3A3A3] mb-1">Price Type *</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Price Type *</label>
             <select value={form.priceType} onChange={(e) => setForm({ ...form, priceType: e.target.value })}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
               {PRICE_TYPES.filter(t => t.value !== 'ALL').map((t) => (
                 <option key={t.value} value={t.value}>{t.label}</option>
               ))}
@@ -224,49 +224,49 @@ function AddPriceUpdateModal({ open, onClose, onSuccess }) {
           </div>
 
           {selectedProduct && (
-            <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-3">
-              <p className="text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium">Current Price</p>
+            <div className="bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] rounded-lg px-4 py-3">
+              <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Current Price</p>
               <p className="text-lg font-bold text-[#D4AF37]">{formatINR(currentPrice)}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-[#A3A3A3] mb-1">New Price *</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">New Price *</label>
             <input type="number" min="0" step="0.01" value={form.newPrice}
               onChange={(e) => setForm({ ...form, newPrice: e.target.value })}
               placeholder="Enter new price"
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#A3A3A3] mb-1">Reason *</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Reason *</label>
             <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
               <option value="">Select reason...</option>
               {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#A3A3A3] mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Notes (optional)</label>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Enter additional information about this price change..."
               rows={3}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 min-h-20" />
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50 min-h-20" />
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4 space-y-3">
-            <div className="flex justify-between"><span className="text-sm text-[#A3A3A3]">Product</span><span className="text-sm font-medium text-[#F5F5F5]">{selectedProduct?.name}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-[#A3A3A3]">Current Price</span><span className="text-sm font-medium text-[#F5F5F5]">{formatINR(currentPrice)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-[#A3A3A3]">New Price</span><span className="text-sm font-bold text-[#D4AF37]">{formatINR(newPrice)}</span></div>
-            <div className="border-t border-[#2A2A2A] pt-3 flex justify-between">
-              <span className="text-sm text-[#A3A3A3]">Change</span>
+          <div className="bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] rounded-lg p-4 space-y-3">
+            <div className="flex justify-between"><span className="text-sm text-gray-500 dark:text-gray-400">Product</span><span className="text-sm font-medium text-gray-900 dark:text-[#F5F5F5]">{selectedProduct?.name}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-500 dark:text-gray-400">Current Price</span><span className="text-sm font-medium text-gray-900 dark:text-[#F5F5F5]">{formatINR(currentPrice)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-500 dark:text-gray-400">New Price</span><span className="text-sm font-bold text-[#D4AF37]">{formatINR(newPrice)}</span></div>
+            <div className="border-t border-gray-200 dark:border-[#2A2A2A] pt-3 flex justify-between">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Change</span>
               <PriceChangeIndicator oldPrice={currentPrice} newPrice={newPrice} />
             </div>
-            <div className="flex justify-between"><span className="text-sm text-[#A3A3A3]">Reason</span><span className="text-sm text-[#F5F5F5]">{REASONS.find(r => r.value === form.reason)?.label}</span></div>
-            {form.notes && <div className="flex justify-between"><span className="text-sm text-[#A3A3A3]">Notes</span><span className="text-sm text-[#F5F5F5]">{form.notes}</span></div>}
+            <div className="flex justify-between"><span className="text-sm text-gray-500 dark:text-gray-400">Reason</span><span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{REASONS.find(r => r.value === form.reason)?.label}</span></div>
+            {form.notes && <div className="flex justify-between"><span className="text-sm text-gray-500 dark:text-gray-400">Notes</span><span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{form.notes}</span></div>}
           </div>
           {createMutation.isError && (
             <p className="text-sm text-[#EF4444]">Failed to update price. Please try again.</p>
@@ -283,61 +283,61 @@ function DetailDrawer({ open, record, onClose }) {
   const p = record.product
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg bg-[#141414] border-l border-[#2A2A2A] shadow-2xl overflow-y-auto"
+      <div className="w-full max-w-lg bg-white dark:bg-[#141414] border-l border-gray-200 dark:border-[#2A2A2A] shadow-2xl overflow-y-auto"
         onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
-          <h3 className="text-lg font-semibold text-[#F5F5F5]">Price Change Details</h3>
-          <button onClick={onClose} className="text-[#A3A3A3] hover:text-[#F5F5F5] cursor-pointer"><X size={20} /></button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#2A2A2A]">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-[#F5F5F5]">Price Change Details</h3>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-[#F5F5F5] cursor-pointer"><X size={20} /></button>
         </div>
         <div className="px-6 py-5 space-y-5">
-          <div className="bg-[#0B0B0B] border border-[#2A2A2A] rounded-xl p-4">
-            <h4 className="font-semibold text-[#F5F5F5]">{p?.name}</h4>
-            <p className="text-sm text-[#A3A3A3] mt-1">SKU: {p?.sku}</p>
-            <p className="text-sm text-[#A3A3A3]">Category: {p?.category?.name || 'N/A'}</p>
-            <p className="text-sm text-[#A3A3A3]">Metal: {p?.metal?.toUpperCase()}</p>
+          <div className="bg-gray-100 dark:bg-[#0B0B0B] border border-gray-200 dark:border-[#2A2A2A] rounded-xl p-4">
+            <h4 className="font-semibold text-gray-900 dark:text-[#F5F5F5]">{p?.name}</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">SKU: {p?.sku}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Category: {p?.category?.name || 'N/A'}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Metal: {p?.metal?.toUpperCase()}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#0B0B0B] border border-[#2A2A2A] rounded-lg p-3">
-              <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Price Type</p>
-              <p className="text-sm font-medium text-[#F5F5F5] mt-1">{record.priceType?.replace('_', ' ')}</p>
+            <div className="bg-gray-100 dark:bg-[#0B0B0B] border border-gray-200 dark:border-[#2A2A2A] rounded-lg p-3">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Price Type</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-[#F5F5F5] mt-1">{record.priceType?.replace('_', ' ')}</p>
             </div>
-            <div className="bg-[#0B0B0B] border border-[#2A2A2A] rounded-lg p-3">
-              <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Difference</p>
+            <div className="bg-gray-100 dark:bg-[#0B0B0B] border border-gray-200 dark:border-[#2A2A2A] rounded-lg p-3">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Difference</p>
               <p className="mt-1"><PriceChangeIndicator oldPrice={record.oldPrice} newPrice={record.newPrice} /></p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-              <span className="text-sm text-[#A3A3A3]">Old Price</span>
-              <span className="text-sm font-medium text-[#F5F5F5]">{formatINR(record.oldPrice)}</span>
+            <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Old Price</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-[#F5F5F5]">{formatINR(record.oldPrice)}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-              <span className="text-sm text-[#A3A3A3]">New Price</span>
+            <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+              <span className="text-sm text-gray-500 dark:text-gray-400">New Price</span>
               <span className="text-sm font-bold text-[#D4AF37]">{formatINR(record.newPrice)}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-              <span className="text-sm text-[#A3A3A3]">Reason</span>
-              <span className="text-sm text-[#F5F5F5]">{REASONS.find(r => r.value === record.reason)?.label || record.reason}</span>
+            <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Reason</span>
+              <span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{REASONS.find(r => r.value === record.reason)?.label || record.reason}</span>
             </div>
             {record.notes && (
-              <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-                <span className="text-sm text-[#A3A3A3]">Notes</span>
-                <span className="text-sm text-[#F5F5F5] max-w-[60%] text-right">{record.notes}</span>
+              <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Notes</span>
+                <span className="text-sm text-gray-900 dark:text-[#F5F5F5] max-w-[60%] text-right">{record.notes}</span>
               </div>
             )}
-            <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-              <span className="text-sm text-[#A3A3A3]">Changed By</span>
-              <span className="text-sm text-[#F5F5F5]">{record.changedBy?.name || 'System'}</span>
+            <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Changed By</span>
+              <span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{record.changedBy?.name || 'System'}</span>
             </div>
-            <div className="flex justify-between py-2 border-b border-[#2A2A2A]">
-              <span className="text-sm text-[#A3A3A3]">Date</span>
-              <span className="text-sm text-[#F5F5F5]">{formatDate(record.createdAt)}</span>
+            <div className="flex justify-between py-2 border-b border-gray-200 dark:border-[#2A2A2A]">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Date</span>
+              <span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{formatDate(record.createdAt)}</span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-sm text-[#A3A3A3]">Time</span>
-              <span className="text-sm text-[#F5F5F5]">{formatDateTime(record.createdAt).split(', ')[1] || formatDateTime(record.createdAt)}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Time</span>
+              <span className="text-sm text-gray-900 dark:text-[#F5F5F5]">{formatDateTime(record.createdAt).split(', ')[1] || formatDateTime(record.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -346,8 +346,19 @@ function DetailDrawer({ open, record, onClose }) {
   )
 }
 
+function useIsDark() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')))
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return dark
+}
+
 export default function ProductPriceHistory() {
   const queryClient = useQueryClient()
+  const isDark = useIsDark()
   const [search, setSearch] = useState('')
   const [priceType, setPriceType] = useState('ALL')
   const [dateRange, setDateRange] = useState('30d')
@@ -441,25 +452,25 @@ export default function ProductPriceHistory() {
       <Card className="mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium mb-1">Search</label>
+            <label className="block text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">Search</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
               <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search product price history..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#2A2A2A] bg-[#141414] text-sm text-[#F5F5F5] placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] text-sm text-gray-900 dark:text-[#F5F5F5] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
             </div>
           </div>
           <div className="min-w-[160px]">
-            <label className="block text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium mb-1">Price Type</label>
+            <label className="block text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">Price Type</label>
             <select value={priceType} onChange={(e) => setPriceType(e.target.value)}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
               {PRICE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="min-w-[160px]">
-            <label className="block text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium mb-1">Date Range</label>
+            <label className="block text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">Date Range</label>
             <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}
-              className="w-full rounded-lg border border-[#2A2A2A] bg-[#141414] px-3 py-2 text-sm text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
+              className="w-full rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] px-3 py-2 text-sm text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50">
               {DATE_RANGES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
           </div>
@@ -470,20 +481,20 @@ export default function ProductPriceHistory() {
       <Card className="mb-6">
         <div className="flex flex-wrap items-end gap-4 mb-4">
           <div className="flex-1 min-w-[240px]">
-            <label className="block text-[11px] uppercase tracking-wider text-[#A3A3A3] font-medium mb-1">Select Product</label>
+            <label className="block text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">Select Product</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
               <input type="text" value={productSearch} onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Search product, SKU or barcode..."
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#2A2A2A] bg-[#141414] text-sm text-[#F5F5F5] placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] text-sm text-gray-900 dark:text-[#F5F5F5] placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/50" />
               {productSearchResults && productSearchResults.length > 0 && (
-                <div className="absolute z-10 top-full mt-1 w-full bg-[#141414] border border-[#2A2A2A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                <div className="absolute z-10 top-full mt-1 w-full bg-white dark:bg-[#141414] border border-gray-200 dark:border-[#2A2A2A] rounded-lg shadow-xl max-h-48 overflow-y-auto">
                   {productSearchResults.slice(0, 8).map((p) => (
                     <button key={p.id}
                       onClick={() => { setSelectedProductId(p.id); setProductSearch(p.name); setChartRange('30d') }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-[#1A1A1A] text-[#F5F5F5] cursor-pointer flex justify-between">
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#1A1A1A] text-gray-900 dark:text-[#F5F5F5] cursor-pointer flex justify-between">
                       <span>{p.name}</span>
-                      <span className="text-[#A3A3A3]">{p.sku}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{p.sku}</span>
                     </button>
                   ))}
                 </div>
@@ -494,32 +505,32 @@ export default function ProductPriceHistory() {
 
         {/* Product Summary */}
         {selectedProduct && (
-          <div className="bg-[#0B0B0B] border border-[#D4AF37]/20 rounded-xl p-5 grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-gray-100 dark:bg-[#0B0B0B] border border-[#D4AF37]/20 rounded-xl p-5 grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Product</p>
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Product</p>
               <p className="text-sm font-bold text-[#D4AF37] mt-1">{selectedProduct.name}</p>
-              <p className="text-xs text-[#A3A3A3]">SKU: {selectedProduct.sku}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">SKU: {selectedProduct.sku}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Current Selling Price</p>
-              <p className="text-lg font-bold text-[#F5F5F5] mt-1">{formatINR(selectedProduct.sellingPrice)}</p>
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Current Selling Price</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-[#F5F5F5] mt-1">{formatINR(selectedProduct.sellingPrice)}</p>
             </div>
             {productHistory?.length >= 2 && (
               <>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Previous Price</p>
-                  <p className="text-lg font-bold text-[#A3A3A3] mt-1">{formatINR(productHistory[1]?.newPrice)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Previous Price</p>
+                  <p className="text-lg font-bold text-gray-500 dark:text-gray-400 mt-1">{formatINR(productHistory[1]?.newPrice)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Change</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Change</p>
                   <div className="mt-1">
                     <PriceChangeIndicator oldPrice={productHistory[1]?.newPrice} newPrice={selectedProduct.sellingPrice} />
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-semibold">Last Updated</p>
-                  <p className="text-sm text-[#F5F5F5] mt-1">{formatDateTime(productHistory[0]?.createdAt)}</p>
-                  <p className="text-xs text-[#A3A3A3]">by {productHistory[0]?.changedBy?.name || 'System'}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Last Updated</p>
+                  <p className="text-sm text-gray-900 dark:text-[#F5F5F5] mt-1">{formatDateTime(productHistory[0]?.createdAt)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">by {productHistory[0]?.changedBy?.name || 'System'}</p>
                 </div>
               </>
             )}
@@ -535,7 +546,7 @@ export default function ProductPriceHistory() {
               {CHART_RANGES.map((cr) => (
                 <button key={cr.value} onClick={() => setChartRange(cr.value)}
                   className={`px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors cursor-pointer ${
-                    chartRange === cr.value ? 'bg-[#D4AF37] text-[#0B0B0B]' : 'text-[#A3A3A3] hover:bg-[#1A1A1A]'
+                    chartRange === cr.value ? 'bg-[#D4AF37] text-[#0B0B0B]' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#1A1A1A]'
                   }`}>
                   {cr.label}
                 </button>
@@ -548,9 +559,9 @@ export default function ProductPriceHistory() {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#A3A3A3' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#A3A3A3' }} axisLine={false} tickLine={false}
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#2A2A2A' : '#e5e7eb'} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: isDark ? '#A3A3A3' : '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: isDark ? '#A3A3A3' : '#6b7280' }} axisLine={false} tickLine={false}
                     tickFormatter={(v) => `₹${(v / 1000).toFixed(1)}K`} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line type="monotone" dataKey="price" stroke="#D4AF37" strokeWidth={2.5}
@@ -560,7 +571,7 @@ export default function ProductPriceHistory() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-80 flex flex-col items-center justify-center text-[#A3A3A3]">
+            <div className="h-80 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
               <BarChart3 size={32} className="mb-2 opacity-30" />
               <p className="text-sm">Select a product to view price history chart</p>
             </div>
@@ -573,38 +584,38 @@ export default function ProductPriceHistory() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#0B0B0B] border-b border-[#2A2A2A]">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Date & Time</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Product</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">SKU</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Old Price</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">New Price</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Change</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Reason</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Updated By</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-[#A3A3A3]">Details</th>
+              <tr className="bg-gray-100 dark:bg-[#0B0B0B] border-b border-gray-200 dark:border-[#2A2A2A]">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Date & Time</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Product</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">SKU</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Old Price</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">New Price</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Change</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Reason</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Updated By</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#2A2A2A]">
+            <tbody className="divide-y divide-gray-100 dark:divide-[#2A2A2A]">
               {historyLoading && (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-[#A3A3A3]"><Loader2 size={20} className="animate-spin mx-auto mb-2 text-[#D4AF37]" /><p className="text-sm">Loading price history...</p></td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400"><Loader2 size={20} className="animate-spin mx-auto mb-2 text-[#D4AF37]" /><p className="text-sm">Loading price history...</p></td></tr>
               )}
               {!historyLoading && historyData?.records?.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-[#A3A3A3]"><History size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">No price history found</p><p className="text-xs mt-1">Price changes will appear here automatically.</p></td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400"><History size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm font-medium">No price history found</p><p className="text-xs mt-1">Price changes will appear here automatically.</p></td></tr>
               )}
               {historyData?.records?.map((r) => (
-                <tr key={r.id} className="hover:bg-[#1A1A1A]/50 transition-colors">
-                  <td className="px-4 py-3 text-xs text-[#A3A3A3] whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                  <td className="px-4 py-3 font-medium text-[#F5F5F5]">{r.product?.name}</td>
-                  <td className="px-4 py-3 text-xs text-[#A3A3A3] font-mono">{r.product?.sku}</td>
-                  <td className="px-4 py-3 text-right text-[#A3A3A3]">{formatINR(r.oldPrice)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-[#F5F5F5]">{formatINR(r.newPrice)}</td>
+                <tr key={r.id} className="hover:bg-gray-100 dark:hover:bg-[#1A1A1A]/50 transition-colors">
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-[#F5F5F5]">{r.product?.name}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 font-mono">{r.product?.sku}</td>
+                  <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{formatINR(r.oldPrice)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-[#F5F5F5]">{formatINR(r.newPrice)}</td>
                   <td className="px-4 py-3 text-right"><PriceChangeIndicator oldPrice={r.oldPrice} newPrice={r.newPrice} /></td>
-                  <td className="px-4 py-3 text-xs text-[#A3A3A3]">{REASONS.find(rv => rv.value === r.reason)?.label || r.reason}</td>
-                  <td className="px-4 py-3 text-xs text-[#A3A3A3]">{r.changedBy?.name || 'System'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{REASONS.find(rv => rv.value === r.reason)?.label || r.reason}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{r.changedBy?.name || 'System'}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => setDetailRecord(r)}
-                      className="p-1.5 text-[#A3A3A3] hover:text-[#D4AF37] hover:bg-[#1A1A1A] rounded-lg cursor-pointer">
+                      className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-[#D4AF37] hover:bg-gray-100 dark:hover:bg-[#1A1A1A] rounded-lg cursor-pointer">
                       <Eye size={14} />
                     </button>
                   </td>

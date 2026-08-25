@@ -30,8 +30,14 @@ const authService = {
       data: { lastLogin: new Date() },
     })
 
+    const [permRow] = await prisma.$queryRawUnsafe(
+      'SELECT "customPermissions" FROM "User" WHERE "id" = $1',
+      user.id
+    )
+    const customPermissions = permRow?.customPermissions || null
+
     const token = signToken({ id: user.id, role: user.role.name })
-    return { token, user: this.safeUser(user) }
+    return { token, user: this.safeUser({ ...user, customPermissions }) }
   },
 
   // Fetch fresh user data for the /me endpoint.
@@ -41,7 +47,12 @@ const authService = {
       include: { role: true },
     })
     if (!user) throw new ApiError(404, 'User not found')
-    return this.safeUser(user)
+    const [permRow] = await prisma.$queryRawUnsafe(
+      'SELECT "customPermissions" FROM "User" WHERE "id" = $1',
+      userId
+    )
+    const customPermissions = permRow?.customPermissions || null
+    return this.safeUser({ ...user, customPermissions })
   },
 
   // Change password (for logged-in user)

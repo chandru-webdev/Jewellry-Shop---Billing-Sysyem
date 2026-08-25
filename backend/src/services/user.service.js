@@ -3,6 +3,17 @@ const crypto = require('crypto')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 
+async function attachCustomPermissions(users) {
+  if (!users.length) return users
+  const ids = users.map((u) => u.id)
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT "id", "customPermissions" FROM "User" WHERE "id" = ANY($1)`,
+    ids
+  )
+  const map = new Map(rows.map((r) => [r.id, r.customPermissions]))
+  return users.map((u) => ({ ...u, customPermissions: map.get(u.id) || null }))
+}
+
 const userService = {
   async list({ search, roleId, isActive, limit = 50 } = {}) {
     const where = {}
@@ -21,7 +32,8 @@ const userService = {
       orderBy: { name: 'asc' },
       take: Number(limit),
     })
-    return users.map((u) => this.safeUser(u))
+    const withPerms = await attachCustomPermissions(users)
+    return withPerms.map((u) => this.safeUser(u))
   },
 
   async getById(id) {
@@ -30,7 +42,8 @@ const userService = {
       include: { role: true },
     })
     if (!user) throw new ApiError(404, 'User not found')
-    return this.safeUser(user)
+    const [withPerms] = await attachCustomPermissions([user])
+    return this.safeUser(withPerms)
   },
 
   async create(data, actorId) {
@@ -98,15 +111,26 @@ const userService = {
       patch.isActive = data.isActive
     }
 
+    let customPermsResult = undefined
     if (data.customPermissions !== undefined) {
-      patch.customPermissions = data.customPermissions
+      customPermsResult = data.customPermissions
     }
 
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(patch).length === 0 && customPermsResult === undefined) {
       throw new ApiError(400, 'No fields to update')
     }
 
-    const updated = await prisma.user.update({ where: { id: user.id }, data: patch })
+    if (Object.keys(patch).length > 0) {
+      await prisma.user.update({ where: { id: user.id }, data: patch })
+    }
+
+    if (customPermsResult !== undefined) {
+      await prisma.$executeRawUnsafe(
+        'UPDATE "User" SET "customPermissions" = $1 WHERE "id" = $2',
+        customPermsResult === null ? null : JSON.stringify(customPermsResult),
+        user.id
+      )
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -118,7 +142,7 @@ const userService = {
       },
     })
 
-    return this.getById(updated.id)
+    return this.getById(user.id)
   },
 
   // Admin resets a user's password — generates a new temporary password

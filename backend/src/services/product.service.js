@@ -1,7 +1,10 @@
+const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
+
+const Decimal = Prisma.Decimal
 
 const productService = {
   // GET /api/products  — optional filters: ?search=, ?categoryId=, ?isActive=
@@ -99,6 +102,39 @@ const productService = {
       },
       include: { category: true, inventory: true },
     })
+
+    // Record price history if selling price changed
+    const oldSelling = new Decimal(existing.sellingPrice)
+    const newSelling = new Decimal(product.sellingPrice)
+    if (!oldSelling.equals(newSelling)) {
+      const changeAmount = newSelling.minus(oldSelling)
+      const changePercentage = oldSelling.equals(0)
+        ? 0
+        : changeAmount.div(oldSelling).mul(100).toDecimalPlaces(4)
+
+      let reason = 'manual_price_update'
+      if (data.makingCharge !== undefined && data.makingCharge !== Number(existing.makingCharge)) {
+        reason = 'making_charge_change'
+      } else if (data.weight !== undefined && data.weight !== Number(existing.weight)) {
+        reason = 'manual_price_update'
+      } else if (data.gstPercent !== undefined && data.gstPercent !== Number(existing.gstPercent)) {
+        reason = 'manual_price_update'
+      }
+
+      await prisma.productPriceHistory.create({
+        data: {
+          productId: product.id,
+          priceType: 'SELLING',
+          oldPrice: oldSelling.toDecimalPlaces(2),
+          newPrice: newSelling.toDecimalPlaces(2),
+          changeAmount: changeAmount.toDecimalPlaces(2),
+          changePercentage,
+          reason,
+          notes: data.priceChangeNotes || null,
+          changedById: userId,
+        },
+      })
+    }
 
     // Push price to Shopify if price-relevant fields changed
     if (product.shopifyVariantId && (data.weight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined)) {

@@ -69,7 +69,7 @@ const metalRateService = {
       }),
     ])
 
-    const updatedProducts = await recalculateAllProducts(newRate)
+    const updatedProducts = await recalculateAllProducts(newRate, { userId, reason: 'silver_rate_change' })
 
     // Phase 18: publish the new prices to the Shopify store.
     // The rate change itself must never fail because Shopify is busy,

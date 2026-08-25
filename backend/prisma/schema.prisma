@@ -91,28 +91,29 @@ model Role {
 }
 
 model User {
-  id                 Int      @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   name               String
-  email              String   @unique
-  password           String   // bcrypt-hashed, never plain text
+  email              String    @unique
+  password           String // bcrypt-hashed, never plain text
   roleId             Int
-  role               Role     @relation(fields: [roleId], references: [id])
-  isActive           Boolean  @default(true)
-  mustChangePassword Boolean  @default(false)
+  role               Role      @relation(fields: [roleId], references: [id])
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
   resetToken         String?
   resetTokenExpiry   DateTime?
   lastLogin          DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   inventoryTransactions InventoryTransaction[]
-  invoices              Invoice[]               @relation("salesperson")
+  invoices              Invoice[]              @relation("salesperson")
   auditLogs             AuditLog[]
   metalRateChanges      MetalRateHistory[]
   updatedMetalRates     MetalRate[]
-  rateRequestsRequested MetalRateRequest[] @relation("RateRequestsRequested")
-  rateRequestsReviewed  MetalRateRequest[] @relation("RateRequestsReviewed")
+  rateRequestsRequested MetalRateRequest[]     @relation("RateRequestsRequested")
+  rateRequestsReviewed  MetalRateRequest[]     @relation("RateRequestsReviewed")
   notifications         Notification[]
+  priceHistoryChanges   ProductPriceHistory[]
 
   @@index([roleId])
 }
@@ -130,45 +131,69 @@ model Category {
 }
 
 model Product {
-  id              Int      @id @default(autoincrement())
-  sku             String   @unique
-  name            String
-  description     String?
-  categoryId      Int
-  category        Category @relation(fields: [categoryId], references: [id])
-  metal           MetalType @default(silver)
-  weight          Decimal  @db.Decimal(10, 3) // grams
-  makingCharge    Decimal  @db.Decimal(10, 2) // per gram
-  gstPercent      Decimal  @default(3)        @db.Decimal(5, 2)
-  baseAmount      Decimal  @db.Decimal(12, 2) // calculated by pricing engine
-  gstAmount       Decimal  @default(0)        @db.Decimal(12, 2)
-  sellingPrice    Decimal  @db.Decimal(12, 2) // final price, published to Shopify
-  isActive        Boolean  @default(true)
-  lowStockThreshold Int    @default(5)
+  id                     Int                    @id @default(autoincrement())
+  sku                    String                 @unique
+  name                   String
+  description            String?
+  categoryId             Int
+  category               Category               @relation(fields: [categoryId], references: [id])
+  metal                  MetalType              @default(silver)
+  weight                 Decimal                @db.Decimal(10, 3) // grams
+  makingCharge           Decimal                @db.Decimal(10, 2) // per gram
+  gstPercent             Decimal                @default(3) @db.Decimal(5, 2)
+  baseAmount             Decimal                @db.Decimal(12, 2) // calculated by pricing engine
+  gstAmount              Decimal                @default(0) @db.Decimal(12, 2)
+  sellingPrice           Decimal                @db.Decimal(12, 2) // final price, published to Shopify
+  isActive               Boolean                @default(true)
+  lowStockThreshold      Int                    @default(5)
   // Shopify linkage (Phases 15-16)
-  shopifyProductId  BigInt?
-  shopifyVariantId  BigInt?
+  shopifyProductId       BigInt?
+  shopifyVariantId       BigInt?
   shopifyInventoryItemId BigInt?
-  inventory       Inventory?
-  transactions    InventoryTransaction[]
-  orderItems      OrderItem[]
-  invoiceItems    InvoiceItem[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  inventory              Inventory?
+  transactions           InventoryTransaction[]
+  orderItems             OrderItem[]
+  invoiceItems           InvoiceItem[]
+  priceHistory           ProductPriceHistory[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 
   @@index([categoryId])
   @@index([isActive])
   @@index([sku])
 }
 
+// ---------- PRODUCT PRICE HISTORY ----------
+
+model ProductPriceHistory {
+  id               Int      @id @default(autoincrement())
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  priceType        String // SELLING, BASE, MAKING_CHARGE, GST, STONE_CHARGE, DISCOUNT
+  oldPrice         Decimal  @db.Decimal(12, 2)
+  newPrice         Decimal  @db.Decimal(12, 2)
+  changeAmount     Decimal  @db.Decimal(12, 2)
+  changePercentage Decimal  @db.Decimal(8, 4)
+  reason           String // silver_rate_change, gold_rate_change, making_charge_change, manual_update, etc.
+  notes            String?
+  changedById      Int?
+  changedBy        User?    @relation(fields: [changedById], references: [id])
+  createdAt        DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+  @@index([priceType])
+  @@index([changedById])
+}
+
 // ---------- INVENTORY ----------
 
 model Inventory {
-  id        Int     @id @default(autoincrement())
-  productId Int     @unique
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int     @default(0)
-  reserved  Int     @default(0)
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(0)
+  reserved  Int      @default(0)
   updatedAt DateTime @updatedAt
 }
 
@@ -206,32 +231,32 @@ model Customer {
 }
 
 model Supplier {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
   phone     String?
   email     String?
   address   String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ---------- ORDERS (POS + Shopify) ----------
 
 model Order {
-  id              Int      @id @default(autoincrement())
-  orderNumber     String   @unique // e.g. "SHOPIFY-1234" or "POS-20260101-001"
-  source          OrderSource
-  shopifyOrderId  BigInt?  @unique
-  customerId      Int?
-  customer        Customer? @relation(fields: [customerId], references: [id])
-  status          OrderStatus @default(PENDING)
-  totalAmount     Decimal  @default(0) @db.Decimal(12, 2)
-  items           OrderItem[]
-  invoice         Invoice?
-  payments        Payment[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int         @id @default(autoincrement())
+  orderNumber    String      @unique // e.g. "SHOPIFY-1234" or "POS-20260101-001"
+  source         OrderSource
+  shopifyOrderId BigInt?     @unique
+  customerId     Int?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal     @default(0) @db.Decimal(12, 2)
+  items          OrderItem[]
+  invoice        Invoice?
+  payments       Payment[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@index([customerId])
   @@index([status])
@@ -239,20 +264,20 @@ model Order {
 }
 
 model OrderItem {
-  id          Int      @id @default(autoincrement())
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id])
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id])
-  sku         String // snapshot, keeps history if product is later renamed
-  name        String
-  quantity    Int
-  unitPrice   Decimal  @db.Decimal(12, 2)
-  lineTotal   Decimal  @db.Decimal(12, 2)
-  weight      Decimal? @db.Decimal(10, 3)
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id])
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id])
+  sku          String // snapshot, keeps history if product is later renamed
+  name         String
+  quantity     Int
+  unitPrice    Decimal  @db.Decimal(12, 2)
+  lineTotal    Decimal  @db.Decimal(12, 2)
+  weight       Decimal? @db.Decimal(10, 3)
   makingCharge Decimal? @db.Decimal(10, 2)
-  silverRate  Decimal? @db.Decimal(10, 2) // rate used at the time of sale
-  gstAmount   Decimal? @db.Decimal(12, 2)
+  silverRate   Decimal? @db.Decimal(10, 2) // rate used at the time of sale
+  gstAmount    Decimal? @db.Decimal(12, 2)
 
   @@index([orderId])
   @@index([productId])
@@ -261,27 +286,27 @@ model OrderItem {
 // ---------- INVOICES / BILLING ----------
 
 model Invoice {
-  id              Int           @id @default(autoincrement())
-  invoiceNumber   String        @unique // e.g. "INV-0001"
-  customerId      Int?
-  customer        Customer?     @relation(fields: [customerId], references: [id])
-  orderId         Int?          @unique
-  order           Order?        @relation(fields: [orderId], references: [id])
-  date            DateTime      @default(now())
-  paymentMethod   PaymentMethod?
-  salespersonId   Int?
-  salesperson     User?         @relation("salesperson", fields: [salespersonId], references: [id])
-  status          InvoiceStatus @default(DRAFT)
-  subtotal        Decimal       @default(0) @db.Decimal(12, 2)
-  discount        Decimal       @default(0) @db.Decimal(12, 2)
-  gstTotal        Decimal       @default(0) @db.Decimal(12, 2)
-  grandTotal      Decimal       @default(0) @db.Decimal(12, 2)
-  totalWeight     Decimal       @default(0) @db.Decimal(12, 3)
-  totalMakingCharge Decimal     @default(0) @db.Decimal(12, 2)
-  items           InvoiceItem[]
-  payments        Payment[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                Int            @id @default(autoincrement())
+  invoiceNumber     String         @unique // e.g. "INV-0001"
+  customerId        Int?
+  customer          Customer?      @relation(fields: [customerId], references: [id])
+  orderId           Int?           @unique
+  order             Order?         @relation(fields: [orderId], references: [id])
+  date              DateTime       @default(now())
+  paymentMethod     PaymentMethod?
+  salespersonId     Int?
+  salesperson       User?          @relation("salesperson", fields: [salespersonId], references: [id])
+  status            InvoiceStatus  @default(DRAFT)
+  subtotal          Decimal        @default(0) @db.Decimal(12, 2)
+  discount          Decimal        @default(0) @db.Decimal(12, 2)
+  gstTotal          Decimal        @default(0) @db.Decimal(12, 2)
+  grandTotal        Decimal        @default(0) @db.Decimal(12, 2)
+  totalWeight       Decimal        @default(0) @db.Decimal(12, 3)
+  totalMakingCharge Decimal        @default(0) @db.Decimal(12, 2)
+  items             InvoiceItem[]
+  payments          Payment[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([customerId])
   @@index([date])
@@ -289,20 +314,20 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id           Int      @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   invoiceId    Int
-  invoice      Invoice  @relation(fields: [invoiceId], references: [id])
+  invoice      Invoice @relation(fields: [invoiceId], references: [id])
   productId    Int
-  product      Product  @relation(fields: [productId], references: [id])
+  product      Product @relation(fields: [productId], references: [id])
   sku          String
   name         String
-  quantity     Int      @default(1)
-  weight       Decimal  @db.Decimal(10, 3)
-  makingCharge Decimal  @db.Decimal(10, 2)
-  silverRate   Decimal  @db.Decimal(10, 2)
-  baseAmount   Decimal  @db.Decimal(12, 2)
-  gstAmount    Decimal  @db.Decimal(12, 2)
-  finalAmount  Decimal  @db.Decimal(12, 2)
+  quantity     Int     @default(1)
+  weight       Decimal @db.Decimal(10, 3)
+  makingCharge Decimal @db.Decimal(10, 2)
+  silverRate   Decimal @db.Decimal(10, 2)
+  baseAmount   Decimal @db.Decimal(12, 2)
+  gstAmount    Decimal @db.Decimal(12, 2)
+  finalAmount  Decimal @db.Decimal(12, 2)
 
   @@index([invoiceId])
   @@index([productId])
@@ -311,18 +336,18 @@ model InvoiceItem {
 // ---------- PAYMENTS ----------
 
 model Payment {
-  id          Int           @id @default(autoincrement())
-  invoiceId   Int?
-  invoice     Invoice?      @relation(fields: [invoiceId], references: [id])
-  orderId     Int?
-  order       Order?        @relation(fields: [orderId], references: [id])
-  customerId  Int
-  customer    Customer      @relation(fields: [customerId], references: [id])
-  amount      Decimal       @db.Decimal(12, 2)
-  method      PaymentMethod
-  status      PaymentStatus @default(PAID)
-  reference   String? // transaction ID / UPI ref
-  createdAt   DateTime      @default(now())
+  id         Int           @id @default(autoincrement())
+  invoiceId  Int?
+  invoice    Invoice?      @relation(fields: [invoiceId], references: [id])
+  orderId    Int?
+  order      Order?        @relation(fields: [orderId], references: [id])
+  customerId Int
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  amount     Decimal       @db.Decimal(12, 2)
+  method     PaymentMethod
+  status     PaymentStatus @default(PAID)
+  reference  String? // transaction ID / UPI ref
+  createdAt  DateTime      @default(now())
 
   @@index([customerId])
   @@index([invoiceId])
@@ -332,23 +357,23 @@ model Payment {
 
 // Single row per metal: the CURRENT rate used by the pricing engine.
 model MetalRate {
-  id        Int       @id @default(autoincrement())
-  metal     MetalType @unique // only "silver" today
-  rate      Decimal   @db.Decimal(10, 2) // ₹ per gram
+  id          Int       @id @default(autoincrement())
+  metal       MetalType @unique // only "silver" today
+  rate        Decimal   @db.Decimal(10, 2) // ₹ per gram
   updatedById Int?
-  updatedBy User?     @relation(fields: [updatedById], references: [id])
-  updatedAt DateTime  @updatedAt
+  updatedBy   User?     @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime  @updatedAt
 }
 
 // Audit trail — EVERY rate change is recorded here, forever.
 model MetalRateHistory {
-  id        Int       @id @default(autoincrement())
-  metal     MetalType
-  oldRate   Decimal   @db.Decimal(10, 2)
-  newRate   Decimal   @db.Decimal(10, 2)
+  id          Int       @id @default(autoincrement())
+  metal       MetalType
+  oldRate     Decimal   @db.Decimal(10, 2)
+  newRate     Decimal   @db.Decimal(10, 2)
   changedById Int?
-  changedBy User?     @relation(fields: [changedById], references: [id])
-  changedAt DateTime  @default(now())
+  changedBy   User?     @relation(fields: [changedById], references: [id])
+  changedAt   DateTime  @default(now())
 
   @@index([metal])
   @@index([changedAt])
@@ -356,18 +381,18 @@ model MetalRateHistory {
 
 // Silver Rate Approval Requests — managers request, admins approve
 model MetalRateRequest {
-  id          Int         @id @default(autoincrement())
-  oldRate     Decimal     @db.Decimal(10, 2)
-  newRate     Decimal     @db.Decimal(10, 2)
+  id            Int           @id @default(autoincrement())
+  oldRate       Decimal       @db.Decimal(10, 2)
+  newRate       Decimal       @db.Decimal(10, 2)
   requestedById Int
-  requestedBy User        @relation("RateRequestsRequested", fields: [requestedById], references: [id])
-  status      RequestStatus @default(PENDING)
-  reviewedById Int?
-  reviewedBy  User?       @relation("RateRequestsReviewed", fields: [reviewedById], references: [id])
-  reviewedAt  DateTime?
-  previewJson Json?       // snapshot of preview data (affectedCount, sample)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  requestedBy   User          @relation("RateRequestsRequested", fields: [requestedById], references: [id])
+  status        RequestStatus @default(PENDING)
+  reviewedById  Int?
+  reviewedBy    User?         @relation("RateRequestsReviewed", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  previewJson   Json? // snapshot of preview data (affectedCount, sample)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([status])
   @@index([requestedById])
@@ -382,27 +407,27 @@ enum RequestStatus {
 // ---------- SHOPIFY ----------
 
 model ShopifySyncLog {
-  id            Int        @id @default(autoincrement())
-  type          SyncType
-  status        SyncStatus @default(PENDING)
-  itemsProcessed Int       @default(0)
-  message       String?
-  payload       Json?
-  createdAt     DateTime   @default(now())
+  id             Int        @id @default(autoincrement())
+  type           SyncType
+  status         SyncStatus @default(PENDING)
+  itemsProcessed Int        @default(0)
+  message        String?
+  payload        Json?
+  createdAt      DateTime   @default(now())
 }
 
 // Every incoming Shopify webhook is stored here.
 // Used for idempotency: if the same event arrives twice, we skip it.
 model WebhookEvent {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   topic       String // e.g. "orders/create"
   shopDomain  String
-  eventId     String   @unique // Shopify's unique ID for the event
+  eventId     String    @unique // Shopify's unique ID for the event
   payload     Json
-  processed   Boolean  @default(false)
+  processed   Boolean   @default(false)
   processedAt DateTime?
   error       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([topic])
   @@index([processed])

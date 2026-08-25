@@ -23,6 +23,7 @@ import SalesReturns from './pages/SalesReturns'
 import ActivityLog from './pages/ActivityLog'
 import MetalRates from './pages/MetalRates'
 import PriceHistory from './pages/PriceHistory'
+import ProductPriceHistory from './pages/ProductPriceHistory'
 import BusinessReports from './pages/BusinessReports'
 import GSTReports from './pages/GSTReports'
 import SalesAnalysis from './pages/SalesAnalysis'
@@ -76,6 +77,7 @@ function App() {
 
         {/* Inventory */}
         <Route path="/products" element={<Products />} />
+        <Route path="/price-history" element={<ProductPriceHistory />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/stock-transfer" element={<StockTransfer />} />

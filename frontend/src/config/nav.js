@@ -29,6 +29,7 @@ import {
   Coins,
   Receipt,
   Users,
+  History,
 } from 'lucide-react'
 
 export const navGroups = [
@@ -62,6 +63,7 @@ export const navGroups = [
     label: 'Inventory',
     items: [
       { to: '/products', label: 'Products', icon: Package, permission: 'products:view' },
+      { to: '/price-history', label: 'Product Price History', icon: History, permission: 'products:view' },
       { to: '/inventory', label: 'Stock Overview', icon: Boxes, permission: 'inventory:view' },
       { to: '/stock-transfer', label: 'Stock Transfer', icon: ArrowRight, permission: 'inventory:manage' },
       { to: '/barcode', label: 'Barcode / Labels', icon: ScanBarcode, permission: 'inventory:view' },

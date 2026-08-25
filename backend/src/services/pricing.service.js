@@ -68,8 +68,11 @@ async function previewRecalculation(newRate) {
 }
 
 // Recalculate every active product at a new rate and SAVE the new prices.
-async function recalculateAllProducts(newRate) {
+// Optionally records price history for each changed product.
+async function recalculateAllProducts(newRate, { userId, reason } = {}) {
   const products = await prisma.product.findMany({ where: { isActive: true } })
+
+  const priceHistoryRecords = []
 
   const updates = products.map((p) => {
     const price = calculatePrice({
@@ -78,6 +81,22 @@ async function recalculateAllProducts(newRate) {
       makingCharge: p.makingCharge,
       gstPercent: p.gstPercent,
     })
+
+    const oldSelling = new Decimal(p.sellingPrice)
+    const newSelling = price.sellingPrice
+
+    if (!oldSelling.equals(newSelling) && reason) {
+      priceHistoryRecords.push({
+        productId: p.id,
+        priceType: 'SELLING',
+        oldPrice: oldSelling,
+        newPrice: newSelling,
+        reason,
+        notes: `Silver rate changed to ₹${newRate}/gm`,
+        changedById: userId || null,
+      })
+    }
+
     return prisma.product.update({
       where: { id: p.id },
       data: {
@@ -88,12 +107,29 @@ async function recalculateAllProducts(newRate) {
     })
   })
 
-  // Save all new prices in ONE database transaction.
-  // (The Shopify price push hooks in here in Phase 18.)
-  // The timeout is raised because large catalogs can exceed Prisma's
-  // default 5s transaction window.
   if (updates.length > 0) {
     await prisma.$transaction(updates, { timeout: 120000 })
+  }
+
+  if (priceHistoryRecords.length > 0) {
+    const historyData = priceHistoryRecords.map((r) => {
+      const changeAmount = new Decimal(r.newPrice).minus(r.oldPrice)
+      const changePercentage = r.oldPrice.equals(0)
+        ? 0
+        : changeAmount.div(r.oldPrice).mul(100).toDecimalPlaces(4)
+      return {
+        productId: r.productId,
+        priceType: r.priceType,
+        oldPrice: r.oldPrice.toDecimalPlaces(2),
+        newPrice: r.newPrice.toDecimalPlaces(2),
+        changeAmount: changeAmount.toDecimalPlaces(2),
+        changePercentage,
+        reason: r.reason,
+        notes: r.notes,
+        changedById: r.changedById,
+      }
+    })
+    await prisma.productPriceHistory.createMany({ data: historyData })
   }
 
   return products.length

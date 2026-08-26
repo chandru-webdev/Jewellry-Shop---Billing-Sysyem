@@ -68,6 +68,24 @@ const productService = {
       include: { category: true, inventory: true },
     })
 
+    // Push new product to Shopify
+    if (product.isActive) {
+      try {
+        const ids = await shopifyService.createProductOnShopify(product)
+        await prisma.product.update({
+          where: { id: product.id },
+          data: {
+            shopifyProductId: ids.shopifyProductId,
+            shopifyVariantId: ids.shopifyVariantId,
+            shopifyInventoryItemId: ids.shopifyInventoryItemId,
+          },
+        })
+        product.shopifyProductId = ids.shopifyProductId
+        product.shopifyVariantId = ids.shopifyVariantId
+        product.shopifyInventoryItemId = ids.shopifyInventoryItemId
+      } catch (_) {}
+    }
+
     await prisma.auditLog.create({
       data: { userId, action: 'PRODUCT_CREATED', entity: 'Product', entityId: product.id },
     })
@@ -136,8 +154,9 @@ const productService = {
       })
     }
 
-    // Push price to Shopify if price-relevant fields changed
-    if (product.shopifyVariantId && (data.weight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined)) {
+    // Push to Shopify if price-relevant fields changed OR status changed
+    const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
+    if (product.shopifyVariantId && (data.weight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || isActiveChanged)) {
       shopifyService.updateProductOnShopify({
         shopifyProductId: product.shopifyProductId,
         shopifyVariantId: product.shopifyVariantId,
@@ -173,7 +192,12 @@ const productService = {
     }
 
     await prisma.auditLog.create({
-      data: { userId, action: 'PRODUCT_UPDATED', entity: 'Product', entityId: product.id },
+      data: {
+        userId,
+        action: isActiveChanged && data.isActive ? 'PRODUCT_ACTIVATED' : 'PRODUCT_UPDATED',
+        entity: 'Product',
+        entityId: product.id,
+      },
     })
 
     return product
@@ -186,6 +210,23 @@ const productService = {
       where: { id: existing.id },
       data: { isActive: false },
     })
+
+    // Sync deactivation to Shopify (set status to 'draft')
+    if (existing.shopifyProductId) {
+      shopifyService.updateProductOnShopify({
+        shopifyProductId: existing.shopifyProductId,
+        shopifyVariantId: existing.shopifyVariantId,
+        shopifyInventoryItemId: existing.shopifyInventoryItemId,
+        name: existing.name,
+        category: existing.category,
+        description: existing.description,
+        isActive: false,
+        sellingPrice: existing.sellingPrice,
+        sku: existing.sku,
+        inventory: existing.inventory,
+        weight: existing.weight,
+      }).catch(() => {})
+    }
 
     await prisma.auditLog.create({
       data: { userId, action: 'PRODUCT_DEACTIVATED', entity: 'Product', entityId: product.id },

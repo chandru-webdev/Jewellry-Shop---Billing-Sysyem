@@ -21,6 +21,7 @@ export default function Products() {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStock, setFilterStock] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [inlineEdit, setInlineEdit] = useState({ productId: null, field: null })
   const [inlineValue, setInlineValue] = useState('')
   const [toast, setToast] = useState('')
@@ -142,6 +143,8 @@ export default function Products() {
     if (filterStock === 'low' && (p.inventory?.quantity || 0) > (p.lowStockThreshold || 5)) return false
     if (filterStock === 'out' && (p.inventory?.quantity || 0) > 0) return false
     if (filterStock === 'in' && (p.inventory?.quantity || 0) <= 0) return false
+    if (filterStatus === 'active' && !p.isActive) return false
+    if (filterStatus === 'inactive' && p.isActive) return false
     return true
   })
 
@@ -201,6 +204,15 @@ export default function Products() {
           <option value="in">In Stock</option>
           <option value="low">Low Stock</option>
           <option value="out">Out of Stock</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
+        >
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
         </select>
       </div>
 

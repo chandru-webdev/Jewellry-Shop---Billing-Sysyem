@@ -14,6 +14,8 @@ const createProductSchema = z.object({
 })
 
 // For updates every field is optional
-const updateProductSchema = createProductSchema.partial()
+const updateProductSchema = createProductSchema.partial().extend({
+  isActive: z.boolean().optional(),
+})
 
 module.exports = { createProductSchema, updateProductSchema }

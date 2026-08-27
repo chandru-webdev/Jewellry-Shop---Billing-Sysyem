@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 const variants = {
@@ -20,6 +21,8 @@ export default function Button({
   size = 'md',
   className,
   children,
+  loading = false,
+  disabled,
   ...props
 }) {
   return (
@@ -31,7 +34,10 @@ export default function Button({
         className
       )}
       {...props}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
     >
+      {loading && <Loader2 size={14} className="animate-spin" />}
       {children}
     </button>
   )

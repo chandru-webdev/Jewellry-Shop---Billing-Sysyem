@@ -69,7 +69,7 @@ const exportService = {
 
   async sales() {
     const invoices = await prisma.invoice.findMany({
-      where: { status: { in: ['PAID', 'PARTIAL'] } },
+      where: { status: { in: ['PAID'] } },
       orderBy: { createdAt: 'asc' },
     })
     const byMonth = {}

@@ -104,7 +104,7 @@ export default function Orders() {
                     <Badge tone={o.fulfillment === 'Fulfilled' ? 'green' : o.fulfillment === 'Cancelled' ? 'red' : 'blue'}>{o.fulfillment || '—'}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {o.invoice ? <span className="font-mono text-xs text-royal-700 dark:text-gray-300">{o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
+                    {o.invoice ? <span className="font-mono text-xs text-royal-700 dark:text-gray-300">{o.invoice.invoiceNumber || o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={statusTone[o.status]}>{o.status}</Badge>

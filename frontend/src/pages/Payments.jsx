@@ -89,8 +89,8 @@ export default function Payments() {
             <tbody className="divide-y divide-gray-100">
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{p.invoice || '—'}</td>
-                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{p.customer}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{p.invoice?.invoiceNumber || p.invoice || '—'}</td>
+                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{p.customer?.name || p.customer || '—'}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{p.method}</Badge></td>
                   <td className="px-4 py-3 text-center">
@@ -126,8 +126,8 @@ export default function Payments() {
               <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Reference</p><p className="font-mono text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{selected.reference}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Invoice</p><p className="font-medium">{selected.invoice || '—'}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Invoice</p><p className="font-medium">{selected.invoice?.invoiceNumber || selected.invoice || '—'}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer || '—'}</p></div>
             </div>
           </div>
         )}

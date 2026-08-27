@@ -62,6 +62,18 @@ const shopifyController = {
     })
     success(res, 200, logs, 'Sync logs fetched')
   }),
+
+  // GET /api/shopify/inventory-comparison — ERP vs Shopify stock
+  inventoryComparison: asyncHandler(async (req, res) => {
+    const data = await shopifyService.inventoryComparison()
+    success(res, 200, data, 'Inventory comparison fetched')
+  }),
+
+  // GET /api/shopify/price-comparison — ERP vs Shopify prices
+  priceComparison: asyncHandler(async (req, res) => {
+    const data = await shopifyService.priceComparison()
+    success(res, 200, data, 'Price comparison fetched')
+  }),
 }
 
 module.exports = shopifyController

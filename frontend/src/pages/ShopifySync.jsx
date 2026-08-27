@@ -8,28 +8,23 @@ import Badge from '../components/ui/Badge'
 import { shopifyApi } from '../api/shopify'
 import { formatINR } from '../utils/format'
 
-const DEMO_SYNC = {
-  ordersToday: 32,
-  ordersSynced: 31,
-  syncFailures: 1,
-  productsSynced: 312,
-  inventorySync: 'Healthy',
-  priceSync: 'Pending Approval',
-  razorpayPayments: 124560,
-}
-
-const DEMO_LOGS = [
-  { entity: 'Order', shopifyId: '#10235', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: 'Today, 08:45 AM', error: null },
-  { entity: 'Order', shopifyId: '#10234', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: 'Today, 08:42 AM', error: null },
-  { entity: 'Product', shopifyId: '#12345', direction: 'ERP → Shopify', action: 'Price Update', status: 'SUCCESS', time: 'Today, 08:30 AM', error: null },
-  { entity: 'Inventory', shopifyId: '#78945', direction: 'ERP → Shopify', action: 'Stock Update', status: 'FAILED', time: 'Today, 08:28 AM', error: 'Timeout: Shopify API rate limit exceeded' },
-  { entity: 'Customer', shopifyId: '#95123', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: 'Today, 08:15 AM', error: null },
-  { entity: 'Product', shopifyId: '#12389', direction: 'ERP → Shopify', action: 'Stock Update', status: 'SUCCESS', time: 'Today, 08:10 AM', error: null },
-  { entity: 'Order', shopifyId: '#10233', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: 'Yesterday, 11:30 PM', error: null },
-]
-
 const statusIcon = { SUCCESS: CheckCircle2, FAILED: XCircle, PENDING: Clock }
 const statusBadge = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
+
+function timeAgo(date) {
+  if (!date) return '—'
+  const now = new Date()
+  const d = new Date(date)
+  const seconds = Math.floor((now - d) / 1000)
+  if (seconds < 60) return 'Just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+}
 
 export default function ShopifySync() {
   const [tab, setTab] = useState('dashboard')
@@ -41,6 +36,14 @@ export default function ShopifySync() {
     queryKey: ['shopify-sync'],
     queryFn: () => shopifyApi.getSyncStatus().then((r) => r.data.data),
   })
+
+  const syncLogsQuery = useQuery({
+    queryKey: ['shopify-sync-logs'],
+    queryFn: () => shopifyApi.getSyncLogs({ limit: 20 }).then((r) => r.data.data),
+    enabled: tab === 'sync-logs',
+  })
+
+  const sync = syncQuery.data || {}
 
   const pullMutation = useMutation({
     mutationFn: () => shopifyApi.pullProducts(),
@@ -133,10 +136,10 @@ export default function ShopifySync() {
           {/* Status Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {[
-              { icon: ShoppingBag, label: 'Shopify Orders Today', value: DEMO_SYNC.ordersToday, accent: 'from-blue-500 to-blue-600' },
-              { icon: RefreshCw, label: 'Orders Synced', value: DEMO_SYNC.ordersSynced, accent: 'from-emerald-500 to-emerald-600' },
-              { icon: AlertCircle, label: 'Sync Failures', value: DEMO_SYNC.syncFailures, accent: 'from-red-500 to-red-600' },
-              { icon: Package, label: 'Products Synced', value: DEMO_SYNC.productsSynced, accent: 'from-royal-500 to-royal-700' },
+              { icon: ShoppingBag, label: 'Last Order Sync', value: sync.order?.status || 'No data', accent: 'from-blue-500 to-blue-600' },
+              { icon: RefreshCw, label: 'Last Product Sync', value: sync.product?.status || 'No data', accent: 'from-emerald-500 to-emerald-600' },
+              { icon: AlertCircle, label: 'Last Price Sync', value: sync.price?.status || 'No data', accent: 'from-red-500 to-red-600' },
+              { icon: Package, label: 'Last Inventory Sync', value: sync.inventory?.status || 'No data', accent: 'from-royal-500 to-royal-700' },
             ].map((c) => (
               <div key={c.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
                 <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.accent} flex items-center justify-center mb-3`}>
@@ -151,9 +154,9 @@ export default function ShopifySync() {
           {/* Health Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
             {[
-              { label: 'Inventory Sync', value: DEMO_SYNC.inventorySync, icon: Boxes, color: 'emerald' },
-              { label: 'Price Sync', value: DEMO_SYNC.priceSync, icon: DollarSign, color: 'amber' },
-              { label: 'Razorpay Payments', value: formatINR(DEMO_SYNC.razorpayPayments), icon: CreditCard, color: 'blue' },
+              { label: 'Inventory Sync', value: sync.inventory ? `${sync.inventory.itemsProcessed || 0} items • ${timeAgo(sync.inventory.createdAt)}` : 'Never synced', icon: Boxes, color: sync.inventory?.status === 'SUCCESS' ? 'emerald' : 'gray' },
+              { label: 'Price Sync', value: sync.price ? `${sync.price.itemsProcessed || 0} items • ${timeAgo(sync.price.createdAt)}` : 'Never synced', icon: DollarSign, color: sync.price?.status === 'SUCCESS' ? 'amber' : 'gray' },
+              { label: 'Order Sync', value: sync.order ? `${sync.order.itemsProcessed || 0} items • ${timeAgo(sync.order.createdAt)}` : 'Never synced', icon: CreditCard, color: sync.order?.status === 'SUCCESS' ? 'blue' : 'gray' },
             ].map((h) => (
               <div key={h.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg bg-${h.color}-50 flex items-center justify-center`}>
@@ -256,25 +259,39 @@ export default function ShopifySync() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {DEMO_LOGS.map((log, i) => {
-                  const StatusIcon = statusIcon[log.status]
+                {syncLogsQuery.isFetching && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+                      Loading sync logs...
+                    </td>
+                  </tr>
+                )}
+                {!syncLogsQuery.isFetching && syncLogsQuery.data?.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+                      No sync logs yet. Sync some products to see logs here.
+                    </td>
+                  </tr>
+                )}
+                {syncLogsQuery.data?.map((log, i) => {
+                  const StatusIcon = statusIcon[log.status] || Clock
                   return (
-                    <tr key={i} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                      <td className="px-4 py-3"><Badge tone="purple">{log.entity}</Badge></td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{log.shopifyId}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{log.direction}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>
+                    <tr key={log.id || i} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                      <td className="px-4 py-3"><Badge tone="purple">{log.type}</Badge></td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{log.id}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-xs">{log.type === 'ORDER' ? 'Shopify → ERP' : 'ERP → Shopify'}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.message || log.type}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge tone={statusBadge[log.status]}>
                           <StatusIcon size={10} className="mr-1" /> {log.status}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{log.time}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{timeAgo(log.createdAt)}</td>
                       <td className="px-4 py-3 text-xs text-red-500 max-w-48 truncate">{log.error || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         {log.status === 'FAILED' && (
                           <Button variant="ghost" size="sm" onClick={() => handleRetry(log)} disabled={retrying !== null}>
-                            {retrying === log.shopifyId ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />} Retry
+                            {retrying === log.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />} Retry
                           </Button>
                         )}
                       </td>

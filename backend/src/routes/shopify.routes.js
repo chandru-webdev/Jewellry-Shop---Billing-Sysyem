@@ -15,6 +15,12 @@ router.get('/status', shopifyController.status)
 // GET /api/shopify/sync-logs — list sync log entries
 router.get('/sync-logs', shopifyController.syncLogs)
 
+// GET /api/shopify/inventory-comparison — ERP vs Shopify stock levels
+router.get('/inventory-comparison', shopifyController.inventoryComparison)
+
+// GET /api/shopify/price-comparison — ERP vs Shopify prices
+router.get('/price-comparison', shopifyController.priceComparison)
+
 // POST /api/shopify/pull-products — pull products FROM Shopify into ERP
 router.post('/pull-products', shopifyController.pullProducts)
 

@@ -19,52 +19,6 @@ const statusLabel = {
   PENDING: 'Pending',
 }
 
-const DEMO_PURCHASE_INVOICES = [
-  {
-    id: 1,
-    invoiceNumber: 'PI-2026-001',
-    date: '2026-08-10T00:00:00Z',
-    status: 'PAID',
-    paymentMethod: 'BANK_TRANSFER',
-    grandTotal: 225000.00,
-    totalQuantity: 120,
-    customer: { name: 'Royal Crafts Ltd.', phone: '+91 98765 12345', email: 'info@royalcrafts.com', address: '123 Industrial Area, Mumbai' },
-    salesperson: { name: 'Admin' },
-    _count: { items: 4 },
-    createdAt: '2026-08-10T00:00:00Z',
-  },
-  {
-    id: 2,
-    invoiceNumber: 'PI-2026-002',
-    date: '2026-08-08T00:00:00Z',
-    status: 'FINAL',
-    paymentMethod: 'CASH',
-    grandTotal: 89000.00,
-    totalQuantity: 45,
-    customer: { name: 'Silver Arts Co.', phone: '+91 91234 56789', email: 'sales@silverarts.com' },
-    salesperson: { name: 'Admin' },
-    _count: { items: 2 },
-    createdAt: '2026-08-08T00:00:00Z',
-  },
-  {
-    id: 3,
-    invoiceNumber: 'PI-2026-003',
-    date: '2026-08-05T00:00:00Z',
-    status: 'DRAFT',
-    paymentMethod: 'CASH',
-    grandTotal: 156000.00,
-    totalQuantity: 85,
-    customer: { name: 'Golden Threads', phone: '+91 99887 76655' },
-    salesperson: { name: 'Manager' },
-    _count: { items: 3 },
-    createdAt: '2026-08-05T00:00:00Z',
-  },
-]
-
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
-
 function InvoiceDetail({ invoice }) {
   return (
     <div className="text-sm space-y-5">
@@ -155,7 +109,7 @@ export default function PurchaseInvoices() {
     queryFn: () => invoicesApi.list({ search, status: filterStatus }).then((r) => r.data.data),
   })
 
-  const displayInvoices = (isDemoMode() && error) ? DEMO_PURCHASE_INVOICES : (invoices || [])
+  const displayInvoices = invoices || []
 
   const filtered = displayInvoices.filter((inv) => {
     if (filterStatus && inv.status !== filterStatus) return false

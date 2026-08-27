@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Eye, Package, X, Save } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
-import { ordersApi } from '../api/orders'
+import { purchaseOrdersApi } from '../api/purchaseOrders'
 import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
 
@@ -28,64 +28,6 @@ const statusLabel = {
   RETURNED: 'Returned',
 }
 
-const DEMO_PURCHASE_ORDERS = [
-  {
-    id: 1,
-    orderNumber: 'PO-2026-001',
-    supplier: { id: 1, name: 'Royal Crafts Ltd.', phone: '+91 98765 12345' },
-    date: '2026-08-10T00:00:00Z',
-    totalItems: 4,
-    totalQuantity: 120,
-    totalAmount: 225000.00,
-    status: 'RECEIVED',
-    createdAt: '2026-08-10T00:00:00Z',
-  },
-  {
-    id: 2,
-    orderNumber: 'PO-2026-002',
-    supplier: { id: 2, name: 'Silver Arts Co.', phone: '+91 91234 56789' },
-    date: '2026-08-08T00:00:00Z',
-    totalItems: 2,
-    totalQuantity: 45,
-    totalAmount: 89000.00,
-    status: 'CONFIRMED',
-    createdAt: '2026-08-08T00:00:00Z',
-  },
-  {
-    id: 3,
-    orderNumber: 'PO-2026-003',
-    supplier: { id: 5, name: 'Golden Threads', phone: '+91 99887 76655' },
-    date: '2026-08-06T00:00:00Z',
-    totalItems: 6,
-    totalQuantity: 200,
-    totalAmount: 320000.00,
-    status: 'PENDING',
-    createdAt: '2026-08-06T00:00:00Z',
-  },
-  {
-    id: 4,
-    orderNumber: 'PO-2026-004',
-    supplier: { id: 1, name: 'Royal Crafts Ltd.', phone: '+91 98765 12345' },
-    date: '2026-08-04T00:00:00Z',
-    totalItems: 3,
-    totalQuantity: 85,
-    totalAmount: 156000.00,
-    status: 'RECEIVED',
-    createdAt: '2026-08-04T00:00:00Z',
-  },
-]
-
-const DEMO_SUPPLIERS_FOR_PO = [
-  { id: 1, name: 'Royal Crafts Ltd.' },
-  { id: 2, name: 'Silver Arts Co.' },
-  { id: 3, name: 'Classic Silver House' },
-  { id: 5, name: 'Golden Threads' },
-]
-
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
-
 export default function PurchaseOrders() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -93,10 +35,11 @@ export default function PurchaseOrders() {
   const [viewOpen, setViewOpen] = useState(false)
   const [showNewPO, setShowNewPO] = useState(false)
   const [poForm, setPOForm] = useState({ supplierId: '', notes: '' })
+  const queryClient = useQueryClient()
 
-  const { data: apiOrders, isLoading, error } = useQuery({
+  const { data: apiData, isLoading } = useQuery({
     queryKey: ['purchase-orders', search, filterStatus],
-    queryFn: () => ordersApi.list({ search }).then((r) => r.data.data),
+    queryFn: () => purchaseOrdersApi.list({ search, status: filterStatus || undefined }).then((r) => r.data.data),
   })
 
   const { data: apiSuppliers } = useQuery({
@@ -104,8 +47,19 @@ export default function PurchaseOrders() {
     queryFn: () => suppliersApi.list().then((r) => r.data.data),
   })
 
-  const orders = (isDemoMode() && error) ? DEMO_PURCHASE_ORDERS : (apiOrders || [])
-  const suppliersList = (isDemoMode() && error) ? DEMO_SUPPLIERS_FOR_PO : (apiSuppliers || [])
+  const createMutation = useMutation({
+    mutationFn: (data) => purchaseOrdersApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+      setShowNewPO(false)
+      setPOForm({ supplierId: '', notes: '' })
+      alert('Purchase order created!')
+    },
+    onError: (err) => alert(err.response?.data?.message || 'Failed to create purchase order'),
+  })
+
+  const orders = apiData?.orders || []
+  const suppliersList = apiSuppliers || []
 
   const filtered = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false
@@ -160,13 +114,7 @@ export default function PurchaseOrders() {
                 <form onSubmit={(e) => {
                   e.preventDefault()
                   if (!poForm.supplierId) { alert('Please select a supplier') ; return }
-                  if (isDemoMode()) {
-                    alert(`PO created for supplier #${poForm.supplierId}\n(Notes: ${poForm.notes || '—'})\n\n(In demo mode, this is not saved to database)`)
-                  } else {
-                    alert(`PO created for supplier #${poForm.supplierId}\n(Notes: ${poForm.notes || '—'})`)
-                  }
-                  setShowNewPO(false)
-                  setPOForm({ supplierId: '', notes: '' })
+                  createMutation.mutate({ supplierId: poForm.supplierId, notes: poForm.notes, items: [] })
                 }} className="space-y-4 text-sm">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Supplier *</label>

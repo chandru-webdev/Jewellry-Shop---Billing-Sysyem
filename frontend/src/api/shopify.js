@@ -16,4 +16,13 @@ export const shopifyApi = {
 
   // Sync log entries
   getSyncLogs: (params) => apiClient.get('/shopify/sync-logs', { params }),
+
+  // ERP vs Shopify comparisons
+  getInventoryComparison: () => apiClient.get('/shopify/inventory-comparison'),
+  getPriceComparison: () => apiClient.get('/shopify/price-comparison'),
+}
+
+// Data export
+export const exportApi = {
+  downloadCsv: (type) => apiClient.get(`/export/${type}`, { responseType: 'blob' }),
 }

@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Eye, RotateCw, X, Save } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
-import { ordersApi } from '../api/orders'
+import { purchaseReturnsApi } from '../api/purchaseReturns'
 import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
 
@@ -28,58 +28,6 @@ const statusLabel = {
   RETURNED: 'Returned',
 }
 
-const DEMO_PURCHASE_RETURNS = [
-  {
-    id: 1,
-    returnNumber: 'PR-2026-001',
-    orderNumber: 'PO-2026-001',
-    supplier: { id: 1, name: 'Royal Crafts Ltd.', phone: '+91 98765 12345' },
-    date: '2026-08-12T00:00:00Z',
-    reason: 'Quality issue - stone missing',
-    totalItems: 2,
-    totalQuantity: 5,
-    totalAmount: 8750.00,
-    status: 'APPROVED',
-    createdAt: '2026-08-12T00:00:00Z',
-  },
-  {
-    id: 2,
-    returnNumber: 'PR-2026-002',
-    orderNumber: 'PO-2026-003',
-    supplier: { id: 5, name: 'Golden Threads', phone: '+91 99887 76655' },
-    date: '2026-08-09T00:00:00Z',
-    reason: 'Damaged during transport',
-    totalItems: 1,
-    totalQuantity: 3,
-    totalAmount: 4200.00,
-    status: 'COMPLETED',
-    createdAt: '2026-08-09T00:00:00Z',
-  },
-  {
-    id: 3,
-    returnNumber: 'PR-2026-003',
-    orderNumber: 'PO-2026-002',
-    supplier: { id: 2, name: 'Silver Arts Co.', phone: '+91 91234 56789' },
-    date: '2026-08-07T00:00:00Z',
-    reason: 'Wrong item delivered',
-    totalItems: 3,
-    totalQuantity: 12,
-    totalAmount: 3200.00,
-    status: 'PENDING',
-    createdAt: '2026-08-07T00:00:00Z',
-  },
-]
-
-const DEMO_SUPPLIERS_FOR_RETURN = [
-  { id: 1, name: 'Royal Crafts Ltd.' },
-  { id: 2, name: 'Silver Arts Co.' },
-  { id: 5, name: 'Golden Threads' },
-]
-
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
-
 export default function PurchaseReturns() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -87,10 +35,11 @@ export default function PurchaseReturns() {
   const [viewOpen, setViewOpen] = useState(false)
   const [showNewReturn, setShowNewReturn] = useState(false)
   const [returnForm, setReturnForm] = useState({ supplierId: '', poNumber: '', reason: '' })
+  const queryClient = useQueryClient()
 
-  const { data: apiReturns, isLoading, error } = useQuery({
+  const { data: apiData, isLoading } = useQuery({
     queryKey: ['purchase-returns', search, filterStatus],
-    queryFn: () => ordersApi.list({ search, status: 'CANCELLED' }).then((r) => r.data.data),
+    queryFn: () => purchaseReturnsApi.list({ search, status: filterStatus || undefined }).then((r) => r.data.data),
   })
 
   const { data: apiSuppliers } = useQuery({
@@ -98,8 +47,19 @@ export default function PurchaseReturns() {
     queryFn: () => suppliersApi.list().then((r) => r.data.data),
   })
 
-  const returns = (isDemoMode() && error) ? DEMO_PURCHASE_RETURNS : (apiReturns || [])
-  const suppliersList = (isDemoMode() && error) ? DEMO_SUPPLIERS_FOR_RETURN : (apiSuppliers || [])
+  const createMutation = useMutation({
+    mutationFn: (data) => purchaseReturnsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-returns'] })
+      setShowNewReturn(false)
+      setReturnForm({ supplierId: '', poNumber: '', reason: '' })
+      alert('Purchase return created!')
+    },
+    onError: (err) => alert(err.response?.data?.message || 'Failed to create purchase return'),
+  })
+
+  const returns = apiData?.returns || []
+  const suppliersList = apiSuppliers || []
 
   const filtered = returns.filter((r) => {
     if (filterStatus && r.status !== filterStatus) return false
@@ -152,14 +112,8 @@ export default function PurchaseReturns() {
               <Modal open={showNewReturn} onClose={() => setShowNewReturn(false)} title="New Purchase Return" size="md">
                 <form onSubmit={(e) => {
                   e.preventDefault()
-                  if (!returnForm.supplierId) { alert('Please select a supplier'); return }
-                  if (isDemoMode()) {
-                    alert(`Return created for supplier #${returnForm.supplierId}\nPO: ${returnForm.poNumber || '—'}\nReason: ${returnForm.reason || '—'}\n\n(In demo mode, this is not saved to database)`)
-                  } else {
-                    alert(`Return created for supplier #${returnForm.supplierId}\nPO: ${returnForm.poNumber || '—'}\nReason: ${returnForm.reason || '—'})`)
-                  }
-                  setShowNewReturn(false)
-                  setReturnForm({ supplierId: '', poNumber: '', reason: '' })
+                  if (!returnForm.supplierId) { alert('Please select a supplier') ; return }
+                  createMutation.mutate({ supplierId: returnForm.supplierId, reason: returnForm.reason, items: [] })
                 }} className="space-y-4 text-sm">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Supplier *</label>

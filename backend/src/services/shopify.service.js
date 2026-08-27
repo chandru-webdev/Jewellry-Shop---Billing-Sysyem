@@ -476,6 +476,83 @@ const shopifyService = {
     types.forEach((type, i) => { latest[type.toLowerCase()] = logs[i] })
     return latest
   },
+
+  // ERP vs Shopify inventory comparison
+  async inventoryComparison() {
+    const products = await prisma.product.findMany({
+      where: { isActive: true, shopifyInventoryItemId: { not: null } },
+      include: { inventory: true },
+      orderBy: { sku: 'asc' },
+    })
+
+    // Fetch current Shopify inventory levels in bulk
+    const itemIds = products.map((p) => Number(p.shopifyInventoryItemId)).filter(Boolean)
+    let shopifyLevels = {}
+    if (itemIds.length > 0) {
+      try {
+        const locationId = await this.getLocationId()
+        const res = await request(`/inventory_levels.json?inventory_item_ids=${itemIds.join(',')}`)
+        for (const lvl of res.inventory_levels || []) {
+          if (lvl.location_id === locationId) {
+            shopifyLevels[lvl.inventory_item_id] = lvl.available ?? 0
+          }
+        }
+      } catch {
+        // Shopify not configured — return ERP-only data
+      }
+    }
+
+    return products.map((p) => {
+      const erpStock = p.inventory?.quantity ?? 0
+      const shopifyStock = shopifyLevels[Number(p.shopifyInventoryItemId)] ?? null
+      return {
+        id: p.id,
+        sku: p.sku,
+        name: p.name,
+        erpStock,
+        shopifyStock,
+        match: shopifyStock !== null ? erpStock === shopifyStock : null,
+        lastSync: null,
+      }
+    })
+  },
+
+  // ERP vs Shopify price comparison
+  async priceComparison() {
+    const products = await prisma.product.findMany({
+      where: { isActive: true, shopifyVariantId: { not: null } },
+      orderBy: { sku: 'asc' },
+    })
+
+    // Fetch current Shopify variant prices in bulk
+    const variantIds = products.map((p) => Number(p.shopifyVariantId)).filter(Boolean)
+    let shopifyPrices = {}
+    if (variantIds.length > 0) {
+      try {
+        const ids = variantIds.join(',')
+        const res = await request(`/variants.json?ids=${ids}`)
+        for (const v of res.variants || []) {
+          shopifyPrices[v.id] = Number(v.price) || 0
+        }
+      } catch {
+        // Shopify not configured — return ERP-only data
+      }
+    }
+
+    return products.map((p) => {
+      const erpPrice = Number(p.sellingPrice) || 0
+      const shopifyPrice = shopifyPrices[Number(p.shopifyVariantId)] ?? null
+      return {
+        id: p.id,
+        sku: p.sku,
+        name: p.name,
+        erpPrice,
+        shopifyPrice,
+        match: shopifyPrice !== null ? Math.abs(erpPrice - shopifyPrice) < 0.01 : null,
+        lastSync: null,
+      }
+    })
+  },
 }
 
 module.exports = shopifyService

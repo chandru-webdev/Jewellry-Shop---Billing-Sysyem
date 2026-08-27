@@ -16,7 +16,7 @@ export default function InventorySync() {
   })
 
   const syncAllMutation = useMutation({
-    mutationFn: () => import('../api/shopify').then((m) => m.shopifyApi.syncAllInventory()),
+    mutationFn: () => shopifyApi.syncAllInventory(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
     },

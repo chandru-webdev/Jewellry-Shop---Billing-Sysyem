@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Truck, Search, Plus, Phone, Mail, Edit, Trash2, X, Save, Pause, Play } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
@@ -10,17 +10,7 @@ import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 
-const DEMO_SUPPLIERS = [
-  { id: 1, name: 'Silver Arts Jewellers', phone: '9812345678', email: 'sales@silverarts.in', address: '123 Market St, Delhi', products: 45, totalPurchased: 892000, lastPurchase: '2026-08-08', isActive: true },
-  { id: 2, name: 'Metro Silver Traders', phone: '9812345679', email: 'info@metrosilver.in', address: '45 Industrial Area, Mumbai', products: 32, totalPurchased: 567000, lastPurchase: '2026-08-05', isActive: true },
-  { id: 3, name: 'Classic Silver House', phone: '9812345680', email: 'order@classicsilver.in', address: '78 Temple Road, Jaipur', products: 28, totalPurchased: 445000, lastPurchase: '2026-07-30', isActive: true },
-  { id: 4, name: 'Royal Silver Crafts', phone: '9812345681', email: 'contact@royalcrafts.in', address: '12 Lake Marg, Kolkata', products: 15, totalPurchased: 234000, lastPurchase: '2026-07-15', isActive: false },
-  { id: 5, name: 'Golden Threads', phone: '9812345682', email: 'gold@goldenthreads.in', address: '55 Jewellery Ln, Hyderabad', products: 22, totalPurchased: 178000, lastPurchase: '2026-07-20', isActive: true },
-]
-
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
+const DEMO_SUPPLIERS = []
 
 export default function Suppliers() {
   const queryClient = useQueryClient()
@@ -30,28 +20,15 @@ export default function Suppliers() {
   const [showAdd, setShowAdd] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '' })
-  const [_demoRefresh, setDemoRefresh] = useState(0)
 
-  const canManage = user?.role === 'SUPER_ADMIN' || user?.role === 'MANAGER'
+  const canManage = user?.role?.name === 'SUPER_ADMIN' || user?.role?.name === 'MANAGER'
 
-  useEffect(() => {
-    if (!isDemoMode()) return
-    const handler = () => setDemoRefresh((n) => n + 1)
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [])
-
-  const { data: apiSuppliers, isLoading, error } = useQuery({
+  const { data: apiSuppliers, isLoading } = useQuery({
     queryKey: ['suppliers', search, filterActive],
     queryFn: () => suppliersApi.list({ search, isActive: filterActive }).then((r) => r.data.data),
   })
 
-  const demoSuppliersOverride = isDemoMode() ? (() => {
-    const stored = localStorage.getItem('opal_demo_suppliers')
-    return stored ? JSON.parse(stored) : null
-  })() : null
-
-  const suppliers = (isDemoMode() && error) ? (demoSuppliersOverride || DEMO_SUPPLIERS) : (apiSuppliers || [])
+  const suppliers = apiSuppliers || []
 
   const createMutation = useMutation({
     mutationFn: (data) => suppliersApi.create(data),
@@ -92,46 +69,12 @@ export default function Suppliers() {
   }
 
   const handleToggleActive = async (supplier) => {
-    if (isDemoMode()) {
-      const stored = localStorage.getItem('opal_demo_suppliers')
-      if (stored) {
-        const updated = JSON.parse(stored)
-        localStorage.setItem('opal_demo_suppliers', JSON.stringify(
-          updated.map((s) => s.id === supplier.id ? { ...s, isActive: !s.isActive } : s)
-        ))
-        window.dispatchEvent(new Event('storage'))
-      } else {
-        const updated = DEMO_SUPPLIERS.map((s) =>
-          s.id === supplier.id ? { ...s, isActive: !s.isActive } : s
-        )
-        localStorage.setItem('opal_demo_suppliers', JSON.stringify(updated))
-        window.dispatchEvent(new Event('storage'))
-      }
-      return
-    }
     await suppliersApi.update(supplier.id, { isActive: !supplier.isActive })
     queryClient.invalidateQueries({ queryKey: ['suppliers'] })
   }
 
   const handleDelete = async (supplier) => {
     if (!confirm(`Deactivate "${supplier.name}"? They will no longer appear in active supplier lists.`)) return
-    if (isDemoMode()) {
-      const stored = localStorage.getItem('opal_demo_suppliers')
-      if (stored) {
-        const updated = JSON.parse(stored)
-        localStorage.setItem('opal_demo_suppliers', JSON.stringify(
-          updated.map((s) => s.id === supplier.id ? { ...s, isActive: false } : s)
-        ))
-        window.dispatchEvent(new Event('storage'))
-      } else {
-        const updated = DEMO_SUPPLIERS.map((s) =>
-          s.id === supplier.id ? { ...s, isActive: false } : s
-        )
-        localStorage.setItem('opal_demo_suppliers', JSON.stringify(updated))
-        window.dispatchEvent(new Event('storage'))
-      }
-      return
-    }
     await suppliersApi.update(supplier.id, { isActive: false })
     queryClient.invalidateQueries({ queryKey: ['suppliers'] })
   }

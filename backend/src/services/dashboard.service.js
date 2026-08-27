@@ -363,26 +363,14 @@ const dashboardService = {
       }),
     ])
 
-    // Calculate supplier count
-    const suppliers = await prisma.supplier.count()
-
-    // Calculate total stock
-    const stockAgg = await prisma.inventory.aggregate({
-      _sum: { quantity: true },
-    })
-
-    // Calculate total stock weight
-    const weightAgg = await prisma.product.aggregate({
-      where: { isActive: true },
-      _sum: { weight: true },
-    })
-
-    // Calculate pending payments (outstanding)
-    const outstandingAgg = await prisma.payment.aggregate({
-      where: { status: 'PENDING' },
-      _sum: { amount: true },
-      _count: true,
-    })
+    // Calculate supplier count, stock, weight, outstanding, and inventory value in parallel
+    const [suppliers, stockAgg, weightAgg, outstandingAgg, inventoryValueAgg] = await Promise.all([
+      prisma.supplier.count(),
+      prisma.inventory.aggregate({ _sum: { quantity: true } }),
+      prisma.product.aggregate({ where: { isActive: true }, _sum: { weight: true } }),
+      prisma.payment.aggregate({ where: { status: 'PENDING' }, _sum: { amount: true }, _count: true }),
+      prisma.product.aggregate({ where: { isActive: true }, _sum: { sellingPrice: true } }),
+    ])
 
     // Today's expenses (payments out - for now use total payments in period)
     // This is a placeholder until an expenses model is added
@@ -430,11 +418,6 @@ const dashboardService = {
       ? Math.round(((avgOrderValue - prevAvgOrderValue) / prevAvgOrderValue) * 100)
       : 0
 
-    // Inventory value
-    const inventoryValueAgg = await prisma.product.aggregate({
-      where: { isActive: true },
-      _sum: { sellingPrice: true },
-    })
     const inventoryValue = Number(inventoryValueAgg._sum.sellingPrice ?? 0)
 
     return {

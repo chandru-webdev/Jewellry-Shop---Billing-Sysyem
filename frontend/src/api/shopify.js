@@ -13,4 +13,7 @@ export const shopifyApi = {
 
   // Fetch products from Shopify (preview/listing only, no import)
   fetchProducts: (params) => apiClient.get('/shopify/products', { params }),
+
+  // Sync log entries
+  getSyncLogs: (params) => apiClient.get('/shopify/sync-logs', { params }),
 }

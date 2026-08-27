@@ -469,14 +469,11 @@ const shopifyService = {
   // Latest sync result per type (for the dashboard widget)
   async syncStatus() {
     const types = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER']
+    const logs = await Promise.all(
+      types.map((type) => prisma.shopifySyncLog.findFirst({ where: { type }, orderBy: { id: 'desc' } }))
+    )
     const latest = {}
-    for (const type of types) {
-      const log = await prisma.shopifySyncLog.findFirst({
-        where: { type },
-        orderBy: { id: 'desc' },
-      })
-      latest[type.toLowerCase()] = log
-    }
+    types.forEach((type, i) => { latest[type.toLowerCase()] = logs[i] })
     return latest
   },
 }

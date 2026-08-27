@@ -35,6 +35,13 @@ const authController = {
     success(res, 200, null, result.message)
   }),
 
+  // POST /api/auth/verify-reset-code  ->  verify code before allowing password change
+  verifyResetCode: asyncHandler(async (req, res) => {
+    const { email, code } = req.body
+    const result = await authService.verifyResetCode(email, code)
+    success(res, 200, null, result.message)
+  }),
+
   // POST /api/auth/reset-password  ->  verify code and set new password
   resetPassword: asyncHandler(async (req, res) => {
     const { email, code, newPassword } = req.body

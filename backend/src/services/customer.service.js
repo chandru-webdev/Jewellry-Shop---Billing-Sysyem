@@ -1,13 +1,15 @@
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const customerService = {
   async list({ search, limit = 50 } = {}) {
     const where = {}
     if (search) {
+      const q = escapeLike(search)
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q } },
       ]
     }
     return prisma.customer.findMany({

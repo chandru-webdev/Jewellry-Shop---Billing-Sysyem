@@ -10,14 +10,6 @@ import { invoicesApi } from '../api/invoices'
 import { metalRatesApi } from '../api/metalRates'
 import { formatINR, formatWeight } from '../utils/format'
 
-const DEMO_PRODUCTS = [
-  { id: 1, name: 'Silver Classic Ring', sku: 'SLV-RNG-00021', weight: 5.20, makingCharge: 20, category: { name: 'Rings' } },
-  { id: 2, name: 'Silver Chain 22"', sku: 'SLV-CHN-00008', weight: 25.50, makingCharge: 15, category: { name: 'Chains' } },
-  { id: 3, name: 'Silver Bracelet', sku: 'SLV-BRC-00015', weight: 15.00, makingCharge: 18, category: { name: 'Bracelets' } },
-  { id: 4, name: 'Silver Pendant', sku: 'SLV-PND-00012', weight: 8.40, makingCharge: 22, category: { name: 'Pendants' } },
-  { id: 5, name: 'Silver Earrings', sku: 'SLV-ERN-00031', weight: 6.80, makingCharge: 25, category: { name: 'Earrings' } },
-]
-
 const PAYMENT_METHODS = [
   { value: 'CASH', label: 'Cash' },
   { value: 'UPI', label: 'UPI' },
@@ -49,7 +41,7 @@ export default function Billing() {
 
   const silverRate = (!ratesError && metalRates?.rate) || 92.80
   const GST_RATE = 3
-  const products = (!productsError && apiProducts?.length) ? apiProducts : DEMO_PRODUCTS
+  const products = apiProducts || []
 
   const addItem = (product) => {
     const existing = items.find((i) => i.productId === product.id)

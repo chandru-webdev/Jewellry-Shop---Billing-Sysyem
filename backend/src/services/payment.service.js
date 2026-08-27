@@ -1,6 +1,7 @@
 const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
 
@@ -25,10 +26,11 @@ const paymentService = {
     if (method) where.method = method
     if (customerId) where.customerId = Number(customerId)
     if (search) {
+      const q = escapeLike(search)
       where.OR = [
-        { customer: { name: { contains: search, mode: 'insensitive' } } },
-        { reference: { contains: search } },
-        { invoice: { invoiceNumber: { contains: search } } },
+        { customer: { name: { contains: q, mode: 'insensitive' } } },
+        { reference: { contains: q } },
+        { invoice: { invoiceNumber: { contains: q } } },
       ]
     }
     return prisma.payment.findMany({

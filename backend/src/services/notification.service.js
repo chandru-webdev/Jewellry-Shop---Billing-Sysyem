@@ -6,7 +6,7 @@ const notificationService = {
     const where = {}
 
     // Non-admin users see only their own notifications
-    if (role !== 'ADMIN') {
+    if (role !== 'SUPER_ADMIN') {
       where.userId = userId
     }
 
@@ -31,7 +31,7 @@ const notificationService = {
   // GET /api/notifications/unread-count
   async getUnreadCount(userId, role) {
     const where = { isRead: false }
-    if (role !== 'ADMIN') {
+    if (role !== 'SUPER_ADMIN') {
       where.userId = userId
     }
     return prisma.notification.count({ where })
@@ -41,7 +41,7 @@ const notificationService = {
   async markAsRead(id, userId, role) {
     const where = { id: Number(id) }
     // Non-admin can only mark their own
-    if (role !== 'ADMIN') {
+    if (role !== 'SUPER_ADMIN') {
       where.userId = userId
     }
     return prisma.notification.updateMany({
@@ -53,7 +53,7 @@ const notificationService = {
   // PATCH /api/notifications/read-all
   async markAllAsRead(userId, role) {
     const where = { isRead: false }
-    if (role !== 'ADMIN') {
+    if (role !== 'SUPER_ADMIN') {
       where.userId = userId
     }
     return prisma.notification.updateMany({
@@ -65,7 +65,7 @@ const notificationService = {
   // DELETE /api/notifications/:id
   async remove(id, userId, role) {
     const where = { id: Number(id) }
-    if (role !== 'ADMIN') {
+    if (role !== 'SUPER_ADMIN') {
       where.userId = userId
     }
     return prisma.notification.deleteMany({ where })

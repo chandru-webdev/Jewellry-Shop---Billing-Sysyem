@@ -10,14 +10,6 @@ import { Label, Input } from '../components/ui/FormControls'
 import { customersApi } from '../api/customers'
 import { formatINR, formatDate } from '../utils/format'
 
-const DEMO_CUSTOMERS = [
-  { id: 1, name: 'Rajesh Kumar', phone: '9876543210', email: 'rajesh@gmail.com', orders: 12, totalSpent: 85600, lastOrder: '2026-08-10' },
-  { id: 2, name: 'Priya Sharma', phone: '9876543211', email: 'priya@gmail.com', orders: 8, totalSpent: 62300, lastOrder: '2026-08-10' },
-  { id: 3, name: 'Amit Patel', phone: '9876543212', email: 'amit@gmail.com', orders: 5, totalSpent: 34500, lastOrder: '2026-08-09' },
-  { id: 4, name: 'Sneha Reddy', phone: '9876543213', email: 'sneha@gmail.com', orders: 15, totalSpent: 128900, lastOrder: '2026-08-08' },
-  { id: 5, name: 'Vikram Singh', phone: '9876543214', email: 'vikram@gmail.com', orders: 3, totalSpent: 22100, lastOrder: '2026-08-07' },
-]
-
 const EMPTY_CUSTOMER = { name: '', email: '', phone: '' }
 
 export default function Customers() {
@@ -28,13 +20,13 @@ export default function Customers() {
   const [toast, setToast] = useState('')
   const queryClient = useQueryClient()
 
-  const { data: apiCustomers, isError } = useQuery({
+  const { data: apiCustomers } = useQuery({
     queryKey: ['customers'],
     queryFn: () => customersApi.list().then((r) => r.data.data),
     retry: false,
   })
 
-  const rawCustomers = (!isError && apiCustomers?.length) ? apiCustomers : DEMO_CUSTOMERS
+  const rawCustomers = apiCustomers || []
   const customers = rawCustomers.map((c) => ({
     ...c,
     orders: c.orders ?? c._count?.invoices ?? 0,

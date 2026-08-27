@@ -200,7 +200,7 @@ const userService = {
   },
 
   safeUser(user) {
-    const { password, ...safe } = user
+    const { password, resetToken, resetTokenExpiry, ...safe } = user
     return safe
   },
 }

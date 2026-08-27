@@ -65,20 +65,10 @@ export default function Login() {
     setForgotLoading(true)
     setForgotError('')
     try {
-      // In demo mode, auto-proceed with demo code
-      if (localStorage.getItem('opal_token') === 'demo-token-opal-line' || !navigator.onLine) {
-        setForgotStep(2)
-        return
-      }
       await apiClient.post('/auth/forgot-password', { email: forgotEmail })
       setForgotStep(2)
     } catch (err) {
-      // If backend doesn't support forgot-password yet, show demo message
-      if (err.response?.status === 404 || err.code === 'ERR_NETWORK') {
-        setForgotStep(2)
-      } else {
-        setForgotError(err.response?.data?.message || 'Failed to send reset code')
-      }
+      setForgotError(err.response?.data?.message || 'Failed to send reset code')
     } finally {
       setForgotLoading(false)
     }
@@ -102,10 +92,6 @@ export default function Login() {
     }
 
     try {
-      if (localStorage.getItem('opal_token') === 'demo-token-opal-line' || !navigator.onLine) {
-        setForgotSuccess(true)
-        return
-      }
       await apiClient.post('/auth/reset-password', {
         email: forgotEmail,
         code: forgotCode,
@@ -113,11 +99,7 @@ export default function Login() {
       })
       setForgotSuccess(true)
     } catch (err) {
-      if (err.response?.status === 404 || err.code === 'ERR_NETWORK') {
-        setForgotSuccess(true)
-      } else {
-        setForgotError(err.response?.data?.message || 'Reset failed. Check your code and try again.')
-      }
+      setForgotError(err.response?.data?.message || 'Reset failed. Check your code and try again.')
     } finally {
       setForgotLoading(false)
     }
@@ -293,8 +275,20 @@ export default function Login() {
                   </button>
                 </form>
               ) : forgotStep === 2 ? (
-                /* Step 2: Enter code */
-                <form onSubmit={(e) => { e.preventDefault(); setForgotStep(3) }} className="space-y-4">
+                /* Step 2: Enter code — verify against backend before advancing */
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  setForgotLoading(true)
+                  setForgotError('')
+                  try {
+                    await apiClient.post('/auth/verify-reset-code', { email: forgotEmail, code: forgotCode })
+                    setForgotStep(3)
+                  } catch (err) {
+                    setForgotError(err.response?.data?.message || 'Invalid reset code. Please try again.')
+                  } finally {
+                    setForgotLoading(false)
+                  }
+                }} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-1.5">Reset Code</label>
                     <div className="relative">
@@ -310,11 +304,11 @@ export default function Login() {
                       />
                     </div>
                     <p className="text-[11px] text-white/30 mt-2">
-                      Demo: enter any 6 digits (e.g. 123456)
+                      Check your email for the 6-digit code
                     </p>
                   </div>
-                  <button type="submit" disabled={!forgotCode || forgotCode.length < 4} className="w-full bg-gold-500 hover:bg-gold-400 text-royal-950 font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer text-sm">
-                    Verify Code
+                  <button type="submit" disabled={forgotLoading || !forgotCode || forgotCode.length < 4} className="w-full bg-gold-500 hover:bg-gold-400 text-royal-950 font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 cursor-pointer text-sm">
+                    {forgotLoading ? 'Verifying...' : 'Verify Code'}
                   </button>
                 </form>
               ) : (

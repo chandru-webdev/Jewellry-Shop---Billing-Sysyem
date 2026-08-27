@@ -3,6 +3,15 @@
 // NEVER import process.env directly in other files — use this.
 require('dotenv').config()
 
+// Fail fast if critical environment variables are missing
+const requiredVars = ['JWT_SECRET', 'DATABASE_URL']
+for (const varName of requiredVars) {
+  if (!process.env[varName]) {
+    console.error(`FATAL: Missing required environment variable ${varName}. Add it to backend/.env`)
+    process.exit(1)
+  }
+}
+
 module.exports = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',

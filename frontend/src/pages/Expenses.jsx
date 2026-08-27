@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Eye } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -8,16 +8,6 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { expensesApi } from '../api/expenses'
 import { formatINR, formatDate } from '../utils/format'
-
-const DEMO_EXPENSES = [
-  { id: 1, date: '2026-08-10', category: 'Rent', description: 'Shop rent - August', amount: 45000, paymentMethod: 'Bank Transfer', reference: 'NEFT-RENT-0826', status: 'PAID' },
-  { id: 2, date: '2026-08-09', category: 'Salaries', description: 'Staff salaries - August', amount: 120000, paymentMethod: 'Bank Transfer', reference: 'SAL-AUG-001', status: 'PAID' },
-  { id: 3, date: '2026-08-08', category: 'Utilities', description: 'Electricity bill', amount: 8500, paymentMethod: 'UPI', reference: 'UPI-REF-123', status: 'PAID' },
-  { id: 4, date: '2026-08-07', category: 'Marketing', description: 'Social media ads', amount: 15000, paymentMethod: 'Credit Card', reference: 'CC-AD-456', status: 'PENDING' },
-  { id: 5, date: '2026-08-06', category: 'Maintenance', description: 'Equipment servicing', amount: 12000, paymentMethod: 'Bank Transfer', reference: 'NEFT-MNT-789', status: 'PAID' },
-  { id: 6, date: '2026-08-05', category: 'Office Supplies', description: 'Stationery and supplies', amount: 5500, paymentMethod: 'Cash', reference: 'CSH-001', status: 'PAID' },
-  { id: 7, date: '2026-08-04', category: 'Insurance', description: 'Shop insurance renewal', amount: 25000, paymentMethod: 'Bank Transfer', reference: 'NEFT-INS-0826', status: 'PENDING' },
-]
 
 const statusTone = { PAID: 'green', PENDING: 'orange', CANCELLED: 'red' }
 const categoryTone = { Rent: 'blue', Salaries: 'purple', Utilities: 'emerald', Marketing: 'orange', Maintenance: 'red', 'Office Supplies': 'gray', Insurance: 'indigo' }
@@ -31,13 +21,24 @@ export default function Expenses() {
   const [formOpen, setFormOpen] = useState(false)
   const [formData, setFormData] = useState({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
 
-  const { data: apiExpenses, isError } = useQuery({
+  const queryClient = useQueryClient()
+
+  const { data: apiExpenses } = useQuery({
     queryKey: ['expenses'],
     queryFn: () => expensesApi.list().then((r) => r.data.data),
     retry: false,
   })
 
-  const expenses = (!isError && apiExpenses?.length) ? apiExpenses : DEMO_EXPENSES
+  const expenses = apiExpenses || []
+
+  const createMutation = useMutation({
+    mutationFn: (data) => expensesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      setFormOpen(false)
+      setFormData({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
+    },
+  })
 
   const filtered = expenses.filter((e) => {
     if (filterCategory && e.category !== filterCategory) return false
@@ -56,19 +57,7 @@ export default function Expenses() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const _newExpense = {
-      id: Date.now(),
-      date: formData.date,
-      category: formData.category,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      paymentMethod: formData.paymentMethod,
-      reference: formData.reference,
-      status: 'PENDING',
-    }
-    // In real app, call expensesApi.create(_newExpense)
-    setFormOpen(false)
-    setFormData({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
+    createMutation.mutate(formData)
   }
 
   return (

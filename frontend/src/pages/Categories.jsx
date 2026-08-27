@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Package } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
@@ -7,42 +7,37 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { categoriesApi } from '../api/categories'
 
-const DEMO_CATEGORIES = [
-  { id: 1, name: 'Rings', description: 'Silver rings for all occasions', productCount: 45, status: 'Active' },
-  { id: 2, name: 'Chains', description: 'Silver chains and necklaces', productCount: 38, status: 'Active' },
-  { id: 3, name: 'Bracelets', description: 'Silver bracelets and bangles', productCount: 28, status: 'Active' },
-  { id: 4, name: 'Earrings', description: 'Silver earrings and studs', productCount: 52, status: 'Active' },
-  { id: 5, name: 'Pendants', description: 'Silver pendants and lockets', productCount: 34, status: 'Active' },
-  { id: 6, name: 'Anklets', description: 'Silver anklets and chains', productCount: 15, status: 'Active' },
-  { id: 7, name: 'Nose Pins', description: 'Silver nose pins and rings', productCount: 22, status: 'Active' },
-  { id: 8, name: 'Toe Rings', description: 'Silver toe rings', productCount: 18, status: 'Active' },
-]
-
 export default function Categories() {
-  const { data: apiCategories, isError } = useQuery({
+  const queryClient = useQueryClient()
+  const { data: apiCategories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoriesApi.list().then((r) => r.data.data),
-    retry: false,
   })
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [categoryName, setCategoryName] = useState('')
-  const [addedCategories, setAddedCategories] = useState([])
   const [toast, setToast] = useState('')
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
-  const baseCategories = (!isError && apiCategories?.length) ? apiCategories : DEMO_CATEGORIES
-  const categories = [...baseCategories, ...addedCategories]
+  const categories = apiCategories || []
+
+  const createMutation = useMutation({
+    mutationFn: (data) => categoriesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      setShowAddModal(false)
+      setCategoryName('')
+      showToast('Category added')
+    },
+  })
 
   const handleOpenAddModal = () => { setCategoryName(''); setShowAddModal(true) }
 
   const handleSaveCategory = () => {
     const name = categoryName.trim()
     if (!name) return
-    setAddedCategories([...addedCategories, { id: Date.now(), name, description: 'New category', productCount: 0, status: 'Active' }])
-    setShowAddModal(false)
-    showToast('Category added')
+    createMutation.mutate({ name })
   }
 
   return (

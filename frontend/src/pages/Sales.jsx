@@ -57,153 +57,7 @@ const orderStatusLabel = {
   RETURNED: 'Returned',
 }
 
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
 
-const DEMO_INVOICES = [
-  {
-    id: 1,
-    invoiceNumber: 'INV-0001',
-    date: '2025-07-01T10:00:00Z',
-    status: 'PAID',
-    paymentMethod: 'CASH',
-    grandTotal: 4825.00,
-    totalQuantity: 3,
-    customer: { id: 10, name: 'Rajesh Kumar', phone: '+91 98765 43210', email: 'rajesh@example.com', address: '123 Main Rd, Mumbai' },
-    salesperson: { id: 1, name: 'Admin' },
-    _count: { items: 2 },
-    items: [],
-    payments: [],
-  },
-  {
-    id: 2,
-    invoiceNumber: 'INV-0002',
-    date: '2025-07-03T14:30:00Z',
-    status: 'PAID',
-    paymentMethod: 'UPI',
-    grandTotal: 12350.00,
-    totalQuantity: 5,
-    customer: { id: 20, name: 'Priya Sharma', phone: '+91 91234 56789', email: 'priya@example.com', address: '45 Park St, Delhi' },
-    salesperson: { id: 2, name: 'Manager' },
-    _count: { items: 3 },
-    items: [],
-    payments: [],
-  },
-  {
-    id: 3,
-    invoiceNumber: 'INV-0003',
-    date: '2025-07-05T09:15:00Z',
-    status: 'PAID',
-    paymentMethod: 'CARD',
-    grandTotal: 8750.00,
-    totalQuantity: 2,
-    customer: { name: 'Walk-in Customer', phone: '' },
-    salesperson: { id: 1, name: 'Admin' },
-    _count: { items: 1 },
-    items: [],
-    payments: [],
-  },
-  {
-    id: 4,
-    invoiceNumber: 'INV-0004',
-    date: '2025-07-08T16:45:00Z',
-    status: 'FINAL',
-    paymentMethod: 'BANK_TRANSFER',
-    grandTotal: 15600.00,
-    totalQuantity: 8,
-    customer: { id: 30, name: 'Amit Patel', phone: '+91 99887 76655', email: 'amit@example.com', address: '78 Lake View, Bangalore' },
-    salesperson: { id: 3, name: 'Staff' },
-    _count: { items: 4 },
-    items: [],
-    payments: [],
-  },
-  {
-    id: 5,
-    invoiceNumber: 'INV-0005',
-    date: '2025-07-10T11:20:00Z',
-    status: 'DRAFT',
-    paymentMethod: 'CASH',
-    grandTotal: 3200.00,
-    totalQuantity: 1,
-    customer: { id: 10, name: 'Rajesh Kumar', phone: '+91 98765 43210' },
-    salesperson: { id: 1, name: 'Admin' },
-    _count: { items: 1 },
-    items: [],
-    payments: [],
-  },
-]
-
-const DEMO_ORDERS = [
-  {
-    id: 1,
-    orderNumber: 'ORD-1001',
-    date: '2025-07-02T12:00:00Z',
-    status: 'FULFILLED',
-    totalAmount: 22500.00,
-    customer: { id: 20, name: 'Priya Sharma', phone: '+91 91234 56789' },
-    salesperson: { id: 1, name: 'Admin' },
-    createdAt: '2025-07-02T12:00:00Z',
-    _count: { items: 4 },
-  },
-  {
-    id: 2,
-    orderNumber: 'ORD-1002',
-    date: '2025-07-04T15:30:00Z',
-    status: 'PAID',
-    totalAmount: 8900.00,
-    customer: { id: 30, name: 'Amit Patel', phone: '+91 99887 76655' },
-    salesperson: { id: 2, name: 'Manager' },
-    createdAt: '2025-07-04T15:30:00Z',
-    _count: { items: 2 },
-  },
-  {
-    id: 3,
-    orderNumber: 'ORD-1003',
-    date: '2025-07-06T10:00:00Z',
-    status: 'PENDING',
-    totalAmount: 32000.00,
-    customer: { name: 'Walk-in Customer' },
-    salesperson: { id: 1, name: 'Admin' },
-    createdAt: '2025-07-06T10:00:00Z',
-    _count: { items: 6 },
-  },
-]
-
-const DEMO_CUSTOMERS = [
-  {
-    id: 10,
-    name: 'Rajesh Kumar',
-    phone: '+91 98765 43210',
-    email: 'rajesh@example.com',
-    address: '123 Main Rd, Mumbai',
-    _count: { orders: 2, invoices: 2 },
-  },
-  {
-    id: 20,
-    name: 'Priya Sharma',
-    phone: '+91 91234 56789',
-    email: 'priya@example.com',
-    address: '45 Park St, Delhi',
-    _count: { orders: 1, invoices: 1 },
-  },
-  {
-    id: 30,
-    name: 'Amit Patel',
-    phone: '+91 99887 76655',
-    email: 'amit@example.com',
-    address: '78 Lake View, Bangalore',
-    _count: { orders: 1, invoices: 1 },
-  },
-  {
-    id: 40,
-    name: 'Sneha Reddy',
-    phone: '+91 90123 45678',
-    email: 'sneha@example.com',
-    address: '33 Sunset Blvd, Chennai',
-    _count: { orders: 0, invoices: 0 },
-  },
-]
 
 function InvoiceDetail({ invoice }) {
   const queryClient = useQueryClient()
@@ -481,21 +335,13 @@ export default function Sales() {
     enabled: activeTab === 'returns',
   })
 
-  const displayInvoices = (isDemoMode() && invoicesError) ? DEMO_INVOICES : (invoices || [])
-  const displayOrders = (isDemoMode() && ordersError) ? DEMO_ORDERS : (orders || [])
+  const displayInvoices = invoices || []
+  const displayOrders = orders || []
   const filteredOrders = orderStatusFilter === 'all' ? displayOrders : displayOrders.filter((o) => o.status === orderStatusFilter)
-  const displayCustomers = (isDemoMode() && customersError) ? DEMO_CUSTOMERS : (customers || [])
-  const displayReturns = (isDemoMode() && returnsError) ? DEMO_ORDERS.filter((o) => o.status === 'CANCELLED') : (returns || [])
+  const displayCustomers = customers || []
+  const displayReturns = returns || []
 
   const fetchInvoice = async (id) => {
-    if (isDemoMode()) {
-      const inv = displayInvoices.find((i) => i.id === id)
-      if (inv) {
-        setSelectedInvoice(inv)
-        setDetailOpen(true)
-      }
-      return
-    }
     const r = await invoicesApi.get(id)
     setSelectedInvoice(r.data.data)
     setDetailOpen(true)

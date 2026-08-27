@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
 const shopifyService = require('../services/shopify.service')
+const prisma = require('../prisma/client')
 
 const shopifyController = {
   // POST /api/shopify/sync/products — push one product
@@ -44,6 +45,22 @@ const shopifyController = {
     const { limit, page, search } = req.query
     const result = await shopifyService.fetchProducts({ limit, page, search })
     success(res, 200, result, 'Products fetched from Shopify')
+  }),
+
+  // GET /api/shopify/sync-logs — list sync log entries
+  syncLogs: asyncHandler(async (req, res) => {
+    const { type, status, limit: queryLimit } = req.query
+    const allowedTypes = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER']
+    const allowedStatuses = ['SUCCESS', 'FAILED']
+    const where = {}
+    if (type && allowedTypes.includes(type)) where.type = type
+    if (status && allowedStatuses.includes(status)) where.status = status
+    const logs = await prisma.shopifySyncLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Number(queryLimit) || 50, 200),
+    })
+    success(res, 200, logs, 'Sync logs fetched')
   }),
 }
 

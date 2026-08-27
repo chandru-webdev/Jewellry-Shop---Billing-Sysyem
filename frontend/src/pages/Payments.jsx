@@ -9,14 +9,6 @@ import Modal from '../components/ui/Modal'
 import { paymentsApi } from '../api/payments'
 import { formatINR, formatDate } from '../utils/format'
 
-const DEMO_PAYMENTS = [
-  { id: 1, invoice: 'SI-2026-00047', customer: 'Rajesh Kumar', amount: 5230, method: 'Razorpay', type: 'RECEIVED', reference: 'pay_Razor1234', date: '2026-08-10', status: 'COMPLETED' },
-  { id: 2, invoice: 'SI-2026-00046', customer: 'Priya Sharma', amount: 8450, method: 'Razorpay', type: 'RECEIVED', reference: 'pay_Razor5678', date: '2026-08-10', status: 'COMPLETED' },
-  { id: 3, invoice: 'SI-2026-00045', customer: 'Amit Patel', amount: 3200, method: 'Bank Transfer', type: 'RECEIVED', reference: 'NEFT-REF-456', date: '2026-08-09', status: 'COMPLETED' },
-  { id: 4, invoice: null, customer: 'Supplier: Silver Arts', amount: 45000, method: 'Bank Transfer', type: 'SENT', reference: 'NEFT-REF-789', date: '2026-08-09', status: 'COMPLETED' },
-  { id: 5, invoice: 'SI-2026-00043', customer: 'Sneha Reddy', amount: 12800, method: 'Razorpay', type: 'RECEIVED', reference: 'pay_Razor9012', date: '2026-08-08', status: 'PENDING' },
-]
-
 const statusTone = { COMPLETED: 'green', PENDING: 'orange', FAILED: 'red' }
 const typeTone = { RECEIVED: 'green', SENT: 'red' }
 
@@ -26,13 +18,13 @@ export default function Payments() {
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
 
-  const { data: apiPayments, isError } = useQuery({
+  const { data: apiPayments } = useQuery({
     queryKey: ['payments'],
     queryFn: () => paymentsApi.list().then((r) => r.data.data),
     retry: false,
   })
 
-  const payments = (!isError && apiPayments?.length) ? apiPayments : DEMO_PAYMENTS
+  const payments = apiPayments || []
 
   const filtered = payments.filter((p) => {
     if (filterType && p.type !== filterType) return false

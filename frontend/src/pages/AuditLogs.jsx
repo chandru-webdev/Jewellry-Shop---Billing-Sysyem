@@ -1,22 +1,11 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Search, User } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatDateTime } from '../utils/format'
-
-const DEMO_LOGS = [
-  { id: 1, timestamp: '2026-08-10T09:00:00', user: 'Admin', action: 'Updated Silver Rate', module: 'Silver Rate', entity: 'Silver Rate', changes: '₹90.00 → ₹92.80', type: 'UPDATE' },
-  { id: 2, timestamp: '2026-08-10T08:45:00', user: 'System', action: 'Shopify Order Imported', module: 'Orders', entity: '#10235', changes: 'Created from Shopify', type: 'CREATE' },
-  { id: 3, timestamp: '2026-08-10T08:44:00', user: 'System', action: 'Invoice Created', module: 'Invoices', entity: 'SI-2026-00047', changes: 'Auto-generated from order', type: 'CREATE' },
-  { id: 4, timestamp: '2026-08-10T08:30:00', user: 'System', action: 'Payment Received', module: 'Payments', entity: 'Razorpay #pay_1234', changes: '₹5,230 for SI-2026-00046', type: 'CREATE' },
-  { id: 5, timestamp: '2026-08-10T08:15:00', user: 'Admin', action: 'Product Updated', module: 'Products', entity: 'Silver Chain (SLV-CHN-00008)', changes: 'Weight updated: 25g → 28g', type: 'UPDATE' },
-  { id: 6, timestamp: '2026-08-10T08:00:00', user: 'Admin', action: 'User Login', module: 'System', entity: 'rajesh@opalline.in', changes: 'Logged in from Windows', type: 'LOGIN' },
-  { id: 7, timestamp: '2026-08-09T17:30:00', user: 'Priya', action: 'Stock Updated', module: 'Inventory', entity: 'Silver Ring (SLV-RNG-00021)', changes: 'Quantity: 28 → 24', type: 'UPDATE' },
-  { id: 8, timestamp: '2026-08-09T16:45:00', user: 'Admin', action: 'Invoice Voided', module: 'Invoices', entity: 'SI-2026-00044', changes: 'Status: FINAL → VOID', type: 'UPDATE' },
-  { id: 9, timestamp: '2026-08-09T15:00:00', user: 'System', action: 'Shopify Sync Completed', module: 'Shopify', entity: 'Products', changes: '312 products synced', type: 'SYNC' },
-  { id: 10, timestamp: '2026-08-09T14:20:00', user: 'Deepak', action: 'Shopify Product Updated', module: 'Shopify', entity: 'SLV-BRC-00015', changes: 'Price synced: ₹780', type: 'SYNC' },
-]
+import { auditLogsApi } from '../api/auditLogs'
 
 const actionTone = { CREATE: 'green', UPDATE: 'blue', DELETE: 'red', LOGIN: 'purple', SYNC: 'gold' }
 
@@ -28,10 +17,17 @@ export default function AuditLogs() {
   const [filterModule, setFilterModule] = useState('')
   const [filterAction, setFilterAction] = useState('')
 
-  const filtered = DEMO_LOGS.filter((log) => {
+  const { data: apiLogs = [] } = useQuery({
+    queryKey: ['audit-logs', search, filterModule, filterAction],
+    queryFn: () => auditLogsApi.list({ search, module: filterModule, action: filterAction }).then((r) => r.data.data),
+  })
+
+  const logs = apiLogs || []
+
+  const filtered = logs.filter((log) => {
     if (search) {
       const q = search.toLowerCase()
-      if (!log.user.toLowerCase().includes(q) && !log.action.toLowerCase().includes(q) && !log.entity.toLowerCase().includes(q)) return false
+      if (!log.user?.toLowerCase().includes(q) && !log.action?.toLowerCase().includes(q) && !log.entity?.toLowerCase().includes(q)) return false
     }
     if (filterModule && log.module !== filterModule) return false
     if (filterAction && log.type !== filterAction) return false

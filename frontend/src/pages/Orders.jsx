@@ -15,14 +15,6 @@ const statusTone = {
   IMPORTED: 'blue',
 }
 
-const DEMO_ORDERS = [
-  { id: 1, shopifyId: '#10235', internalId: 'ORD-2026-001', customer: 'Rajesh Kumar', value: 5230, payment: 'Paid', fulfillment: 'Fulfilled', invoice: 'SI-2026-00047', status: 'FULFILLED', date: '2026-08-10', source: 'SHOPIFY' },
-  { id: 2, shopifyId: '#10234', internalId: 'ORD-2026-002', customer: 'Priya Sharma', value: 8450, payment: 'Paid', fulfillment: 'Processing', invoice: 'SI-2026-00046', status: 'PROCESSING', date: '2026-08-10', source: 'SHOPIFY' },
-  { id: 3, shopifyId: '#10233', internalId: 'ORD-2026-003', customer: 'Amit Patel', value: 3200, payment: 'Pending', fulfillment: 'Unfulfilled', invoice: null, status: 'IMPORTED', date: '2026-08-09', source: 'SHOPIFY' },
-  { id: 4, shopifyId: '#10232', internalId: 'ORD-2026-004', customer: 'Sneha Reddy', value: 12800, payment: 'Paid', fulfillment: 'Fulfilled', invoice: 'SI-2026-00045', status: 'FULFILLED', date: '2026-08-09', source: 'SHOPIFY' },
-  { id: 5, shopifyId: '#10231', internalId: 'ORD-2026-005', customer: 'Vikram Singh', value: 6750, payment: 'Paid', fulfillment: 'Cancelled', invoice: null, status: 'CANCELLED', date: '2026-08-08', source: 'MANUAL' },
-]
-
 export default function Orders() {
   const [filterStatus, setFilterStatus] = useState('')
   const [search, setSearch] = useState('')
@@ -32,13 +24,13 @@ export default function Orders() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
-  const { data: apiOrders, isLoading, isError } = useQuery({
+  const { data: apiOrders, isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list().then((r) => r.data.data),
     retry: false,
   })
 
-  const orders = (!isError && apiOrders?.length) ? apiOrders : DEMO_ORDERS
+  const orders = apiOrders || []
 
   const filtered = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false

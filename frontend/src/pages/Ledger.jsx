@@ -9,27 +9,6 @@ import Modal from '../components/ui/Modal'
 import { ledgerApi } from '../api/ledger'
 import { formatINR } from '../utils/format'
 
-const DEMO_LEDGER_ACCOUNTS = [
-  { id: 1, code: '1000', name: 'Cash in Hand', type: 'Asset', subType: 'Current Asset', openingBalance: 50000, currentBalance: 75000, isActive: true },
-  { id: 2, code: '1100', name: 'HDFC Current Account', type: 'Asset', subType: 'Bank', openingBalance: 2000000, currentBalance: 2500000, isActive: true },
-  { id: 3, code: '1101', name: 'ICICI Savings Account', type: 'Asset', subType: 'Bank', openingBalance: 500000, currentBalance: 850000, isActive: true },
-  { id: 4, code: '1200', name: 'Accounts Receivable', type: 'Asset', subType: 'Current Asset', openingBalance: 150000, currentBalance: 225000, isActive: true },
-  { id: 5, code: '1300', name: 'Inventory - Silver', type: 'Asset', subType: 'Inventory', openingBalance: 5000000, currentBalance: 6200000, isActive: true },
-  { id: 6, code: '1301', name: 'Inventory - Gold', type: 'Asset', subType: 'Inventory', openingBalance: 12000000, currentBalance: 14500000, isActive: true },
-  { id: 7, code: '2000', name: 'Accounts Payable', type: 'Liability', subType: 'Current Liability', openingBalance: 300000, currentBalance: 450000, isActive: true },
-  { id: 8, code: '2100', name: 'SBI Cash Credit', type: 'Liability', subType: 'Bank Loan', openingBalance: 0, currentBalance: -1500000, isActive: true },
-  { id: 9, code: '2101', name: 'Axis Bank OD', type: 'Liability', subType: 'Bank Loan', openingBalance: 0, currentBalance: -500000, isActive: true },
-  { id: 10, code: '3000', name: 'Capital Account', type: 'Equity', subType: 'Capital', openingBalance: 15000000, currentBalance: 15000000, isActive: true },
-  { id: 11, code: '3100', name: 'Retained Earnings', type: 'Equity', subType: 'Reserves', openingBalance: 2500000, currentBalance: 4200000, isActive: true },
-  { id: 12, code: '4000', name: 'Sales Revenue', type: 'Income', subType: 'Operating Revenue', openingBalance: 0, currentBalance: -18500000, isActive: true },
-  { id: 13, code: '4100', name: 'Other Income', type: 'Income', subType: 'Non-Operating', openingBalance: 0, currentBalance: -250000, isActive: true },
-  { id: 14, code: '5000', name: 'Cost of Goods Sold', type: 'Expense', subType: 'Direct Cost', openingBalance: 0, currentBalance: 12500000, isActive: true },
-  { id: 14, code: '5100', name: 'Salaries & Wages', type: 'Expense', subType: 'Employee Cost', openingBalance: 0, currentBalance: 2400000, isActive: true },
-  { id: 15, code: '5200', name: 'Rent Expense', type: 'Expense', subType: 'Operating Expense', openingBalance: 0, currentBalance: 360000, isActive: true },
-  { id: 16, code: '5300', name: 'Utilities', type: 'Expense', subType: 'Operating Expense', openingBalance: 0, currentBalance: 180000, isActive: true },
-  { id: 17, code: '5400', name: 'Marketing', type: 'Expense', subType: 'Operating Expense', openingBalance: 0, currentBalance: 450000, isActive: true },
-]
-
 const typeTone = { Asset: 'blue', Liability: 'red', Equity: 'purple', Income: 'green', Expense: 'orange' }
 
 export default function Ledger() {
@@ -52,7 +31,7 @@ export default function Ledger() {
     retry: false,
   })
 
-  const accounts = (!accountsError && apiAccounts?.length) ? apiAccounts : DEMO_LEDGER_ACCOUNTS
+  const accounts = apiAccounts || []
 
   const filtered = accounts.filter((a) => {
     if (filterType && a.type !== filterType) return false

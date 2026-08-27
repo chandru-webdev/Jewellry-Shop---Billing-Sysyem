@@ -1,6 +1,6 @@
 const express = require('express')
 const authController = require('../controllers/auth.controller')
-const { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } = require('../validators/auth.validator')
+const { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetCodeSchema } = require('../validators/auth.validator')
 const validate = require('../middleware/validate')
 const { authenticate } = require('../middleware/auth')
 
@@ -20,6 +20,9 @@ router.post('/change-password', authenticate, validate(changePasswordSchema), au
 
 // POST /api/auth/forgot-password  (public)
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword)
+
+// POST /api/auth/verify-reset-code  (public)
+router.post('/verify-reset-code', validate(verifyResetCodeSchema), authController.verifyResetCode)
 
 // POST /api/auth/reset-password  (public)
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword)

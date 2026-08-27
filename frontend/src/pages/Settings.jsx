@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Store, Coins, Building2, X, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import { settingsApi } from '../api/settings'
 
 export default function Settings() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [storeName, setStoreName] = useState('Opal Line Jewellery')
   const [gstin, setGstin] = useState('27AABCU9603R1ZM')
@@ -21,6 +24,34 @@ export default function Settings() {
   const [defaultPurity, setDefaultPurity] = useState('92.5 Sterling Silver')
 
   const [toast, setToast] = useState(null)
+
+  useEffect(() => {
+    settingsApi.getAll().then((res) => {
+      const s = res.data.data
+      if (s.businessName) setStoreName(s.businessName)
+      if (s.gstin) setGstin(s.gstin)
+      if (s.businessAddress) setAddress(s.businessAddress)
+      if (s.invoicePrefix) setInvoicePrefix(s.invoicePrefix)
+    }).catch(() => {})
+  }, [])
+
+  const storeMutation = useMutation({
+    mutationFn: () => settingsApi.update({ businessName: storeName, gstin, businessAddress: address }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      showToast('Store information saved successfully')
+    },
+    onError: () => showToast('Failed to save store information'),
+  })
+
+  const invoiceMutation = useMutation({
+    mutationFn: () => settingsApi.update({ invoicePrefix }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      showToast('Invoice settings saved successfully')
+    },
+    onError: () => showToast('Failed to save invoice settings'),
+  })
 
   const showToast = (message) => {
     setToast(message)
@@ -63,7 +94,9 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
               <textarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 min-h-16" />
             </div>
-            <Button size="sm" onClick={() => showToast('Store information saved successfully')}>Save Changes</Button>
+            <Button size="sm" onClick={() => storeMutation.mutate()} disabled={storeMutation.isPending}>
+              {storeMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </Card>
 
@@ -120,7 +153,9 @@ export default function Settings() {
                 <option>99.9 Fine Silver</option>
               </select>
             </div>
-            <Button size="sm" onClick={() => showToast('Invoice settings saved successfully')}>Save Changes</Button>
+            <Button size="sm" onClick={() => invoiceMutation.mutate()} disabled={invoiceMutation.isPending}>
+              {invoiceMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </Card>
       </div>

@@ -1,18 +1,11 @@
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle2, Mail, AlertTriangle, TrendingUp, Users, Package } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-
-const DEMO_NOTIFICATIONS = [
-  { id: 1, type: 'ORDER_SYNC', title: 'Order Sync Failed', message: 'Order ORD-20260810-005 failed to sync due to Shopify API rate limit', time: '2026-08-10 09:15 AM', status: 'FAILED', entity: 'Order ORD-20260810-005' },
-  { id: 2, type: 'PAYMENT_FAILED', title: 'Payment Failed', message: 'Payment of ₹45,230 failed for invoice INV-2026-012 - insufficient balance', time: '2026-08-10 08:45 AM', status: 'FAILED', entity: 'Invoice INV-2026-012' },
-  { id: 3, type: 'RATE_CHANGED', title: 'Silver Rate Updated', message: 'Rate changed from ₹90.00/gm to ₹92.80/gm (+3.11%)', time: '2026-08-10 06:30 AM', status: 'SUCCESS', entity: 'MetalRate' },
-  { id: 4, type: 'LOW_STOCK', title: 'Low Stock Alert', message: 'Silver Ring (SLV-RNG-00021) has only 4 units left below threshold of 10', time: '2026-08-09 04:00 PM', status: 'WARNING', entity: 'Silver Ring Plain' },
-  { id: 5, type: 'NEW_USER', title: 'New User Added', message: 'Staff user staff@opalline.com added by admin', time: '2026-08-09 10:00 AM', status: 'SUCCESS', entity: 'User staff@opalline.com' },
-  { id: 6, type: 'INVENTORY_SYNC', title: 'Inventory Sync Completed', message: '12 products synced successfully from ERP to Shopify', time: '2026-08-09 02:30 PM', status: 'SUCCESS', entity: 'Product Catalog' },
-]
+import { notificationsApi } from '../api/notifications'
 
 const statusColor = { SUCCESS: 'green', FAILED: 'red', WARNING: 'orange' }
 
@@ -29,23 +22,31 @@ function getTypeIcon(type) {
 }
 
 export default function Notifications() {
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [markedRead, setMarkedRead] = useState(new Set())
 
-  const notifications = DEMO_NOTIFICATIONS.filter((n) => {
+  const { data: apiNotifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => notificationsApi.list().then((r) => r.data.data),
+  })
+
+  const notifications = (apiNotifications || []).filter((n) => {
     if (filter === 'all') return true
     return n.status === filter
   })
 
   const markAsRead = (id) => {
     setMarkedRead(prev => new Set([...prev, id]))
+    notificationsApi.markAsRead(id).catch(() => {})
   }
 
   const markAllAsRead = () => {
-    setMarkedRead(new Set(DEMO_NOTIFICATIONS.map((n) => n.id)))
+    setMarkedRead(new Set(notifications.map((n) => n.id)))
+    notificationsApi.markAllAsRead().catch(() => {})
   }
 
-  const unreadCount = DEMO_NOTIFICATIONS.filter((n) => !markedRead.has(n.id) && n.status !== 'SUCCESS').length
+  const unreadCount = notifications.filter((n) => !markedRead.has(n.id) && n.status !== 'SUCCESS').length
 
   return (
     <div>
@@ -54,7 +55,7 @@ export default function Notifications() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total</p>
-          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{DEMO_NOTIFICATIONS.length}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{notifications.length}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Unread</p>
@@ -62,11 +63,11 @@ export default function Notifications() {
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Succeeded</p>
-          <p className="text-xl font-bold text-green-600 mt-0.5">{DEMO_NOTIFICATIONS.filter((n) => n.status === 'SUCCESS').length}</p>
+          <p className="text-xl font-bold text-green-600 mt-0.5">{notifications.filter((n) => n.status === 'SUCCESS').length}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Failed</p>
-          <p className="text-xl font-bold text-red-600 mt-0.5">{DEMO_NOTIFICATIONS.filter((n) => n.status === 'FAILED').length}</p>
+          <p className="text-xl font-bold text-red-600 mt-0.5">{notifications.filter((n) => n.status === 'FAILED').length}</p>
         </div>
       </div>
 

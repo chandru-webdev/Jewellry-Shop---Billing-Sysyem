@@ -1,28 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Boxes, Package, Gem, IndianRupee, AlertTriangle, XCircle, Search } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
-
-const DEMO_INV = {
-  totalProducts: 312,
-  totalQuantity: 2853,
-  totalWeight: 1248.70,
-  inventoryValue: 2648700,
-  lowStock: 18,
-  outOfStock: 3,
-  items: [
-    { name: 'Silver Classic Ring', sku: 'SLV-RNG-00021', qty: 24, weight: 124.80, costValue: 11600, sellingValue: 14112, reorderLevel: 10, status: 'In Stock' },
-    { name: 'Silver Chain 22"', sku: 'SLV-CHN-00008', qty: 5, weight: 89.50, costValue: 8300, sellingValue: 10150, reorderLevel: 12, status: 'Low Stock' },
-    { name: 'Silver Bracelet', sku: 'SLV-BRC-00015', qty: 3, weight: 45.20, costValue: 4200, sellingValue: 5130, reorderLevel: 8, status: 'Low Stock' },
-    { name: 'Silver Pendant', sku: 'SLV-PND-00012', qty: 2, weight: 31.60, costValue: 2930, sellingValue: 3584, reorderLevel: 6, status: 'Low Stock' },
-    { name: 'Silver Earrings', sku: 'SLV-ERN-00031', qty: 6, weight: 38.40, costValue: 3560, sellingValue: 4352, reorderLevel: 15, status: 'Low Stock' },
-    { name: 'Silver Anklet', sku: 'SLV-ANK-00044', qty: 18, weight: 112.30, costValue: 10420, sellingValue: 12744, reorderLevel: 8, status: 'In Stock' },
-    { name: 'Silver Nose Pin', sku: 'SLV-NPS-00056', qty: 0, weight: 0, costValue: 0, sellingValue: 0, reorderLevel: 20, status: 'Out of Stock' },
-    { name: 'Silver Toe Ring', sku: 'SLV-TRG-00062', qty: 42, weight: 84.60, costValue: 7840, sellingValue: 9592, reorderLevel: 10, status: 'In Stock' },
-  ],
-}
+import { inventoryApi } from '../api/inventory'
 
 const statusTone = { 'In Stock': 'green', 'Low Stock': 'orange', 'Out of Stock': 'red' }
 
@@ -30,7 +13,39 @@ export default function Inventory() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
-  const inv = DEMO_INV
+  const { data: apiItems = [] } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: () => inventoryApi.list().then((r) => r.data.data),
+  })
+
+  const items = (apiItems || []).map((item) => {
+    const qty = item.quantity ?? 0
+    const weight = Number(item.weight ?? 0)
+    const costValue = Number(item.costValue ?? item.product?.costPrice ?? 0) * qty
+    const sellingValue = Number(item.sellingValue ?? item.product?.sellingPrice ?? 0) * qty
+    const reorderLevel = item.reorderLevel ?? 10
+    const status = qty === 0 ? 'Out of Stock' : qty <= reorderLevel ? 'Low Stock' : 'In Stock'
+    return {
+      name: item.product?.name || item.name || 'Unknown',
+      sku: item.product?.sku || item.sku || '',
+      qty,
+      weight,
+      costValue,
+      sellingValue,
+      reorderLevel,
+      status,
+    }
+  })
+
+  const inv = useMemo(() => ({
+    totalProducts: items.length,
+    totalQuantity: items.reduce((s, i) => s + i.qty, 0),
+    totalWeight: items.reduce((s, i) => s + i.weight, 0),
+    inventoryValue: items.reduce((s, i) => s + i.costValue, 0),
+    lowStock: items.filter((i) => i.status === 'Low Stock').length,
+    outOfStock: items.filter((i) => i.status === 'Out of Stock').length,
+    items,
+  }), [items])
 
   const filtered = inv.items.filter((item) => {
     if (search) {

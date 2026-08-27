@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const inventoryService = require('./inventory.service')
 const notificationService = require('./notification.service')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
 
@@ -22,7 +23,7 @@ const invoiceService = {
       }
     }
     if (filters.search) {
-      const q = filters.search
+      const q = escapeLike(filters.search)
       where.OR = [
         { invoiceNumber: { contains: q, mode: 'insensitive' } },
         { customer: { name: { contains: q, mode: 'insensitive' } } },
@@ -194,18 +195,19 @@ const invoiceService = {
     })
 
     // Check for low stock after invoice
+    const lowStockProducts = []
     for (const line of itemsData) {
-      const product = await prisma.product.findUnique({
-        where: { id: line.productId },
-        include: { inventory: true },
-      })
+      const product = productMap.get(line.productId)
       if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
-        await notificationService.createForAll({
-          type: 'LOW_STOCK',
-          title: 'Low Stock Alert',
-          message: `${product.name} (${product.sku}) has only ${product.inventory?.quantity ?? 0} units left`,
-        })
+        lowStockProducts.push(product)
       }
+    }
+    if (lowStockProducts.length > 0) {
+      await notificationService.createForAll({
+        type: 'LOW_STOCK',
+        title: 'Low Stock Alert',
+        message: lowStockProducts.map((p) => `${p.name} (${p.sku}) — ${p.inventory?.quantity ?? 0} units left`).join('\n'),
+      })
     }
 
     return this.getById(invoice.id)

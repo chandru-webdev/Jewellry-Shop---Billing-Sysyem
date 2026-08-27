@@ -26,5 +26,6 @@ router.use('/settings', require('./setting.routes'))
 router.use('/notifications', require('./notification.routes'))
 router.use('/search', require('./search.routes'))
 router.use('/price-history', require('./productPriceHistory.routes'))
+router.use('/bank-accounts', require('./bankAccount.routes'))
 
 module.exports = router

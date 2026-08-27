@@ -1,21 +1,26 @@
 const env = require('../config/env')
+const ApiError = require('../utils/ApiError')
 
 // Global error handler — the LAST middleware in the chain.
 // Any error thrown in a route ends up here.
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
-  if (env.nodeEnv === 'development') {
-    console.error(err)
+  // Always log full error details server-side
+  console.error(err)
+
+  // Operational errors (ApiError) — safe to send message to client
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      details: err.details,
+    })
   }
 
-  const statusCode = err.statusCode || 500
-  const message = err.message || 'Internal server error'
-  const details = err.details
-
-  res.status(statusCode).json({
+  // Unexpected errors — never leak internals to client
+  res.status(500).json({
     success: false,
-    message,
-    details,
+    message: 'Internal server error',
   })
 }
 

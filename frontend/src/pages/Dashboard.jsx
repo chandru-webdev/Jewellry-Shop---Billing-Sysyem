@@ -19,105 +19,6 @@ import { dashboardApi } from '../api/dashboard'
 import { productsApi } from '../api/products'
 import { inventoryApi } from '../api/inventory'
 
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
-
-const DEMO_DATA = {
-  dateRange: { filter: 'last7days', start: new Date(Date.now() - 6 * 86400000).toISOString(), end: new Date().toISOString() },
-
-  periodRevenue: 785460,
-  periodSalesCount: 247,
-  periodOrdersCount: 247,
-  salesTrend: 18.6,
-  ordersTrend: 9.7,
-
-  revenue: { today: 124560, month: 1875230, total: 48250000 },
-  sales: { today: 47, month: 486 },
-  orders: { pending: 5, today: 32 },
-
-  customers: 186,
-  suppliers: 24,
-  products: { total: 312, active: 285 },
-
-  stock: { totalQuantity: 2853, totalWeight: 1248.70 },
-
-  silverRate: { rate: 92.80, updatedAt: new Date().toISOString(), updatedBy: 'Admin' },
-
-  lowStock: {
-    count: 18,
-    items: [
-      { id: 1, sku: 'SLV-RNG-00021', name: 'Silver Ring', category: 'Rings', quantity: 4, threshold: 10 },
-      { id: 2, sku: 'SLV-BRC-00015', name: 'Silver Bracelet', category: 'Bracelets', quantity: 3, threshold: 8 },
-      { id: 3, sku: 'SLV-CHN-00008', name: 'Silver Chain', category: 'Chains', quantity: 5, threshold: 12 },
-      { id: 4, sku: 'SLV-PND-00012', name: 'Silver Pendant', category: 'Pendants', quantity: 2, threshold: 6 },
-      { id: 5, sku: 'SLV-ERN-00031', name: 'Silver Earrings', category: 'Earrings', quantity: 6, threshold: 15 },
-    ],
-  },
-
-  recentInvoices: [
-    { id: 1, invoiceNumber: 'SI-2026-00047', customer: { name: 'Rajesh Kumar' }, grandTotal: 5230, status: 'PAID' },
-    { id: 2, invoiceNumber: 'SI-2026-00046', customer: { name: 'Priya Sharma' }, grandTotal: 8750, status: 'PAID' },
-    { id: 3, invoiceNumber: 'SI-2026-00045', customer: { name: 'Amit Patel' }, grandTotal: 3420, status: 'PENDING' },
-    { id: 4, invoiceNumber: 'SI-2026-00044', customer: { name: 'Neha Gupta' }, grandTotal: 12800, status: 'PAID' },
-    { id: 5, invoiceNumber: 'SI-2026-00043', customer: { name: 'Vikram Singh' }, grandTotal: 6540, status: 'PAID' },
-    { id: 6, invoiceNumber: 'SI-2026-00042', customer: { name: 'Anjali Mehta' }, grandTotal: 4180, status: 'VOID' },
-  ],
-
-  recentOrders: [],
-
-  salesOverview: [
-    { date: 'Mon 04', revenue: 85200, orders: 24 },
-    { date: 'Tue 05', revenue: 112400, orders: 31 },
-    { date: 'Wed 06', revenue: 98700, orders: 28 },
-    { date: 'Thu 07', revenue: 134500, orders: 36 },
-    { date: 'Fri 08', revenue: 121800, orders: 33 },
-    { date: 'Sat 09', revenue: 108300, orders: 29 },
-    { date: 'Sun 10', revenue: 124560, orders: 32 },
-  ],
-
-  topProducts: [
-    { name: 'Silver Chain', sku: 'SLV-CHN-00008', qty: 135, weight: 189.00, revenue: 18900 },
-    { name: 'Silver Ring', sku: 'SLV-RNG-00021', qty: 98, weight: 142.10, revenue: 14210 },
-    { name: 'Silver Bracelet', sku: 'SLV-BRC-00015', qty: 75, weight: 111.25, revenue: 11250 },
-    { name: 'Silver Pendant', sku: 'SLV-PND-00012', qty: 62, weight: 79.60, revenue: 9610 },
-    { name: 'Silver Earrings', sku: 'SLV-ERN-00031', qty: 58, weight: 68.20, revenue: 8520 },
-  ],
-
-  paymentStatus: [
-    { name: 'Paid', value: 235600, pct: 67, color: '#10b981' },
-    { name: 'Pending', value: 112450, pct: 32, color: '#f59e0b' },
-    { name: 'Failed / Overdue', value: 5870, pct: 1, color: '#ef4444' },
-  ],
-  paymentTotal: 353920,
-
-  silverRateHistory: [
-    { date: '04 Aug', rate: 89.50 },
-    { date: '05 Aug', rate: 90.20 },
-    { date: '06 Aug', rate: 91.10 },
-    { date: '07 Aug', rate: 89.80 },
-    { date: '08 Aug', rate: 91.50 },
-    { date: '09 Aug', rate: 92.00 },
-    { date: '10 Aug', rate: 92.80 },
-  ],
-
-  outstanding: 112450,
-  outstandingInvoices: 5,
-  todayExpenses: 12450,
-
-  monthSales: 1875230,
-  monthSalesTrend: 24.5,
-  monthOrders: 486,
-  monthOrdersTrend: 19.8,
-  avgOrderValue: 3865,
-  avgOrderTrend: 15.4,
-  returnRate: 2.35,
-  returnRateTrend: -0.65,
-  profitMargin: 21.45,
-  profitMarginTrend: 2.15,
-  inventoryValue: 2648700,
-}
-
 const DATE_FILTERS = [
   { value: 'today', label: 'Today' },
   { value: 'yesterday', label: 'Yesterday' },
@@ -448,7 +349,7 @@ export default function Dashboard() {
     retry: 1,
   })
 
-  const d = isDemoMode() && (error || !res?.data?.data) ? DEMO_DATA : res?.data?.data
+  const d = res?.data?.data
 
   if (isLoading) return <LoadingSkeleton />
 

@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
 
@@ -12,9 +13,10 @@ const productService = {
     const where = {}
 
     if (filters.search) {
+      const q = escapeLike(filters.search)
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { sku: { contains: filters.search, mode: 'insensitive' } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { sku: { contains: q, mode: 'insensitive' } },
       ]
     }
     if (filters.categoryId) where.categoryId = Number(filters.categoryId)

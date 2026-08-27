@@ -472,3 +472,20 @@ model Notification {
   @@index([userId])
   @@index([isRead])
 }
+
+model BankAccount {
+  id              Int      @id @default(autoincrement())
+  name            String
+  bank            String
+  accountNumber   String
+  ifsc            String
+  type            String   @default("Current") // Current, Savings, Cash Credit, Overdraft
+  openingBalance  Decimal  @default(0) @db.Decimal(12, 2)
+  openingDate     DateTime @default(now())
+  balance         Decimal  @default(0) @db.Decimal(12, 2)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([isActive])
+}

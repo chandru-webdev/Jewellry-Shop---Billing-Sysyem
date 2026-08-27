@@ -219,18 +219,19 @@ const orderService = {
     })
 
     // Check for low stock after order
+    const lowStockProducts = []
     for (const line of orderItemsData) {
-      const product = await prisma.product.findUnique({
-        where: { id: line.productId },
-        include: { inventory: true },
-      })
+      const product = productMap.get(line.productId)
       if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
-        await notificationService.createForAll({
-          type: 'LOW_STOCK',
-          title: 'Low Stock Alert',
-          message: `${product.name} (${product.sku}) has only ${product.inventory?.quantity ?? 0} units left`,
-        })
+        lowStockProducts.push(product)
       }
+    }
+    if (lowStockProducts.length > 0) {
+      await notificationService.createForAll({
+        type: 'LOW_STOCK',
+        title: 'Low Stock Alert',
+        message: lowStockProducts.map((p) => `${p.name} (${p.sku}) — ${p.inventory?.quantity ?? 0} units left`).join('\n'),
+      })
     }
 
     return orderData

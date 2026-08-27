@@ -1,38 +1,41 @@
-import { useEffect, useState } from 'react'
-import { CheckCircle2, XCircle, Clock, TrendingUp, TrendingDown, Users, Mail, LogOut } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { CheckCircle2, XCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-import { formatINR } from '../utils/format'
-
-const DEMO_REQUESTS = [
-  { id: 1, silverRate: 9280, newRate: 9450, requestedBy: 'staff@opalline.com', status: 'PENDING', createdAt: '2026-08-10 10:30 AM', silverType: '925', quantityAffected: 245, affectedProducts: 12, note: 'Rate increase of ₹170/gm, will affect all silver products' },
-  { id: 2, silverRate: 9280, newRate: 9380, requestedBy: 'admin@opalline.com', status: 'APPROVED', createdAt: '2026-08-09 04:15 PM', silverType: '925', quantityAffected: 180, affectedProducts: 8, note: 'Approved and published - all prices recalculated', approvedAt: '2026-08-09 05:00 PM' },
-  { id: 3, silverRate: 9280, newRate: 9520, requestedBy: 'staff@opalline.com', status: 'REJECTED', createdAt: '2026-08-08 02:00 PM', silverType: '925', quantityAffected: 310, affectedProducts: 15, note: 'Rejected - volatility too high, rate unchanged' },
-]
+import { metalRatesApi } from '../api/metalRates'
 
 const statusColor = { PENDING: 'orange', APPROVED: 'green', REJECTED: 'red' }
 const statusLabel = { PENDING: 'Pending', APPROVED: 'Approved', REJECTED: 'Rejected' }
 
-function formatTimestamp(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, '0')
-  const hours24 = date.getHours()
-  const hours12 = hours24 % 12 || 12
-  const meridiem = hours24 >= 12 ? 'PM' : 'AM'
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(hours12)}:${pad(date.getMinutes())} ${meridiem}`
-}
-
 export default function RateApprovals() {
-  const [requests, setRequests] = useState(DEMO_REQUESTS)
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    if (!toast) return undefined
+    if (!toast) return
     const timer = setTimeout(() => setToast(null), 3500)
     return () => clearTimeout(timer)
   }, [toast])
+
+  const { data: apiRequests = [] } = useQuery({
+    queryKey: ['rate-requests', filter],
+    queryFn: () => metalRatesApi.listRequests(filter === 'all' ? undefined : filter).then((r) => r.data.data),
+  })
+
+  const requests = apiRequests || []
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, status }) => metalRatesApi.reviewRequest(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rate-requests'] })
+      setToast({ type: 'success', message: 'Request updated' })
+    },
+    onError: () => setToast({ type: 'error', message: 'Failed to update request' }),
+  })
 
   const filteredRequests = requests.filter((r) => {
     if (filter === 'all') return true
@@ -44,21 +47,11 @@ export default function RateApprovals() {
   const rejected = requests.filter((r) => r.status === 'REJECTED').length
 
   const handleApprove = (id) => {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, status: 'APPROVED', approvedAt: formatTimestamp(), note: 'Approved and published - all prices recalculated' } : r
-      )
-    )
-    setToast({ type: 'success', message: `Request #${id} approved and published` })
+    reviewMutation.mutate({ id, status: 'APPROVED' })
   }
 
   const handleReject = (id) => {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, status: 'REJECTED', note: 'Rejected - rate unchanged' } : r
-      )
-    )
-    setToast({ type: 'error', message: `Request #${id} rejected` })
+    reviewMutation.mutate({ id, status: 'REJECTED' })
   }
 
   return (

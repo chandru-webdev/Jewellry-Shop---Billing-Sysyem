@@ -1,27 +1,11 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-
-const DEMO_LOGS = [
-  { id: 1, entity: 'Order', shopifyId: '#10235', entityName: 'Order #10235', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: '2026-08-10 08:45 AM', duration: '1.2s', error: null },
-  { id: 2, entity: 'Product', shopifyId: '#7890123456', entityName: 'Gold Chain (GLD-CHN-00012)', direction: 'ERP → Shopify', action: 'Price Update', status: 'SUCCESS', time: '2026-08-10 08:30 AM', duration: '0.8s', error: null },
-  { id: 3, entity: 'Inventory', shopifyId: '#7890123457', entityName: 'Silver Ring (SLV-RNG-00021)', direction: 'ERP → Shopify', action: 'Stock Update', status: 'FAILED', time: '2026-08-10 08:15 AM', duration: '2.4s', error: 'Shopify API rate limit exceeded (429)' },
-  { id: 4, entity: 'Customer', shopifyId: '#6712345678', entityName: 'Priya Sharma', direction: 'Shopify → ERP', action: 'Customer Import', status: 'SUCCESS', time: '2026-08-10 08:00 AM', duration: '0.5s', error: null },
-  { id: 5, entity: 'Order', shopifyId: '#10234', entityName: 'Order #10234', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: '2026-08-10 07:42 AM', duration: '1.1s', error: null },
-  { id: 6, entity: 'Inventory', shopifyId: '#7890123458', entityName: 'Gold Bangle (GLD-BGL-00005)', direction: 'ERP → Shopify', action: 'Stock Update', status: 'PENDING', time: '2026-08-10 07:30 AM', duration: '—', error: null },
-  { id: 7, entity: 'Product', shopifyId: '#7890123459', entityName: 'Diamond Ring (DIA-RNG-00003)', direction: 'ERP → Shopify', action: 'Price Update', status: 'FAILED', time: '2026-08-09 09:20 PM', duration: '1.9s', error: 'Variant not found on Shopify' },
-  { id: 8, entity: 'Customer', shopifyId: '#6712345679', entityName: 'Amit Patel', direction: 'Shopify → ERP', action: 'Customer Import', status: 'SUCCESS', time: '2026-08-09 08:45 PM', duration: '0.6s', error: null },
-  { id: 9, entity: 'Order', shopifyId: '#10233', entityName: 'Order #10233', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: '2026-08-09 11:32 PM', duration: '1.4s', error: null },
-  { id: 10, entity: 'Inventory', shopifyId: '#7890123460', entityName: 'Silver Chain (SLV-CHN-00008)', direction: 'ERP → Shopify', action: 'Stock Update', status: 'SUCCESS', time: '2026-08-09 06:15 PM', duration: '0.9s', error: null },
-  { id: 11, entity: 'Product', shopifyId: '#7890123461', entityName: 'Gold Earrings (GLD-EAR-00019)', direction: 'ERP → Shopify', action: 'Price Update', status: 'PENDING', time: '2026-08-09 02:30 PM', duration: '—', error: null },
-  { id: 12, entity: 'Order', shopifyId: '#10229', entityName: 'Order #10229', direction: 'Shopify → ERP', action: 'Imported', status: 'FAILED', time: '2026-08-09 01:10 PM', duration: '3.2s', error: 'Customer not found in ERP' },
-  { id: 13, entity: 'Customer', shopifyId: '#6712345680', entityName: 'Neha Gupta', direction: 'Shopify → ERP', action: 'Customer Import', status: 'FAILED', time: '2026-08-08 07:50 PM', duration: '1.7s', error: 'Invalid email format from Shopify' },
-  { id: 14, entity: 'Product', shopifyId: '#7890123462', entityName: 'Silver Anklet (SLV-ANK-00011)', direction: 'ERP → Shopify', action: 'Price Update', status: 'SUCCESS', time: '2026-08-08 04:25 PM', duration: '0.7s', error: null },
-  { id: 15, entity: 'Order', shopifyId: '#10228', entityName: 'Order #10228', direction: 'Shopify → ERP', action: 'Imported', status: 'SUCCESS', time: '2026-08-08 10:00 AM', duration: '1.3s', error: null },
-]
+import { shopifyApi } from '../api/shopify'
 
 const statusColor = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
 const entityColor = { Order: 'blue', Product: 'purple', Inventory: 'gold', Customer: 'green' }
@@ -34,18 +18,33 @@ export default function SyncLogs() {
   const [filterEntity, setFilterEntity] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [search, setSearch] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
-  const [toast, setToast] = useState(null)
 
-  const synced = DEMO_LOGS.filter((l) => l.status === 'SUCCESS').length
-  const failed = DEMO_LOGS.filter((l) => l.status === 'FAILED').length
-  const pending = DEMO_LOGS.filter((l) => l.status === 'PENDING').length
-  const lastSync = DEMO_LOGS.find((l) => l.status === 'SUCCESS')
+  const { data: apiLogs = [], refetch } = useQuery({
+    queryKey: ['shopify-sync-logs', filterEntity, filterStatus],
+    queryFn: () => shopifyApi.getSyncLogs({
+      ...(filterEntity !== 'All' ? { type: filterEntity } : {}),
+      ...(filterStatus !== 'All' ? { status: filterStatus } : {}),
+    }).then((r) => r.data.data),
+  })
 
-  const filtered = DEMO_LOGS.filter((log) => {
-    if (filterEntity !== 'All' && log.entity !== filterEntity) return false
-    if (filterStatus !== 'All' && log.status !== filterStatus) return false
-    if (search && !log.shopifyId.toLowerCase().includes(search.toLowerCase())) return false
+  const logs = (apiLogs || []).map((l) => ({
+    ...l,
+    entity: l.type || l.entity || 'Unknown',
+    shopifyId: l.shopifyId || l.entityId || '—',
+    entityName: l.entityName || l.message || '—',
+    direction: l.direction || (l.type === 'Order' || l.type === 'Customer' ? 'Shopify → ERP' : 'ERP → Shopify'),
+    action: l.action || l.type || 'Sync',
+    time: l.createdAt,
+    duration: l.duration || '—',
+  }))
+
+  const synced = logs.filter((l) => l.status === 'SUCCESS').length
+  const failed = logs.filter((l) => l.status === 'FAILED').length
+  const pending = logs.filter((l) => l.status === 'PENDING').length
+  const lastSync = logs.find((l) => l.status === 'SUCCESS')
+
+  const filtered = logs.filter((log) => {
+    if (search && !log.shopifyId?.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
@@ -62,18 +61,8 @@ export default function SyncLogs() {
     URL.revokeObjectURL(url)
   }
 
-  const showToast = (message) => {
-    setToast(message)
-    setTimeout(() => setToast(null), 2200)
-  }
-
   const handleRefresh = () => {
-    if (refreshing) return
-    setRefreshing(true)
-    setTimeout(() => {
-      setRefreshing(false)
-      showToast('Sync logs refreshed')
-    }, 1000)
+    refetch()
   }
 
   return (
@@ -81,8 +70,8 @@ export default function SyncLogs() {
       <PageHeader title="Sync Logs" subtitle="Detailed Shopify ↔ ERP synchronization history" actions={
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCSV}><Download size={14} /> Export CSV</Button>
-          <Button variant="primary" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
+          <Button variant="primary" size="sm" onClick={handleRefresh}>
+            <RefreshCw size={14} /> Refresh
           </Button>
         </div>
       } />
@@ -180,11 +169,6 @@ export default function SyncLogs() {
         </div>
       </Card>
 
-      {toast && (
-        <div className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-lg bg-royal-950 text-white text-sm shadow-lg dark:bg-white dark:text-gray-900">
-          {toast}
-        </div>
-      )}
     </div>
   )
 }

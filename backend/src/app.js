@@ -62,6 +62,18 @@ const apiLimiter = rateLimit({
 })
 app.use('/api', apiLimiter)
 
+// Stricter rate limit for auth endpoints (login, forgot-password, reset-password)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 attempts per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many authentication attempts, please try again later.' },
+})
+app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/forgot-password', authLimiter)
+app.use('/api/auth/reset-password', authLimiter)
+
 // All API routes
 app.use('/api', routes)
 

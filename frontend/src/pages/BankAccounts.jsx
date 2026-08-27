@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Edit, Trash2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -9,17 +9,10 @@ import Modal from '../components/ui/Modal'
 import { bankAccountsApi } from '../api/bankAccounts'
 import { formatINR, formatDate } from '../utils/format'
 
-const DEMO_BANK_ACCOUNTS = [
-  { id: 1, name: 'HDFC Current Account', accountNumber: '50200012345678', ifsc: 'HDFC0001234', type: 'Current', bank: 'HDFC Bank', balance: 2500000, isActive: true, openingBalance: 2000000, openingDate: '2025-01-01' },
-  { id: 2, name: 'ICICI Savings Account', accountNumber: '629101234567', ifsc: 'ICIC0001234', type: 'Savings', bank: 'ICICI Bank', balance: 850000, isActive: true, openingBalance: 500000, openingDate: '2025-03-15' },
-  { id: 3, name: 'SBI Cash Credit', accountNumber: '31234567890', ifsc: 'SBIN0001234', type: 'Cash Credit', bank: 'State Bank of India', balance: -1500000, isActive: true, openingBalance: 0, openingDate: '2025-06-01' },
-  { id: 4, name: 'Axis Bank OD', accountNumber: '916020012345678', ifsc: 'UTIB0001234', type: 'Overdraft', bank: 'Axis Bank', balance: -500000, isActive: true, openingBalance: 0, openingDate: '2025-07-01' },
-  { id: 5, name: 'Kotak Current Account', accountNumber: '1212345678', ifsc: 'KKBK0001234', type: 'Current', bank: 'Kotak Mahindra Bank', balance: 1200000, isActive: false, openingBalance: 1000000, openingDate: '2024-11-01' },
-]
-
 const typeTone = { Current: 'blue', Savings: 'green', 'Cash Credit': 'orange', Overdraft: 'red' }
 
 export default function BankAccounts() {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -29,13 +22,43 @@ export default function BankAccounts() {
   const [editing, setEditing] = useState(null)
   const [formData, setFormData] = useState({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0] })
 
-  const { data: apiAccounts, isError } = useQuery({
-    queryKey: ['bank-accounts'],
-    queryFn: () => bankAccountsApi.list().then((r) => r.data.data),
-    retry: false,
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['bank-accounts', search, filterType, filterStatus],
+    queryFn: () => bankAccountsApi.list({ search, type: filterType, isActive: filterStatus }).then((r) => r.data.data),
   })
 
-  const accounts = (!isError && apiAccounts?.length) ? apiAccounts : DEMO_BANK_ACCOUNTS
+  const { data: summary } = useQuery({
+    queryKey: ['bank-accounts-summary'],
+    queryFn: () => bankAccountsApi.summary().then((r) => r.data.data),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data) => bankAccountsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts-summary'] })
+      setFormOpen(false)
+      resetForm()
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => bankAccountsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts-summary'] })
+      setFormOpen(false)
+      resetForm()
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => bankAccountsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts-summary'] })
+    },
+  })
 
   const filtered = accounts.filter((a) => {
     if (filterType && a.type !== filterType) return false
@@ -47,22 +70,17 @@ export default function BankAccounts() {
     return true
   })
 
-  const totalBalance = accounts.filter(a => a.isActive).reduce((s, a) => s + a.balance, 0)
-  const activeAccounts = accounts.filter(a => a.isActive).length
-  const totalAccounts = accounts.length
+  const totalBalance = summary?.totalBalance ?? 0
+  const activeAccounts = summary?.activeAccounts ?? 0
+  const totalAccounts = summary?.totalAccounts ?? 0
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (editing) {
-      // Update existing
-      // In real app: bankAccountsApi.update(editing.id, formData)
+      updateMutation.mutate({ id: editing.id, data: formData })
     } else {
-      // Create new
-      // In real app: bankAccountsApi.create(formData)
+      createMutation.mutate(formData)
     }
-    setFormOpen(false)
-    setEditing(null)
-    setFormData({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0] })
   }
 
   const handleEdit = (account) => {
@@ -74,14 +92,14 @@ export default function BankAccounts() {
       ifsc: account.ifsc,
       type: account.type,
       openingBalance: account.openingBalance.toString(),
-      openingDate: account.openingDate,
+      openingDate: account.openingDate?.split('T')[0] || '',
     })
     setFormOpen(true)
   }
 
   const handleDelete = (_id) => {
     if (confirm('Delete this bank account?')) {
-      // bankAccountsApi.delete(id)
+      deleteMutation.mutate(_id)
     }
   }
 

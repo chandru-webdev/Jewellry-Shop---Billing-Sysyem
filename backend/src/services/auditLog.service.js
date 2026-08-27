@@ -5,6 +5,7 @@
 // =============================================================
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 // Whitelist of values for filters so they can't abuse query params.
 function cleanStr(value) {
@@ -26,10 +27,11 @@ const auditLogService = {
     if (cleanAction) where.action = cleanAction
     if (cleanEntity) where.entity = cleanEntity
     if (cleanSearch) {
+      const q = escapeLike(cleanSearch)
       where.OR = [
-        { user: { name: { contains: cleanSearch, mode: 'insensitive' } } },
-        { action: { contains: cleanSearch, mode: 'insensitive' } },
-        { entity: { contains: cleanSearch, mode: 'insensitive' } },
+        { user: { name: { contains: q, mode: 'insensitive' } } },
+        { action: { contains: q, mode: 'insensitive' } },
+        { entity: { contains: q, mode: 'insensitive' } },
       ]
     }
 

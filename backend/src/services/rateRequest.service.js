@@ -37,12 +37,14 @@ const rateRequestService = {
       where: { role: { name: 'SUPER_ADMIN' }, isActive: true },
       select: { id: true },
     })
-    for (const admin of admins) {
-      await notificationService.create({
-        userId: admin.id,
-        type: 'SILVER_RATE_REQUEST',
-        title: 'Silver Rate Change Request',
-        message: `${request.requestedBy.name} requested rate change from ₹${current.rate}/gm to ₹${newRate}/gm. Awaiting approval.`,
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: 'SILVER_RATE_REQUEST',
+          title: 'Silver Rate Change Request',
+          message: `${request.requestedBy.name} requested rate change from ₹${current.rate}/gm to ₹${newRate}/gm. Awaiting approval.`,
+        })),
       })
     }
 

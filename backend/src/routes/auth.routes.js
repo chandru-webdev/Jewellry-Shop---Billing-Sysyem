@@ -10,7 +10,7 @@ const router = express.Router()
 router.post('/login', validate(loginSchema), authController.login)
 
 // POST /api/auth/logout
-router.post('/logout', authController.logout)
+router.post('/logout', authenticate, authController.logout)
 
 // GET /api/auth/me  (protected)
 router.get('/me', authenticate, authController.me)

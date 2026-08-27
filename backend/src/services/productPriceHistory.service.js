@@ -1,6 +1,7 @@
 const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
 
@@ -35,7 +36,7 @@ const productPriceHistoryService = {
     }
 
     if (filters.search) {
-      const q = filters.search
+      const q = escapeLike(filters.search)
       where.OR = [
         { product: { name: { contains: q, mode: 'insensitive' } } },
         { product: { sku: { contains: q, mode: 'insensitive' } } },

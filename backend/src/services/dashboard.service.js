@@ -106,6 +106,8 @@ const dashboardService = {
       periodPayments,
       // Silver rate history for the period
       silverRateHistory,
+      // Total revenue (all time)
+      totalRevenueAgg,
     ] = await Promise.all([
       // Revenue for selected period
       prisma.invoice.aggregate({
@@ -226,6 +228,12 @@ const dashboardService = {
         },
         orderBy: { changedAt: 'asc' },
         take: 30,
+      }),
+
+      // Total revenue (all time, non-void)
+      prisma.invoice.aggregate({
+        where: { status: { not: 'VOID' } },
+        _sum: { grandTotal: true },
       }),
     ])
 
@@ -439,7 +447,7 @@ const dashboardService = {
       revenue: {
         today: Number(revenueToday._sum.grandTotal ?? 0),
         month: monthRevenue,
-        total: Number(revenueTotal ?? 0),
+        total: Number(totalRevenueAgg._sum.grandTotal ?? 0),
       },
       sales: {
         today: salesToday,
@@ -512,18 +520,5 @@ const dashboardService = {
     }
   },
 }
-
-// Alias for the full total revenue (uncached, used internally)
-let revenueTotal = 0
-async function refreshTotalRevenue() {
-  const agg = await prisma.invoice.aggregate({
-    where: { status: { not: 'VOID' } },
-    _sum: { grandTotal: true },
-  })
-  revenueTotal = Number(agg._sum.grandTotal ?? 0)
-}
-
-// Refresh on module load
-refreshTotalRevenue().catch(() => {})
 
 module.exports = dashboardService

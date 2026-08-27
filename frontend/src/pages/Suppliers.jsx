@@ -10,8 +10,6 @@ import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 
-const DEMO_SUPPLIERS = []
-
 export default function Suppliers() {
   const queryClient = useQueryClient()
   const { user } = useAuth()

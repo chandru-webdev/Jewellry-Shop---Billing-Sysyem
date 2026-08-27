@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 async function attachCustomPermissions(users) {
   if (!users.length) return users
@@ -18,9 +19,10 @@ const userService = {
   async list({ search, roleId, isActive, limit = 50 } = {}) {
     const where = {}
     if (search) {
+      const q = escapeLike(search)
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
       ]
     }
     if (roleId) where.roleId = Number(roleId)

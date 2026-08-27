@@ -1,4 +1,5 @@
 const prisma = require('../prisma/client')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const searchService = {
   // GET /api/search?q=query — global search across Products, Invoices, Orders, Customers
@@ -7,7 +8,7 @@ const searchService = {
       return { products: [], invoices: [], orders: [], customers: [] }
     }
 
-    const q = query.trim()
+    const q = escapeLike(query.trim())
 
     // Build role-based restrictions
     // All authenticated users can search; data filtering is at query level

@@ -11,42 +11,6 @@ import { notificationsApi } from '../../api/notifications'
 import { useSilverRate } from '../../hooks/useSilverRate'
 import ThemeToggle from '../ui/ThemeToggle'
 
-function isDemoMode() {
-  return localStorage.getItem('opal_token') === 'demo-token-opal-line'
-}
-
-const DEMO_SEARCH = {
-  products: [
-    { id: 1, name: 'Silver Chain', sku: 'SLV-CHN-00008', sellingPrice: 14210, category: { name: 'Chains' }, inventory: { quantity: 45 } },
-    { id: 2, name: 'Silver Ring', sku: 'SLV-RNG-00021', sellingPrice: 8750, category: { name: 'Rings' }, inventory: { quantity: 4 } },
-    { id: 3, name: 'Silver Bracelet', sku: 'SLV-BRC-00015', sellingPrice: 11250, category: { name: 'Bracelets' }, inventory: { quantity: 3 } },
-    { id: 4, name: 'Silver Pendant', sku: 'SLV-PND-00012', sellingPrice: 9610, category: { name: 'Pendants' }, inventory: { quantity: 2 } },
-    { id: 5, name: 'Silver Earrings', sku: 'SLV-ERN-00031', sellingPrice: 8520, category: { name: 'Earrings' }, inventory: { quantity: 6 } },
-  ],
-  invoices: [
-    { id: 1, invoiceNumber: 'SI-2026-00047', customer: { name: 'Rajesh Kumar' }, grandTotal: 5230, status: 'PAID', date: '2026-08-10' },
-    { id: 2, invoiceNumber: 'SI-2026-00046', customer: { name: 'Priya Sharma' }, grandTotal: 8750, status: 'PAID', date: '2026-08-10' },
-    { id: 3, invoiceNumber: 'SI-2026-00045', customer: { name: 'Amit Patel' }, grandTotal: 3420, status: 'PENDING', date: '2026-08-09' },
-  ],
-  orders: [
-    { id: 1, orderNumber: 'POS-20260810-001', customer: { name: 'Rajesh Kumar' }, totalAmount: 5230, status: 'PAID', source: 'POS', createdAt: '2026-08-10' },
-    { id: 2, orderNumber: 'POS-20260810-002', customer: { name: 'Priya Sharma' }, totalAmount: 8750, status: 'PAID', source: 'POS', createdAt: '2026-08-10' },
-    { id: 3, orderNumber: 'SHOPIFY-10235', customer: { name: 'Amit Patel' }, totalAmount: 3420, status: 'PENDING', source: 'SHOPIFY', createdAt: '2026-08-09' },
-  ],
-  customers: [
-    { id: 1, name: 'Rajesh Kumar', phone: '9876543210', email: 'rajesh@email.com', _count: { invoices: 5, orders: 3 } },
-    { id: 2, name: 'Priya Sharma', phone: '9876543211', email: 'priya@email.com', _count: { invoices: 3, orders: 2 } },
-    { id: 3, name: 'Amit Patel', phone: '9876543212', email: 'amit@email.com', _count: { invoices: 2, orders: 1 } },
-  ],
-}
-
-const DEMO_NOTIFICATIONS = [
-  { id: 1, type: 'RATE_CHANGED', title: 'Silver Rate Updated', message: 'Rate changed from ₹90.00/gm to ₹92.80/gm (+3.11%). 285 products updated.', isRead: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
-  { id: 2, type: 'ORDER_CREATED', title: 'New Order Created', message: 'Order POS-20260810-001 from Rajesh Kumar — ₹5,230', isRead: false, createdAt: new Date(Date.now() - 7200000).toISOString() },
-  { id: 3, type: 'INVOICE_CREATED', title: 'New Invoice', message: 'Invoice SI-2026-00047 for Priya Sharma — ₹8,750', isRead: true, createdAt: new Date(Date.now() - 14400000).toISOString() },
-  { id: 4, type: 'LOW_STOCK', title: 'Low Stock Alert', message: 'Silver Ring (SLV-RNG-00021) has only 4 units left — below threshold of 10', isRead: true, createdAt: new Date(Date.now() - 28800000).toISOString() },
-]
-
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
@@ -171,10 +135,6 @@ export default function Topbar({ onMenuClick }) {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        if (isDemoMode()) {
-          setUnreadCount(2)
-          return
-        }
         const res = await notificationsApi.getUnreadCount()
         setUnreadCount(res.data.data.count)
       } catch {
@@ -192,24 +152,6 @@ export default function Topbar({ onMenuClick }) {
     if (!debouncedSearch || debouncedSearch.trim().length < 1) {
       setSearchResults(null)
       setSearchLoading(false)
-      return
-    }
-
-    // Demo mode: client-side filter of sample data
-    if (isDemoMode()) {
-      setSearchLoading(true)
-      setSearchError(null)
-      const q = debouncedSearch.trim().toLowerCase()
-      const demoResults = {
-        products: DEMO_SEARCH.products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)),
-        invoices: DEMO_SEARCH.invoices.filter((i) => i.invoiceNumber.toLowerCase().includes(q) || (i.customer?.name || '').toLowerCase().includes(q)),
-        orders: DEMO_SEARCH.orders.filter((o) => o.orderNumber.toLowerCase().includes(q) || (o.customer?.name || '').toLowerCase().includes(q)),
-        customers: DEMO_SEARCH.customers.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q)),
-      }
-      setTimeout(() => {
-        setSearchResults(demoResults)
-        setSearchLoading(false)
-      }, 200)
       return
     }
 
@@ -245,14 +187,6 @@ export default function Topbar({ onMenuClick }) {
   useEffect(() => {
     if (notifOpen) {
       setNotifLoading(true)
-      if (isDemoMode()) {
-        setTimeout(() => {
-          setNotifications(DEMO_NOTIFICATIONS)
-          setUnreadCount(DEMO_NOTIFICATIONS.filter((n) => !n.isRead).length)
-          setNotifLoading(false)
-        }, 200)
-        return
-      }
       notificationsApi
         .list({ limit: 20 })
         .then((res) => {
@@ -281,7 +215,6 @@ export default function Topbar({ onMenuClick }) {
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     )
     setUnreadCount((prev) => Math.max(0, prev - 1))
-    if (isDemoMode()) return
     try {
       await notificationsApi.markAsRead(id)
     } catch {
@@ -292,7 +225,6 @@ export default function Topbar({ onMenuClick }) {
   const handleMarkAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
     setUnreadCount(0)
-    if (isDemoMode()) return
     try {
       await notificationsApi.markAllAsRead()
     } catch {

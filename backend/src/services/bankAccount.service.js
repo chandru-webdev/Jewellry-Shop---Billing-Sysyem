@@ -1,14 +1,16 @@
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { escapeLike } = require('../utils/sanitizeSearch')
 
 const bankAccountService = {
   async list({ search, type, isActive } = {}) {
     const where = {}
     if (search) {
+      const q = escapeLike(search)
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { bank: { contains: search, mode: 'insensitive' } },
-        { accountNumber: { contains: search } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { bank: { contains: q, mode: 'insensitive' } },
+        { accountNumber: { contains: q } },
       ]
     }
     if (type) where.type = type

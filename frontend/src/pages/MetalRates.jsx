@@ -356,7 +356,7 @@ export default function MetalRates() {
 // Separate component for the pending requests tab (uses its own queries)
 function RateRequestsTab() {
   const queryClient = useQueryClient()
-  const [filterStatus, setFilterStatus] = useState('PENDING')
+  const [filterStatus, setFilterStatus] = useState('')
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({
     queryKey: ['rate-requests', filterStatus],
@@ -381,10 +381,10 @@ function RateRequestsTab() {
           onChange={(e) => setFilterStatus(e.target.value)}
           className="rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-sm"
         >
+          <option value="">All</option>
           <option value="PENDING">Pending</option>
           <option value="APPROVED">Approved</option>
           <option value="REJECTED">Rejected</option>
-          <option value="">All</option>
         </select>
       </div>
 

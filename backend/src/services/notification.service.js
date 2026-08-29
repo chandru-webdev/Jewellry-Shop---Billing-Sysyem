@@ -1,14 +1,11 @@
 const prisma = require('../prisma/client')
 
 const notificationService = {
-  // GET /api/notifications — list for the logged-in user (or all if ADMIN)
+  // GET /api/notifications — notifications for the logged-in user only.
+  // Broadcast events (createForAll) fan out one row per user, so scoping by
+  // userId means each event appears exactly once instead of once per user.
   async list(userId, role, { unreadOnly = false, limit = 50 } = {}) {
-    const where = {}
-
-    // Non-admin users see only their own notifications
-    if (role !== 'SUPER_ADMIN') {
-      where.userId = userId
-    }
+    const where = { userId }
 
     if (unreadOnly === 'true') {
       where.isRead = false
@@ -30,45 +27,28 @@ const notificationService = {
 
   // GET /api/notifications/unread-count
   async getUnreadCount(userId, role) {
-    const where = { isRead: false }
-    if (role !== 'SUPER_ADMIN') {
-      where.userId = userId
-    }
-    return prisma.notification.count({ where })
+    return prisma.notification.count({ where: { userId, isRead: false } })
   },
 
   // PATCH /api/notifications/:id/read
   async markAsRead(id, userId, role) {
-    const where = { id: Number(id) }
-    // Non-admin can only mark their own
-    if (role !== 'SUPER_ADMIN') {
-      where.userId = userId
-    }
     return prisma.notification.updateMany({
-      where,
+      where: { id: Number(id), userId },
       data: { isRead: true },
     })
   },
 
   // PATCH /api/notifications/read-all
   async markAllAsRead(userId, role) {
-    const where = { isRead: false }
-    if (role !== 'SUPER_ADMIN') {
-      where.userId = userId
-    }
     return prisma.notification.updateMany({
-      where,
+      where: { userId, isRead: false },
       data: { isRead: true },
     })
   },
 
   // DELETE /api/notifications/:id
   async remove(id, userId, role) {
-    const where = { id: Number(id) }
-    if (role !== 'SUPER_ADMIN') {
-      where.userId = userId
-    }
-    return prisma.notification.deleteMany({ where })
+    return prisma.notification.deleteMany({ where: { id: Number(id), userId } })
   },
 
   // Internal helper — called by other services when business events occur

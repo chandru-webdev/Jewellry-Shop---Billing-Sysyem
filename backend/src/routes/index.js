@@ -30,5 +30,7 @@ router.use('/price-history', require('./productPriceHistory.routes'))
 router.use('/bank-accounts', require('./bankAccount.routes'))
 router.use('/purchase-orders', require('./purchaseOrder.routes'))
 router.use('/purchase-returns', require('./purchaseReturn.routes'))
+router.use('/expenses', require('./expense.routes'))
+router.use('/ledger', require('./ledger.routes'))
 
 module.exports = router

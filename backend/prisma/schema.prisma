@@ -578,3 +578,23 @@ model PurchaseReturnItem {
 
   @@index([purchaseReturnId])
 }
+
+// ---------- EXPENSES ----------
+
+model Expense {
+  id            Int      @id @default(autoincrement())
+  category      String
+  description   String
+  amount        Decimal  @db.Decimal(12, 2)
+  date          DateTime @default(now())
+  paymentMethod String   @default("Cash")
+  reference     String?
+  status        String   @default("PAID") // PAID, PENDING, CANCELLED
+  createdById   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+  @@index([date])
+}

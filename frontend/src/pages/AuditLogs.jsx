@@ -7,30 +7,38 @@ import Badge from '../components/ui/Badge'
 import { formatDateTime } from '../utils/format'
 import { auditLogsApi } from '../api/auditLogs'
 
-const actionTone = { CREATE: 'green', UPDATE: 'blue', DELETE: 'red', LOGIN: 'purple', SYNC: 'gold' }
+const typeTone = { CREATED: 'green', UPDATED: 'blue', DELETED: 'red', LOGIN: 'purple', SYNCED: 'gold' }
 
-const moduleOptions = ['All', 'Silver Rate', 'Orders', 'Invoices', 'Payments', 'Products', 'Inventory', 'Shopify', 'System']
-const actionOptions = ['All', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'SYNC']
+function splitAction(action = '') {
+  const idx = action.indexOf('_')
+  if (idx <= 0) return { module: action, type: action }
+  return { module: action.slice(0, idx), type: action.slice(idx + 1) }
+}
 
 export default function AuditLogs() {
   const [search, setSearch] = useState('')
   const [filterModule, setFilterModule] = useState('')
-  const [filterAction, setFilterAction] = useState('')
+  const [filterType, setFilterType] = useState('')
 
   const { data: apiLogs = [] } = useQuery({
-    queryKey: ['audit-logs', search, filterModule, filterAction],
-    queryFn: () => auditLogsApi.list({ search, module: filterModule, action: filterAction }).then((r) => r.data.data),
+    queryKey: ['audit-logs', search],
+    queryFn: () => auditLogsApi.list({ search, limit: 100 }).then((r) => r.data.data.items),
   })
 
   const logs = apiLogs || []
 
-  const filtered = logs.filter((log) => {
+  const moduleOptions = ['All', ...new Set(logs.map((l) => splitAction(l.action).module).filter(Boolean))]
+  const typeOptions = ['All', ...new Set(logs.map((l) => splitAction(l.action).type).filter(Boolean))]
+
+  const displayed = logs.filter((log) => {
+    const userText = [log.user?.name, log.user?.email].filter(Boolean).join(' ').toLowerCase()
+    const { module, type } = splitAction(log.action)
     if (search) {
       const q = search.toLowerCase()
-      if (!log.user?.toLowerCase().includes(q) && !log.action?.toLowerCase().includes(q) && !log.entity?.toLowerCase().includes(q)) return false
+      if (!userText.includes(q) && !log.action?.toLowerCase().includes(q) && !log.entity?.toLowerCase().includes(q)) return false
     }
-    if (filterModule && log.module !== filterModule) return false
-    if (filterAction && log.type !== filterAction) return false
+    if (filterModule && module !== filterModule) return false
+    if (filterType && type !== filterType) return false
     return true
   })
 
@@ -46,8 +54,8 @@ export default function AuditLogs() {
         <select value={filterModule} onChange={(e) => setFilterModule(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           {moduleOptions.map((m) => <option key={m} value={m === 'All' ? '' : m}>{m === 'All' ? 'All Modules' : m}</option>)}
         </select>
-        <select value={filterAction} onChange={(e) => setFilterAction(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
-          {actionOptions.map((a) => <option key={a} value={a === 'All' ? '' : a}>{a === 'All' ? 'All Actions' : a}</option>)}
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+          {typeOptions.map((t) => <option key={t} value={t === 'All' ? '' : t}>{t === 'All' ? 'All Actions' : t}</option>)}
         </select>
       </div>
 
@@ -66,22 +74,25 @@ export default function AuditLogs() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((log) => (
-                <tr key={log.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(log.timestamp)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <User size={12} className="text-gray-400 dark:text-gray-500" />
-                      <span className="font-medium text-royal-950 dark:text-white text-xs">{log.user}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{log.action}</td>
-                  <td className="px-4 py-3 text-center"><Badge tone="purple">{log.module}</Badge></td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.entity}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 max-w-64 truncate">{log.changes}</td>
-                  <td className="px-4 py-3 text-center"><Badge tone={actionTone[log.type]}>{log.type}</Badge></td>
-                </tr>
-              ))}
+              {displayed.map((log) => {
+                const { module, type } = splitAction(log.action)
+                return (
+                  <tr key={log.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <User size={12} className="text-gray-400 dark:text-gray-500" />
+                        <span className="font-medium text-royal-950 dark:text-white text-xs">{log.user?.name || log.user?.email || 'System'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{log.action}</td>
+                    <td className="px-4 py-3 text-center"><Badge tone="purple">{module}</Badge></td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.entity}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 max-w-64 truncate">{log.metadata ? JSON.stringify(log.metadata).slice(0, 80) : '—'}</td>
+                    <td className="px-4 py-3 text-center"><Badge tone={typeTone[type]}>{type}</Badge></td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

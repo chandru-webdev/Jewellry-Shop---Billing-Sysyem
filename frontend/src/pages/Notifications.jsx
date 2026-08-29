@@ -1,13 +1,31 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle2, Mail, AlertTriangle, TrendingUp, Users, Package } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import { formatDateTime } from '../utils/format'
 import { notificationsApi } from '../api/notifications'
 
 const statusColor = { SUCCESS: 'green', FAILED: 'red', WARNING: 'orange' }
+
+function deriveStatus(type = '') {
+  const t = type.toUpperCase()
+  if (t.includes('FAILED')) return 'FAILED'
+  if (t.includes('SUCCESS')) return 'SUCCESS'
+  return 'WARNING'
+}
+
+function getEntityLabel(type = '') {
+  if (type.includes('ORDER')) return 'Order'
+  if (type.includes('INVENTORY')) return 'Inventory'
+  if (type.includes('STOCK')) return 'Inventory'
+  if (type.includes('RATE')) return 'Metal Rate'
+  if (type.includes('PAYMENT')) return 'Payment'
+  if (type.includes('USER')) return 'User'
+  return 'System'
+}
 
 function getTypeIcon(type) {
   switch (type) {
@@ -22,19 +40,17 @@ function getTypeIcon(type) {
 }
 
 export default function Notifications() {
-  const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [markedRead, setMarkedRead] = useState(new Set())
 
   const { data: apiNotifications = [] } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => notificationsApi.list().then((r) => r.data.data),
+    queryFn: () => notificationsApi.list().then((r) => r.data.data.notifications),
   })
 
-  const notifications = (apiNotifications || []).filter((n) => {
-    if (filter === 'all') return true
-    return n.status === filter
-  })
+  const notifications = (apiNotifications || []).filter((n) => filter === 'all' || deriveStatus(n.type) === filter)
+
+  const isRead = (n) => n.isRead || markedRead.has(n.id)
 
   const markAsRead = (id) => {
     setMarkedRead(prev => new Set([...prev, id]))
@@ -46,7 +62,12 @@ export default function Notifications() {
     notificationsApi.markAllAsRead().catch(() => {})
   }
 
-  const unreadCount = notifications.filter((n) => !markedRead.has(n.id) && n.status !== 'SUCCESS').length
+  const counts = notifications.reduce((acc, n) => {
+    const s = deriveStatus(n.type)
+    acc[s] = (acc[s] || 0) + 1
+    return acc
+  }, {})
+  const unreadCount = notifications.filter((n) => !isRead(n)).length
 
   return (
     <div>
@@ -63,11 +84,11 @@ export default function Notifications() {
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Succeeded</p>
-          <p className="text-xl font-bold text-green-600 mt-0.5">{notifications.filter((n) => n.status === 'SUCCESS').length}</p>
+          <p className="text-xl font-bold text-green-600 mt-0.5">{counts.SUCCESS || 0}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Failed</p>
-          <p className="text-xl font-bold text-red-600 mt-0.5">{notifications.filter((n) => n.status === 'FAILED').length}</p>
+          <p className="text-xl font-bold text-red-600 mt-0.5">{counts.FAILED || 0}</p>
         </div>
       </div>
 
@@ -107,20 +128,20 @@ export default function Notifications() {
                   <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{n.id}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      {(() => { const Icon = getTypeIcon(n.type); return <Icon size={14} className={n.status === 'SUCCESS' ? 'text-green-500' : n.status === 'FAILED' ? 'text-red-500' : n.status === 'WARNING' ? 'text-orange-500' : 'text-gray-400 dark:text-gray-500'} />; })()}
+                      {(() => { const Icon = getTypeIcon(n.type); return <Icon size={14} className={statusColor[deriveStatus(n.type)] === 'green' ? 'text-green-500' : statusColor[deriveStatus(n.type)] === 'red' ? 'text-red-500' : 'text-orange-500'} />; })()}
                       <span className="text-sm font-medium text-royal-900 dark:text-gray-200">{n.type}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 truncate">{n.title}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{n.time}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDateTime(n.createdAt)}</td>
                   <td className="px-4 py-2.5">
-                    <Badge tone={statusColor[n.status]}>
-                      {n.status === 'SUCCESS' ? '✓' : n.status === 'FAILED' ? '✗' : '⚠'}
+                    <Badge tone={statusColor[deriveStatus(n.type)]}>
+                      {deriveStatus(n.type) === 'SUCCESS' ? '✓' : deriveStatus(n.type) === 'FAILED' ? '✗' : '⚠'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{n.entity}</td>
+                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 dark:text-gray-500">{getEntityLabel(n.type)}</td>
                   <td className="px-4 py-2.5 text-right">
-                    {markedRead.has(n.id) ? (
+                    {isRead(n) ? (
                       <span className="text-[10px] text-gray-400 dark:text-gray-500">Read</span>
                     ) : (
                       <button

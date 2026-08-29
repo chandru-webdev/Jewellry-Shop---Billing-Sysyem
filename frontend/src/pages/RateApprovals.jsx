@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { CheckCircle2, XCircle, CheckCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import { formatDateTime } from '../utils/format'
 import { metalRatesApi } from '../api/metalRates'
 
 const statusColor = { PENDING: 'orange', APPROVED: 'green', REJECTED: 'red' }
@@ -32,6 +33,8 @@ export default function RateApprovals() {
     mutationFn: ({ id, status }) => metalRatesApi.reviewRequest(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rate-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
+      queryClient.invalidateQueries({ queryKey: ['metal-rates-history'] })
       setToast({ type: 'success', message: 'Request updated' })
     },
     onError: () => setToast({ type: 'error', message: 'Failed to update request' }),
@@ -111,12 +114,13 @@ export default function RateApprovals() {
             <thead>
               <tr className="bg-gray-50 dark:bg-white/5 text-left">
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">#</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Silver Rate (₹/gm)</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Current Rate (₹/gm)</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">New Rate</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Requested By</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Affected Products</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Created At</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Products Affected</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Requested At</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Reviewed At</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 text-right">Actions</th>
               </tr>
             </thead>
@@ -124,14 +128,18 @@ export default function RateApprovals() {
               {filteredRequests.map((r, i) => (
                 <tr key={r.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50 dark:bg-transparent'}`}>
                   <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">{r.id}</td>
-                  <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-gray-400">{r.silverRate}</td>
-                  <td className="px-4 py-2.5 font-mono font-semibold text-gray-800 dark:text-gray-200">{r.newRate}</td>
-                  <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">{r.requestedBy}</td>
+                  <td className="px-4 py-2.5 font-mono text-gray-600 dark:text-gray-400">₹{parseFloat(r.oldRate).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 font-mono font-semibold text-gray-800 dark:text-gray-200">₹{parseFloat(r.newRate).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-gray-800 dark:text-gray-200">
+                    {r.requestedBy?.name}
+                    <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 font-normal ml-1">({r.requestedBy?.email})</span>
+                  </td>
                   <td className="px-4 py-2.5">
                     <Badge tone={statusColor[r.status]}>{statusLabel[r.status]}</Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{r.quantityAffected}</td>
-                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.createdAt}</td>
+                  <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{r.previewJson?.affectedCount || 0}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{formatDateTime(r.createdAt)}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.reviewedAt ? formatDateTime(r.reviewedAt) : '—'}</td>
                   <td className="px-4 py-2.5 text-right">
                     {r.status === 'PENDING' && (
                       <>
@@ -144,10 +152,16 @@ export default function RateApprovals() {
                       </>
                     )}
                     {r.status === 'APPROVED' && (
-                      <span className="text-sm text-green-600 dark:text-green-400">Published</span>
+                      <div className="flex items-center justify-end gap-1 text-sm text-green-600 dark:text-green-400">
+                        <CheckCircle size={14} /> Published
+                        {r.reviewedBy && <span className="text-xs text-gray-500 dark:text-gray-400">by {r.reviewedBy.name}</span>}
+                      </div>
                     )}
                     {r.status === 'REJECTED' && (
-                      <span className="text-sm text-red-500 dark:text-red-400">Rejected</span>
+                      <div className="flex items-center justify-end gap-1 text-sm text-red-500 dark:text-red-400">
+                        <XCircle size={14} /> Rejected
+                        {r.reviewedBy && <span className="text-xs text-gray-500 dark:text-gray-400">by {r.reviewedBy.name}</span>}
+                      </div>
                     )}
                   </td>
                 </tr>

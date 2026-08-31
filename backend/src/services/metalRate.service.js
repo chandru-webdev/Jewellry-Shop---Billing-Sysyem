@@ -51,13 +51,22 @@ const metalRateService = {
       return { unchanged: true, rate: current.rate }
     }
 
+    // Atomic compare-and-swap: only update if the rate hasn't changed since we
+    // read it.  This prevents duplicate history entries when the user retries
+    // after a Railway proxy timeout (the previous attempt already committed).
+    const updated = await prisma.metalRate.updateMany({
+      where: { metal: 'silver', rate: current.rate },
+      data: { rate: newRate, updatedById: userId },
+    })
+    if (updated.count === 0) {
+      const latest = await this.getCurrent()
+      return { unchanged: true, rate: latest.rate, message: 'Rate was already updated by another request' }
+    }
+
+    // History + audit log (rate itself is already updated above).
     await prisma.$transaction([
       prisma.metalRateHistory.create({
         data: { metal: 'silver', oldRate: current.rate, newRate, changedById: userId },
-      }),
-      prisma.metalRate.update({
-        where: { metal: 'silver' },
-        data: { rate: newRate, updatedById: userId },
       }),
       prisma.auditLog.create({
         data: {
@@ -69,32 +78,33 @@ const metalRateService = {
       }),
     ])
 
+    // Recalculate products (fast, DB-only — keep in the request path).
     const updatedProducts = await recalculateAllProducts(newRate, { userId, reason: 'silver_rate_change' })
 
-    // Phase 18: publish the new prices to the Shopify store.
-    // The rate change itself must never fail because Shopify is busy,
-    // so any Shopify error is reported back instead of thrown.
-    let shopifySync = null
-    try {
-      shopifySync = await shopifyService.syncAllPrices(userId)
-    } catch (err) {
-      shopifySync = { ok: 0, failed: -1, error: err.message }
-    }
-
-    // Create notification for rate change
+    // Shopify sync + notifications: fire-and-forget.  These are slow (Shopify
+    // API latency × product count) and must not block the HTTP response —
+    // Railway's proxy times out after ~60 s and the user retries, causing
+    // duplicate work.
     const changePct = ((Number(newRate) - Number(current.rate)) / Number(current.rate) * 100).toFixed(2)
-    await notificationService.createForAll({
+    const notificationPromise = notificationService.createForAll({
       type: 'RATE_CHANGED',
       title: 'Silver Rate Updated',
       message: `Rate changed from ₹${current.rate}/gm to ₹${newRate}/gm (${changePct > 0 ? '+' : ''}${changePct}%). ${updatedProducts} products updated.`,
-    })
+    }).catch(err => console.error('[METAL RATE] Notification failed:', err.message))
+
+    let shopifySync = null
+    const shopifyPromise = shopifyService.syncAllPrices(userId)
+      .then(result => { shopifySync = result })
+      .catch(err => { shopifySync = { ok: 0, failed: -1, error: err.message } })
+
+    // Don't await — let these run in the background.
+    Promise.allSettled([notificationPromise, shopifyPromise]).catch(() => {})
 
     return {
       unchanged: false,
       oldRate: current.rate,
       newRate,
       updatedProducts,
-      shopifySync,
     }
   },
 }

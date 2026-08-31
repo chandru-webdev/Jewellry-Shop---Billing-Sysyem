@@ -76,69 +76,103 @@ const rateRequestService = {
     }
 
     if (status === 'APPROVED') {
-      // Apply the rate change - same logic as metalRateService.updateSilver
-      const current = await prisma.metalRate.findUnique({
-        where: { metal: 'silver' },
-      })
-      if (!current) throw new ApiError(500, 'Silver rate not initialised')
+      const { recalculateAllProducts } = require('./pricing.service')
+      const shopifyService = require('./shopify.service')
 
-      if (!new Decimal(current.rate).equals(request.newRate)) {
-        // Transaction: history + rate update + audit log
-        await prisma.$transaction([
-          prisma.metalRateHistory.create({
-            data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId },
-          }),
-          prisma.metalRate.update({
-            where: { metal: 'silver' },
-            data: { rate: request.newRate, updatedById: userId },
-          }),
-          prisma.auditLog.create({
-            data: {
-              userId,
-              action: 'SILVER_RATE_CHANGED',
-              entity: 'MetalRate',
-              metadata: { oldRate: current.rate.toString(), newRate: request.newRate.toString(), approvedFromRequestId: requestId },
-            },
-          }),
-        ])
-
-        // Recalculate all active products
-        const { recalculateAllProducts } = require('./pricing.service')
-        const updatedProducts = await recalculateAllProducts(request.newRate)
-
-        // Push to Shopify
-        const shopifyService = require('./shopify.service')
-        let _shopifySync = null
-        try {
-          _shopifySync = await shopifyService.syncAllPrices(userId)
-        } catch (err) {
-          _shopifySync = { ok: 0, failed: -1, error: err.message }
+      // Atomic: check status + apply rate inside a single transaction so two
+      // concurrent approvals can't both create history entries.
+      const result = await prisma.$transaction(async (tx) => {
+        const locked = await tx.metalRateRequest.findUnique({ where: { id: requestId } })
+        if (locked.status !== 'PENDING') {
+          return { alreadyHandled: true, status: locked.status }
         }
 
-        // Notify all users of the rate change
-        const changePct = ((Number(request.newRate) - Number(current.rate)) / Number(current.rate) * 100).toFixed(2)
-        await notificationService.createForAll({
-          type: 'RATE_CHANGED',
-          title: 'Silver Rate Updated',
-          message: `Rate changed from ₹${current.rate}/gm to ₹${request.newRate}/gm (${changePct > 0 ? '+' : ''}${changePct}%). ${updatedProducts} products updated.`,
+        const current = await tx.metalRate.findUnique({ where: { metal: 'silver' } })
+        if (!current) throw new ApiError(500, 'Silver rate not initialised')
+
+        let updatedProducts = 0
+        let historyCreated = false
+
+        if (!new Decimal(current.rate).equals(request.newRate)) {
+          await tx.$batch([
+            tx.metalRateHistory.create({
+              data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId },
+            }),
+            tx.metalRate.update({
+              where: { metal: 'silver' },
+              data: { rate: request.newRate, updatedById: userId },
+            }),
+            tx.auditLog.create({
+              data: {
+                userId,
+                action: 'SILVER_RATE_CHANGED',
+                entity: 'MetalRate',
+                metadata: { oldRate: current.rate.toString(), newRate: request.newRate.toString(), approvedFromRequestId: requestId },
+              },
+            }),
+          ])
+          historyCreated = true
+        }
+
+        await tx.metalRateRequest.update({
+          where: { id: requestId },
+          data: { status: 'APPROVED', reviewedById: userId, reviewedAt: new Date() },
         })
 
-        // Notify the requester
-        await notificationService.create({
-          userId: request.requestedById,
-          type: 'SILVER_RATE_APPROVED',
-          title: 'Rate Request Approved',
-          message: `Your rate change request from ₹${current.rate}/gm to ₹${request.newRate}/gm was approved. ${updatedProducts} products updated.`,
-        })
+        return { historyCreated, currentRate: current.rate }
+      })
+
+      if (result.alreadyHandled) {
+        throw new ApiError(400, `Request is already ${result.status.toLowerCase()}`)
       }
 
-      // Update request status
-      const updated = await prisma.metalRateRequest.update({
+      // Heavy/slow work outside the transaction — fire-and-forget so Railway
+      // proxy doesn't time out and the user doesn't retry.
+      let updatedProducts = 0
+      if (result.historyCreated) {
+        updatedProducts = await recalculateAllProducts(request.newRate)
+      }
+
+      const shopifyPromise = (result.historyCreated
+        ? shopifyService.syncAllPrices(userId).catch(err => {
+            console.error('[RATE REQUEST] Shopify sync failed:', err.message)
+            return { ok: 0, failed: -1, error: err.message }
+          })
+        : Promise.resolve(null)
+      )
+
+      const notificationsPromise = (result.historyCreated
+        ? (async () => {
+            const changePct = ((Number(request.newRate) - Number(result.currentRate)) / Number(result.currentRate) * 100).toFixed(2)
+            await notificationService.createForAll({
+              type: 'RATE_CHANGED',
+              title: 'Silver Rate Updated',
+              message: `Rate changed from ₹${result.currentRate}/gm to ₹${request.newRate}/gm (${changePct > 0 ? '+' : ''}${changePct}%). ${updatedProducts} products updated.`,
+            })
+            await notificationService.create({
+              userId: request.requestedById,
+              type: 'SILVER_RATE_APPROVED',
+              title: 'Rate Request Approved',
+              message: `Your rate change request from ₹${result.currentRate}/gm to ₹${request.newRate}/gm was approved. ${updatedProducts} products updated.`,
+            })
+          })()
+        : (async () => {
+            await notificationService.create({
+              userId: request.requestedById,
+              type: 'SILVER_RATE_APPROVED',
+              title: 'Rate Request Approved',
+              message: `Your rate change request was approved. Rate was already current.`,
+            })
+          })()
+      )
+
+      Promise.allSettled([shopifyPromise, notificationsPromise]).catch(() => {})
+
+      const updated = await prisma.metalRateRequest.findUnique({
         where: { id: requestId },
-        data: { status: 'APPROVED', reviewedById: userId, reviewedAt: new Date() },
         include: { reviewedBy: { select: { id: true, name: true, email: true } } },
       })
-      return { ...updated, shopifySync, updatedProducts }
+      return { ...updated, updatedProducts }
     } else {
       // REJECTED
       await prisma.metalRateRequest.update({

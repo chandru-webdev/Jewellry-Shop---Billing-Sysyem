@@ -1,8 +1,9 @@
 const nodemailer = require('nodemailer')
 
 // Email service — thin wrapper around nodemailer.
-// Configure via SMTP_* env vars. If SMTP_HOST is not set or the
-// connection fails, emails are logged to the console as a fallback.
+// Configure via SMTP_* env vars. If SMTP_HOST is not set, or the SMTP
+// connection/verification fails, emails are logged to the console as a
+// fallback so reset codes are never lost during development.
 
 let transporter = null
 let smtpFailed = false
@@ -10,7 +11,9 @@ let smtpFailed = false
 function getTransporter() {
   if (transporter && !smtpFailed) return transporter
 
-  if (process.env.SMTP_HOST && !smtpFailed) {
+  // Only attempt real SMTP once; after a failure we short-circuit to console
+  // so later sends don't pay the connection-timeout cost again.
+  if (!smtpFailed && process.env.SMTP_HOST) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
@@ -19,39 +22,25 @@ function getTransporter() {
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
     })
-
-    // Verify connection on first use — if it fails, fall back to console
-    transporter.verify().catch((err) => {
-      console.error('[EMAIL] SMTP connection failed:', err.message)
-      console.error('[EMAIL] Falling back to console logging for emails')
-      smtpFailed = true
-      transporter = null
-    })
   }
 
-  if (!transporter) {
-    // Fallback: log emails to console
-    transporter = {
-      sendMail: async (opts) => {
-        console.log(`\n===== PASSWORD RESET CODE =====`)
-        console.log(`To: ${opts.to}`)
-        console.log(`Subject: ${opts.subject}`)
-        console.log(`Code: ${opts.text.match(/code is: (\d+)/)?.[1] || '(see below)'}`)
-        console.log(`================================\n`)
-        return { messageId: `console-${Date.now()}` }
-      },
-    }
-  }
+  return transporter || null
+}
 
-  return transporter
+function logToConsole(opts, code) {
+  console.log('\n===== EMAIL DELIVERY (console fallback — configure SMTP_* for real delivery) =====')
+  console.log(`To:      ${opts.to}`)
+  console.log(`Subject: ${opts.subject}`)
+  console.log(`Code:    ${code}`)
+  console.log('===================================================================================\n')
 }
 
 const emailService = {
+  // Returns { delivered: 'smtp' } when the email actually went out, or
+  // { delivered: 'console' } when it was logged instead.
   async sendPasswordResetCode(to, code) {
-    const transport = getTransporter()
     const from = process.env.SMTP_FROM || 'noreply@opalline.com'
-
-    await transport.sendMail({
+    const mail = {
       from,
       to,
       subject: 'Your Password Reset Code — Opal Line',
@@ -67,7 +56,23 @@ const emailService = {
           <p style="color: #999; font-size: 12px;">If you didn't request this, you can safely ignore this email.</p>
         </div>
       `,
-    })
+    }
+
+    const transport = getTransporter()
+    if (transport) {
+      try {
+        await transport.sendMail(mail)
+        return { delivered: 'smtp' }
+      } catch (err) {
+        console.error('[EMAIL] SMTP send failed:', err.message)
+        console.error('[EMAIL] Falling back to console logging for this email')
+        transporter = null
+        smtpFailed = true
+      }
+    }
+
+    logToConsole(mail, code)
+    return { delivered: 'console' }
   },
 }
 

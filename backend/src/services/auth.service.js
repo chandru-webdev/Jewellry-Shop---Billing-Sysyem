@@ -97,11 +97,18 @@ const authService = {
       data: { resetToken: hashedCode, resetTokenExpiry: expiry },
     })
 
-    // TODO: send code via email service. For now log it so admins can see it.
-    console.log(`[PASSWORD RESET] ${email} -> code: ${code}`)
-    await emailService.sendPasswordResetCode(email, code).catch((err) => {
+    // Deliver the reset code via the email service. When SMTP isn't
+    // configured or reachable, emailService falls back to console logging
+    // so the code is never lost. Avoid logging the plaintext code here so
+    // it doesn't leak into server logs when real email delivery works.
+    const delivery = await emailService.sendPasswordResetCode(email, code).catch((err) => {
       console.error('[PASSWORD RESET] Failed to send email:', err.message)
+      return { delivered: 'console' }
     })
+
+    if (delivery && delivery.delivered === 'console') {
+      console.log(`[PASSWORD RESET] ${email} -> code: ${code} (console fallback — no SMTP)`)
+    }
 
     return { message: 'If an account with that email exists, a reset code has been sent.' }
   },

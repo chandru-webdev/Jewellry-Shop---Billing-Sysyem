@@ -94,23 +94,21 @@ const rateRequestService = {
         let historyCreated = false
 
         if (!new Decimal(current.rate).equals(request.newRate)) {
-          await tx.$batch([
-            tx.metalRateHistory.create({
-              data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId },
-            }),
-            tx.metalRate.update({
-              where: { metal: 'silver' },
-              data: { rate: request.newRate, updatedById: userId },
-            }),
-            tx.auditLog.create({
-              data: {
-                userId,
-                action: 'SILVER_RATE_CHANGED',
-                entity: 'MetalRate',
-                metadata: { oldRate: current.rate.toString(), newRate: request.newRate.toString(), approvedFromRequestId: requestId },
-              },
-            }),
-          ])
+          await tx.metalRateHistory.create({
+            data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId },
+          })
+          await tx.metalRate.update({
+            where: { metal: 'silver' },
+            data: { rate: request.newRate, updatedById: userId },
+          })
+          await tx.auditLog.create({
+            data: {
+              userId,
+              action: 'SILVER_RATE_CHANGED',
+              entity: 'MetalRate',
+              metadata: { oldRate: current.rate.toString(), newRate: request.newRate.toString(), approvedFromRequestId: requestId },
+            },
+          })
           historyCreated = true
         }
 

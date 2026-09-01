@@ -144,6 +144,91 @@ const shopifyService = {
     }
   },
 
+  // Pull orders FROM Shopify into the ERP.
+  // Uses the Shopify Orders API (not webhooks) so a missed webhook never
+  // loses an order — this is the reliable backstop / manual pull button.
+  // Reuses webhookService.processOrder for consistent handling (customer
+  // matching, SKU line mapping, stock reduction, idempotency by shopifyOrderId).
+  async pullOrdersFromShopify(userId) {
+    const webhookService = require('./webhook.service')
+
+    let ok = 0
+    let failed = 0
+    let created = 0
+    let already = 0
+    let firstError = null
+
+    // Paginate using since_id (REST orders.json orders by id, newest last).
+    // Fetch a generous window so the manual pull is useful out of the box.
+    let sinceId = 0
+    // Shopify expects created_at_min as an ISO-8601 timestamp, not a Unix epoch.
+    const until = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // last 30 days
+    let scannedOrders = 0
+    let apiError = null
+
+    while (true) {
+      const path = `/orders.json?limit=250&status=any&created_at_min=${until}&since_id=${sinceId}`
+
+      let res
+      try {
+        res = await request(path)
+      } catch (err) {
+        apiError = err.message
+        break // network/credential error — stop, log below
+      }
+
+      const orders = res.orders || []
+      if (!orders.length) break
+
+      for (const order of orders) {
+        scannedOrders++
+        try {
+          const exists = await prisma.order.findUnique({
+            where: { shopifyOrderId: BigInt(order.id) },
+            select: { id: true },
+          })
+          if (exists) {
+            already++
+            continue
+          }
+
+          const result = await webhookService.processOrder(order, null)
+          if (result.alreadyProcessed) {
+            already++
+          } else {
+            created++
+          }
+          ok++
+        } catch (err) {
+          failed++
+          if (!firstError) {
+            const shopifyErr = err.status ? `API ${err.status}` : ''
+            firstError = `${shopifyErr} ${err.message}`.trim()
+          }
+        }
+      }
+
+      sinceId = orders[orders.length - 1].id
+      await throttle()
+    }
+
+    if (scannedOrders === 0 && !firstError && apiError) {
+      firstError = apiError
+    }
+
+    await this.logSync('ORDER', ok, failed, firstError, userId)
+
+    return {
+      total: scannedOrders,
+      ok,
+      created,
+      already,
+      skipped: 0,
+      failed,
+      firstError: firstError || null,
+    }
+  },
+
   // Fetch products from Shopify store (for preview/listing in UI)
   async fetchProducts(params = {}) {
     const { limit = 50, page = 1, search } = params

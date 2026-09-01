@@ -1,6 +1,7 @@
 const env = require('./config/env')
 const prisma = require('./prisma/client')
 const app = require('./app')
+const { registerWebhooks } = require('./services/webhookRegister.service')
 
 async function ensureSchema() {
   try {
@@ -51,8 +52,10 @@ async function ensureSchema() {
   }
 }
 
-ensureSchema().then(() => {
-  app.listen(env.port, () => {
-    console.log(`OPAL LINE ERP API running on http://localhost:${env.port}`)
+ensureSchema()
+  .then(() => registerWebhooks().catch((err) => console.error('[WEBHOOKS] Registration error:', err.message)))
+  .then(() => {
+    app.listen(env.port, () => {
+      console.log(`OPAL LINE ERP API running on http://localhost:${env.port}`)
+    })
   })
-})

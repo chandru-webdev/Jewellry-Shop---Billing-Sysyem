@@ -35,4 +35,7 @@ jobs:
       run: npm run build
     - name: Run backend tests
       working-directory: backend
+      env:
+        JWT_SECRET: ci-test-secret
+        DATABASE_URL: postgresql://user:pass@localhost:5432/ci
       run: npm test

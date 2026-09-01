@@ -47,6 +47,25 @@ async function ensureSchema() {
       END $$
     `)
     console.log('User.customPermissions column ensured.')
+
+    // Address column on Customer (may not exist on older schemas).
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Customer" ADD COLUMN IF NOT EXISTS "address" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+
+    // Payment method captured per order from Shopify (nullable, enum-backed).
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Order" ADD COLUMN "paymentMethod" "PaymentMethod";
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      WHEN undefined_object THEN
+        ALTER TABLE "Order" ADD COLUMN "paymentMethod" TEXT;
+      END $$
+    `)
+    console.log('Order.paymentMethod column ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

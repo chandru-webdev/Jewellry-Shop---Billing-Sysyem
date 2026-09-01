@@ -20,6 +20,21 @@ const shopifyService = require('./shopify.service')
 
 const Decimal = Prisma.Decimal
 
+// Map Shopify payment fields to our PaymentMethod enum.
+function mapShopifyPaymentMethod(payload) {
+  const gw = (payload.payment_gateway_names || [])
+    .map((g) => String(g || '').toLowerCase())
+    .filter(Boolean)
+  const joined = gw.join(' ')
+  if (/upi/.test(joined)) return 'UPI'
+  if (/card|payment_pages|paypal|stripe|razorpay|phonepe/.test(joined)) return 'CARD'
+  if (/bank|n?.?eft|wire|transfer/.test(joined)) return 'BANK_TRANSFER'
+  if (/cash/.test(joined)) return 'CASH'
+  if (/manual|local/.test(joined)) return 'ONLINE'
+  if (gw.length > 0) return 'ONLINE'
+  return null
+}
+
 // Reduce stock inside the caller's transaction. Clamps to what is
 // actually available so a slightly stale stock level never breaks
 // the order save. Matches the ledger style used by POS sales.
@@ -94,6 +109,9 @@ const webhookService = {
     const orderNumber = payload.name || `SHOPIFY-${shopifyOrderId}`
     const shopifyOrderIdBig = BigInt(shopifyOrderId)
 
+    // Map Shopify payment gateway names to our PaymentMethod enum.
+    const paymentMethod = mapShopifyPaymentMethod(payload)
+
     // Second line of idempotency: if this Shopify order was already
     // imported (e.g. retried after a crash), skip it.
     const already = await prisma.order.findUnique({ where: { shopifyOrderId: shopifyOrderIdBig } })
@@ -106,6 +124,20 @@ const webhookService = {
       [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') ||
       email?.split('@')[0] ||
       'Shopify Customer'
+
+    // Pick the best shipping address available on the order payload.
+    const shipAddr = payload.shipping_address || payload.billing_address || null
+    const address = shipAddr
+      ? [
+          shipAddr.address1,
+          shipAddr.address2,
+          shipAddr.city,
+          [shipAddr.province, shipAddr.zip].filter(Boolean).join(' '),
+          shipAddr.country,
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : null
 
     let customerId = null
     if (email) {
@@ -121,11 +153,18 @@ const webhookService = {
         data: {
           name,
           email: email || null,
+          address,
           // Shopify orders sometimes have no phone; keep a unique placeholder.
           phone: phone || `SHOPIFY-${shopifyOrderId}`,
         },
       })
       customerId = created.id
+    } else if (address) {
+      // Refresh the customer's address if we don't have one yet.
+      const existing = await prisma.customer.findUnique({ where: { id: customerId } })
+      if (existing && !existing.address) {
+        await prisma.customer.update({ where: { id: customerId }, data: { address } })
+      }
     }
 
     // ---- Match line items to our products by SKU ----
@@ -148,6 +187,7 @@ const webhookService = {
             shopifyOrderId: shopifyOrderIdBig,
             customerId,
             status: 'PAID',
+            paymentMethod,
             totalAmount: new Decimal(payload.total_price || 0).toDecimalPlaces(2),
             items: {
               create: matched.map((l) => ({

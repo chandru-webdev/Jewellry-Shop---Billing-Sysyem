@@ -33,7 +33,7 @@ const orderService = {
     return prisma.order.findMany({
       where,
       include: {
-        customer: { select: { id: true, name: true, phone: true, email: true } },
+        customer: { select: { id: true, name: true, phone: true, email: true, address: true } },
         invoice: { select: { id: true, invoiceNumber: true } },
         items: { select: { id: true, sku: true, name: true, quantity: true, unitPrice: true, lineTotal: true } },
         _count: { select: { items: true } },

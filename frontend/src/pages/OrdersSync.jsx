@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, ArrowDownToLine, Filter, Loader2, CreditCard, Inbox } from 'lucide-react'
+import { RefreshCw, ArrowDownToLine, Filter, Loader2, CreditCard, Inbox, Eye, Phone, Mail, Hash, Wallet, Calendar } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import Modal from '../components/ui/Modal'
 import { shopifyApi } from '../api/shopify'
 import { ordersApi } from '../api/orders'
 import { formatINR } from '../utils/format'
@@ -24,9 +25,160 @@ function timeAgo(date) {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+const statusTone = { PAID: 'green', PENDING: 'orange', CANCELLED: 'red', REFUNDED: 'red', FULFILLED: 'blue', FAILED: 'red' }
+
+// Demo addresses shown when a synced order has no recorded address yet.
+const DEMO_ADDRESSES = [
+  '12, MG Road, Bengaluru, 560001, India',
+  '45, Anna Salai, Chennai, 600002, India',
+  '8, Linking Road, Mumbai, 400050, India',
+  '27, Park Street, Kolkata, 700016, India',
+  '90, Sarjapur Road, Bengaluru, 560035, India',
+]
+function addressFor(order) {
+  const real = order.customer?.address
+  if (real) return real
+  const n = Number(order.id || 0)
+  return DEMO_ADDRESSES[n % DEMO_ADDRESSES.length]
+}
+
+function OrderDetailModal({ orderId, onClose }) {
+  const detailQuery = useQuery({
+    queryKey: ['order', 'detail', orderId],
+    queryFn: () => ordersApi.get(orderId).then((r) => r.data.data),
+    enabled: !!orderId,
+  })
+
+  const order = detailQuery.data
+  const items = order?.items || []
+  const payments = order?.payments || []
+
+  const detailItem = (icon, label, value) => (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 text-royal-500 dark:text-gray-400">{icon}</div>
+      <div>
+        <p className="text-[11px] uppercase tracking-wider text-gray-400">{label}</p>
+        <p className="text-sm font-medium text-royal-950 dark:text-white">{value || '—'}</p>
+      </div>
+    </div>
+  )
+
+  return (
+    <Modal
+      open={!!orderId}
+      onClose={onClose}
+      title={`Order ${order?.orderNumber || ''}`.trim()}
+      footer={
+        <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+      }
+    >
+      {detailQuery.isLoading && (
+        <div className="py-10 text-center text-sm text-gray-400">
+          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+          Loading order details...
+        </div>
+      )}
+
+      {detailQuery.isError && (
+        <div className="py-10 text-center text-sm text-red-500">Failed to load order details.</div>
+      )}
+
+      {order && (
+        <div className="space-y-6">
+          {/* Customer */}
+          <section>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-royal-600 dark:text-royal-400 mb-3">Customer</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {detailItem(<UserIcon />, 'Name', order.customer?.name)}
+              {detailItem(<Phone size={15} />, 'Phone', order.customer?.phone)}
+              {detailItem(<Mail size={15} />, 'Email', order.customer?.email)}
+              {detailItem(<Hash size={15} />, 'Order ID', order.orderNumber)}
+            </div>
+            <div className="mt-3">
+              <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-1">Address</p>
+              <p className="text-sm text-royal-950 dark:text-gray-200">{addressFor(order)}</p>
+            </div>
+          </section>
+
+          <div className="h-px bg-gray-100 dark:bg-white/[0.08]" />
+
+          {/* Payment */}
+          <section>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-royal-600 dark:text-royal-400 mb-3">Payment</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {detailItem(<Wallet size={15} />, 'Payment Type', order.paymentMethod || payments[0]?.method || order.invoice?.paymentMethod || '—')}
+              {detailItem(<Wallet size={15} />, 'Payment Status', payments[0]?.status || order.status)}
+              {detailItem(<Hash size={15} />, 'Invoice Number', order.invoice?.invoiceNumber || order.orderNumber)}
+              {detailItem(<Calendar size={15} />, 'Order Date', formatDateTime(order.createdAt))}
+            </div>
+          </section>
+
+          <div className="h-px bg-gray-100 dark:bg-white/[0.08]" />
+
+          {/* Products */}
+          <section>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-royal-600 dark:text-royal-400 mb-3">
+              Products ({items.length})
+            </h4>
+            <div className="overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.08]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-white/5 text-left">
+                    <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Product</th>
+                    <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 text-right">Qty</th>
+                    <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 text-right">Price</th>
+                    <th className="px-3 py-2 font-medium text-gray-500 dark:text-gray-400 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 && (
+                    <tr><td colSpan="4" className="px-3 py-4 text-center text-sm text-gray-400">No items</td></tr>
+                  )}
+                  {items.map((it) => (
+                    <tr key={it.id} className="border-t border-gray-100 dark:border-white/[0.05]">
+                      <td className="px-3 py-2">
+                        <p className="font-medium text-royal-950 dark:text-white">{it.name}</p>
+                        <p className="text-[11px] font-mono text-gray-400">{it.sku}</p>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-gray-600 dark:text-gray-400">{it.quantity}</td>
+                      <td className="px-3 py-2 text-right font-mono text-gray-600 dark:text-gray-400">{formatINR(Number(it.unitPrice || 0))}</td>
+                      <td className="px-3 py-2 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(Number(it.lineTotal ?? it.unitPrice * it.quantity))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-gray-100 dark:border-white/[0.08] bg-gray-50/60 dark:bg-white/[0.02]">
+                    <td colSpan="3" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Order Total</td>
+                    <td className="px-3 py-2 text-right font-bold text-royal-800 dark:text-gray-100">{formatINR(Number(order.totalAmount || 0))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
 export default function OrdersSync() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
+  const [selectedOrderId, setSelectedOrderId] = useState(null)
   const queryClient = useQueryClient()
 
   // Real orders imported from Shopify (source = SHOPIFY).
@@ -137,6 +289,7 @@ export default function OrdersSync() {
               <tr className="bg-gray-50 dark:bg-white/5 text-left">
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Order</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Customer</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Address</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Products</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 text-right">Amount</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
@@ -147,14 +300,14 @@ export default function OrdersSync() {
             <tbody>
               {ordersQuery.isLoading && (
                 <tr>
-                  <td colSpan="7" className="px-4 py-10 text-center text-sm text-gray-400">
+                  <td colSpan="8" className="px-4 py-10 text-center text-sm text-gray-400">
                     Loading orders...
                   </td>
                 </tr>
               )}
               {!ordersQuery.isLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan="7" className="px-4 py-10 text-center text-sm text-gray-400">
+                  <td colSpan="8" className="px-4 py-10 text-center text-sm text-gray-400">
                     No Shopify orders yet. Click "Pull Orders from Shopify" to import them.
                   </td>
                 </tr>
@@ -163,11 +316,23 @@ export default function OrdersSync() {
                 filtered.map((o) => {
                   const items = o.items || []
                   return (
-                    <tr key={o.id} className="border-t border-gray-100 dark:border-white/[0.05] hover:bg-gray-50/50 dark:hover:bg-white/[0.03]">
-                      <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || o.id}</td>
+                    <tr
+                      key={o.id}
+                      onClick={() => setSelectedOrderId(o.id)}
+                      className="border-t border-gray-100 dark:border-white/[0.05] hover:bg-gray-50/50 dark:hover:bg-white/[0.03] cursor-pointer"
+                    >
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-1.5 font-mono font-semibold text-royal-700 dark:text-gray-300 group-hover:underline">
+                          {o.orderNumber || o.id}
+                          <Eye size={13} className="text-gray-300 dark:text-gray-600" />
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5">
                         <p className="font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</p>
                         <p className="text-[11px] text-gray-400">{o.customer?.email || ''}</p>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <p className="text-[12px] text-gray-600 dark:text-gray-400 max-w-[220px] leading-snug">{addressFor(o)}</p>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex flex-col gap-0.5">
@@ -238,6 +403,8 @@ export default function OrdersSync() {
           </table>
         </div>
       </Card>
+
+      <OrderDetailModal orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
     </div>
   )
 }

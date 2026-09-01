@@ -27,6 +27,9 @@ router.post('/pull-products', shopifyController.pullProducts)
 // POST /api/shopify/pull-orders — pull orders FROM Shopify into ERP
 router.post('/pull-orders', shopifyController.pullOrders)
 
+// POST /api/shopify/pull-customers — pull customers FROM Shopify into ERP
+router.post('/pull-customers', shopifyController.pullCustomers)
+
 // GET /api/shopify/products — fetch products FROM Shopify (preview only)
 router.get('/products', shopifyController.fetchProducts)
 

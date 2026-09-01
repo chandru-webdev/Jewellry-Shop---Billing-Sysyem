@@ -46,6 +46,12 @@ const shopifyController = {
     success(res, 200, result, 'Orders pulled from Shopify')
   }),
 
+  // POST /api/shopify/pull-customers — pull customers from Shopify into ERP
+  pullCustomers: asyncHandler(async (req, res) => {
+    const result = await shopifyService.pullCustomersFromShopify(req.user.id)
+    success(res, 200, result, 'Customers pulled from Shopify')
+  }),
+
   // GET /api/shopify/products — fetch products from Shopify (preview)
   fetchProducts: asyncHandler(async (req, res) => {
     const { limit, page, search } = req.query

@@ -11,6 +11,7 @@ export const shopifyApi = {
   syncAllInventory: () => apiClient.post('/shopify/sync/inventory'),
   pullProducts: () => apiClient.post('/shopify/pull-products'),
   pullOrders: () => apiClient.post('/shopify/pull-orders'),
+  pullCustomers: () => apiClient.post('/shopify/pull-customers'),
 
   // Fetch products from Shopify (preview/listing only, no import)
   fetchProducts: (params) => apiClient.get('/shopify/products', { params }),

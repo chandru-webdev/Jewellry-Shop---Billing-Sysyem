@@ -37,7 +37,6 @@ export default function SyncLogs() {
 
   const logs = (apiLogs || []).map((l) => ({
     ...l,
-    userId: l.id,
     typeKey: l.type || 'UNKNOWN',
     entityLabel: typeLabel[l.type] || l.type || 'Unknown',
     shopifyId: l.shopifyId || l.entityId || '—',
@@ -64,10 +63,11 @@ export default function SyncLogs() {
         PRODUCT: () => shopifyApi.syncAllProducts(),
         PRICE: () => shopifyApi.syncAllPrices(),
         INVENTORY: () => shopifyApi.syncAllInventory(),
+        ORDER: () => shopifyApi.pullOrders(),
       }
       const job = jobs[log.type]
       if (!job) {
-        return Promise.reject(new Error('Order sync retry is not supported on this page'))
+        return Promise.reject(new Error('No retry action is mapped for this sync type'))
       }
       return job()
     },
@@ -170,7 +170,7 @@ export default function SyncLogs() {
                 </tr>
               )}
               {!isFetching && filtered.map((log, i) => {
-                const StatusIcon = statusIcon[log.status]
+                const StatusIcon = statusIcon[log.status] || Clock
                 return (
                   <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors`}>
                     <td className="px-4 py-2.5"><Badge tone={typeColor[log.type] || 'gray'}>{log.entityLabel}</Badge></td>

@@ -235,6 +235,87 @@ const shopifyService = {
     }
   },
 
+  // Pull customers FROM Shopify into the ERP database. Customers are matched
+  // by email, then by phone; when neither matches an existing record a new
+  // customer is created. No CUSTOMER sync-log type exists yet, so the result
+  // counts are returned for the UI instead of being written to ShopifySyncLog.
+  async pullCustomersFromShopify(userId) {
+    let total = 0
+    let created = 0
+    let updated = 0
+    let failed = 0
+    let firstError = null
+
+    let sinceId = 0
+    while (true) {
+      let res
+      try {
+        res = await request(`/customers.json?limit=250&since_id=${sinceId}`)
+      } catch (err) {
+        if (!firstError) firstError = err.message
+        break // network/credential error — stop
+      }
+
+      const customers = res.customers || []
+      if (!customers.length) break
+
+      for (const c of customers) {
+        try {
+          const email = c.email || null
+          // The ERP Customer model requires a unique phone number and the
+          // Shopify record may not have one, so fall back to a stable
+          // placeholder keyed by the Shopify customer id.
+          const phone = c.phone || `SHOPIFY-${c.id}`
+          const name =
+            [c.first_name, c.last_name].filter(Boolean).join(' ') ||
+            (email ? email.split('@')[0] : 'Shopify Customer')
+
+          const d = c.default_address
+          const address = d
+            ? [d.address1, d.address2, d.city, [d.province, d.zip].filter(Boolean).join(' '), d.country]
+                .filter(Boolean)
+                .join(', ') || null
+            : null
+
+          let existing = null
+          if (email) existing = await prisma.customer.findUnique({ where: { email } })
+          if (!existing) existing = await prisma.customer.findUnique({ where: { phone } })
+
+          if (existing) {
+            await prisma.customer.update({
+              where: { id: existing.id },
+              data: { name, email: email || existing.email, address: address || existing.address },
+            })
+            updated++
+          } else {
+            await prisma.customer.create({ data: { name, email, phone, address } })
+            created++
+          }
+          total++
+        } catch (err) {
+          failed++
+          if (!firstError) {
+            const shopifyErr = err.status ? `API ${err.status}` : ''
+            firstError = `${shopifyErr} ${err.message}`.trim()
+          }
+        }
+      }
+
+      sinceId = customers[customers.length - 1].id
+      await throttle()
+    }
+
+    return {
+      total,
+      ok: total,
+      created,
+      updated,
+      matched: total - failed,
+      failed,
+      firstError: firstError || null,
+    }
+  },
+
   // Fetch products from Shopify store (for preview/listing in UI)
   async fetchProducts(params = {}) {
     const { limit = 50, page = 1, search } = params

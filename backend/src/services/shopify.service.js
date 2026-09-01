@@ -216,7 +216,13 @@ const shopifyService = {
       firstError = apiError
     }
 
-    await this.logSync('ORDER', ok, failed, firstError, userId)
+    // Only write a sync log when there was real work to record (order actually
+    // imported or an API failure). Repeated "no-op" pulls would otherwise spam
+    // the log with identical "All items synced" rows that look like the order
+    // syncing again.
+    if (created > 0 || failed > 0 || firstError) {
+      await this.logSync('ORDER', ok, failed, firstError, userId)
+    }
 
     return {
       total: scannedOrders,

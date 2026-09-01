@@ -137,7 +137,7 @@ export default function OrdersSync() {
               <tr className="bg-gray-50 dark:bg-white/5 text-left">
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Order</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Customer</th>
-                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 text-right">Items</th>
+                <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Products</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400 text-right">Amount</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Status</th>
                 <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-400">Source</th>
@@ -161,7 +161,7 @@ export default function OrdersSync() {
               )}
               {!ordersQuery.isLoading &&
                 filtered.map((o) => {
-                  const qty = o._count?.items ?? (o.items || []).length
+                  const items = o.items || []
                   return (
                     <tr key={o.id} className="border-t border-gray-100 dark:border-white/[0.05] hover:bg-gray-50/50 dark:hover:bg-white/[0.03]">
                       <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || o.id}</td>
@@ -169,7 +169,20 @@ export default function OrdersSync() {
                         <p className="font-medium text-royal-950 dark:text-white">{o.customer?.name || '—'}</p>
                         <p className="text-[11px] text-gray-400">{o.customer?.email || ''}</p>
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400">{qty}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-col gap-0.5">
+                          {items.length === 0 && <span className="text-xs text-gray-400">—</span>}
+                          {items.slice(0, 3).map((it) => (
+                            <div key={it.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                              <span className="truncate max-w-[240px]">{it.name}</span>
+                              <span className="text-xs font-mono text-gray-400">×{it.quantity}</span>
+                            </div>
+                          ))}
+                          {items.length > 3 && (
+                            <div className="text-xs text-gray-400">+{items.length - 3} more</div>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(Number(o.totalAmount || 0))}</td>
                       <td className="px-4 py-2.5">
                         <Badge tone={o.status === 'PAID' ? 'green' : o.status === 'CANCELLED' ? 'red' : 'orange'}>{o.status}</Badge>

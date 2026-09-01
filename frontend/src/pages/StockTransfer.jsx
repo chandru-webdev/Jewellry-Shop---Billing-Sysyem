@@ -1,23 +1,30 @@
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Package, History, Search } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { Input, Select, Label } from '../components/ui/FormControls'
-import { mockProducts, locations, transferHistory as initialHistory } from '../mock/products'
+import { productsApi } from '../api/products'
+import { inventoryApi } from '../api/inventory'
 import { formatDateTime } from '../utils/format'
+import { locations } from '../mock/products'
 
-function cloneProducts() {
-  return mockProducts.map((p) => ({ ...p, locations: { ...p.locations } }))
+const parseTransfer = (tx) => {
+  // Ledger entries created by stock-transfer: notes look like
+  // "Transfer OUT to <to> — <note>" or "Transfer IN from <from> — <note>"
+  const note = tx.note || ''
+  const outMatch = note.match(/^Transfer OUT to (.+?)(?: — |$)/)
+  const inMatch = note.match(/^Transfer IN from (.+?)(?: — |$)/)
+  return { kind: outMatch ? 'OUT' : inMatch ? 'IN' : null, location: (outMatch?.[1] || inMatch?.[1] || '').trim() }
 }
 
 export default function StockTransfer() {
-  const [products, setProducts] = useState(cloneProducts())
-  const [history, setHistory] = useState(initialHistory)
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
 
-  const [product, setProduct] = useState('')
+  const [productId, setProductId] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [qty, setQty] = useState('')
@@ -25,25 +32,46 @@ export default function StockTransfer() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const selectedProduct = products.find((p) => String(p.id) === product)
-  const availableQty = selectedProduct?.locations[from] ?? 0
+  const { data: apiProducts = [] } = useQuery({
+    queryKey: ['products', 'transfer'],
+    queryFn: () => productsApi.list().then((r) => r.data.data),
+  })
 
-  const resetForm = () => {
-    setProduct('')
-    setFrom('')
-    setTo('')
-    setQty('')
-    setNote('')
-    setError('')
-    setSuccess('')
-  }
+  const { data: apiTransactions = [] } = useQuery({
+    queryKey: ['inventory-transactions', 'transfer'],
+    queryFn: () => inventoryApi.transactions({ limit: 100 }).then((r) => r.data.data),
+  })
+
+  const products = apiProducts || []
+  const selectedProduct = products.find((p) => String(p.id) === String(productId))
+  const availableQty = selectedProduct?.inventory?.quantity ?? 0
+
+  const transferMutation = useMutation({
+    mutationFn: (data) => inventoryApi.stockTransfer(data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions', 'transfer'] })
+      queryClient.invalidateQueries({ queryKey: ['products', 'transfer'] })
+      const d = res.data.data
+      const p = products.find((pr) => pr.id === d.productId)
+      const fromName = locations.find((l) => l.name === d.from || l.id === d.from)?.name || d.from
+      const toName = locations.find((l) => l.name === d.to || l.id === d.to)?.name || d.to
+      setSuccess(`Transferred ${d.quantity} pcs of "${p?.name || ''}" from ${fromName} to ${toName}.`)
+      setProductId('')
+      setFrom('')
+      setTo('')
+      setQty('')
+      setNote('')
+      setError('')
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Transfer failed.'),
+  })
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
 
-    if (!product || !from || !to || !qty) {
+    if (!productId || !from || !to || !qty) {
       setError('Please fill in all fields.')
       return
     }
@@ -57,49 +85,36 @@ export default function StockTransfer() {
       return
     }
     if (requested > availableQty) {
-      setError(`Only ${availableQty} unit(s) available at ${locations.find((l) => l.id === from)?.name}.`)
+      setError(`Only ${availableQty} unit(s) available at ${from}.`)
       return
     }
 
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (String(p.id) !== product) return p
-        const updated = { ...p, locations: { ...p.locations } }
-        updated.locations[from] = Math.max(0, (updated.locations[from] ?? 0) - requested)
-        updated.locations[to] = (updated.locations[to] ?? 0) + requested
-        updated.quantity = Object.values(updated.locations).reduce((a, b) => a + b, 0)
-        return updated
-      })
-    )
-
-    const prodName = products.find((p) => String(p.id) === product)?.name ?? ''
-    const fromName = locations.find((l) => l.id === from)?.name ?? from
-    const toName = locations.find((l) => l.id === to)?.name ?? to
-    setHistory((prev) => [
-      {
-        id: `TRF-${Date.now()}`,
-        date: new Date().toISOString(),
-        sku: selectedProduct?.sku ?? '',
-        name: prodName,
-        from,
-        to,
-        qty: requested,
-        by: 'Admin',
-        note: note || '',
-      },
-      ...prev,
-    ])
-    setSuccess(`Transferred ${requested} pcs of "${prodName}" from ${fromName} to ${toName}.`)
-    resetForm()
+    transferMutation.mutate({ productId: Number(productId), quantity: requested, from, to, note })
   }
 
-  const filteredHistory = history.filter((t) => {
+  // Build a readable transfer history from real ledger entries
+  const transfers = (apiTransactions || [])
+    .map((tx) => ({ tx, parsed: parseTransfer(tx) }))
+    .filter((t) => t.parsed.kind)
+    .map(({ tx, parsed }) => ({
+      id: tx.id,
+      date: tx.createdAt,
+      name: tx.product?.name || '',
+      sku: tx.product?.sku || '',
+      location: parsed.location,
+      kind: parsed.kind,
+      qty: Math.abs(tx.quantity),
+      by: tx.createdBy?.name || 'Admin',
+      note: tx.note || '',
+    }))
+
+  const filteredHistory = transfers.filter((t) => {
     if (!search) return true
     const q = search.toLowerCase()
     return (
-      t.sku.toLowerCase().includes(q) ||
-      t.name.toLowerCase().includes(q) ||
-      t.id.toLowerCase().includes(q)
+      (t.sku || '').toLowerCase().includes(q) ||
+      (t.name || '').toLowerCase().includes(q) ||
+      t.location.toLowerCase().includes(q)
     )
   })
 
@@ -120,11 +135,11 @@ export default function StockTransfer() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <Label htmlFor="product">Product</Label>
-              <Select id="product" value={product} onChange={(e) => { setProduct(e.target.value); setError(''); setSuccess('') }} required>
+              <Select id="product" value={productId} onChange={(e) => { setProductId(e.target.value); setError(''); setSuccess('') }} required>
                 <option value="">Select product...</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.sku}) — qty: {p.quantity}
+                    {p.name} ({p.sku}) — qty: {p.inventory?.quantity ?? 0}
                   </option>
                 ))}
               </Select>
@@ -136,7 +151,7 @@ export default function StockTransfer() {
                 <Select id="from" value={from} onChange={(e) => setFrom(e.target.value)} required>
                   <option value="">Source</option>
                   {locations.map((l) => (
-                    <option key={l.id} value={l.id} disabled={l.id === to}>
+                    <option key={l.id} value={l.name} disabled={l.name === to}>
                       {l.name}
                     </option>
                   ))}
@@ -150,7 +165,7 @@ export default function StockTransfer() {
                 <Select id="to" value={to} onChange={(e) => setTo(e.target.value)} required>
                   <option value="">Destination</option>
                   {locations.map((l) => (
-                    <option key={l.id} value={l.id} disabled={l.id === from}>
+                    <option key={l.id} value={l.name} disabled={l.name === from}>
                       {l.name}
                     </option>
                   ))}
@@ -180,8 +195,8 @@ export default function StockTransfer() {
               <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Re-stock retail floor" />
             </div>
 
-            <Button type="submit" variant="gold" className="w-full">
-              Transfer Stock
+            <Button type="submit" variant="gold" className="w-full" disabled={transferMutation.isPending}>
+              {transferMutation.isPending ? 'Transferring...' : 'Transfer Stock'}
             </Button>
           </form>
         </Card>
@@ -189,16 +204,19 @@ export default function StockTransfer() {
         {/* Current location summary for selected product */}
         {selectedProduct && (
           <Card title={`Current stock: ${selectedProduct.name}`} icon={Package} className="xl:col-span-2">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {locations.map((l) => (
                 <div key={l.id} className="bg-royal-50/60 border border-gray-200 dark:border-white/[0.08] rounded-lg p-4 text-center">
                   <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">{l.name}</p>
-                  <p className="text-2xl font-bold text-royal-950 dark:text-white mt-1">{selectedProduct.locations[l.id] ?? 0}</p>
-                  <Badge tone={selectedProduct.locations[l.id] > 0 ? 'green' : 'gray'}>
-                    {selectedProduct.locations[l.id] > 0 ? 'In stock' : 'Empty'}
+                  <Badge tone={availableQty > 0 ? 'green' : 'gray'}>
+                    {availableQty > 0 ? 'In stock' : 'Empty'}
                   </Badge>
                 </div>
               ))}
+              <div className="bg-royal-950/5 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-lg p-4 text-center md:col-span-3">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">Total available</p>
+                <p className="text-2xl font-bold text-royal-950 dark:text-white mt-1">{availableQty} pcs</p>
+              </div>
             </div>
           </Card>
         )}
@@ -210,7 +228,7 @@ export default function StockTransfer() {
               <Search size={14} className="text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
-                placeholder="Search by product, SKU or transfer ID..."
+                placeholder="Search by product, SKU or location..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-transparent text-sm focus:outline-none w-full"
@@ -223,9 +241,8 @@ export default function StockTransfer() {
               <thead>
                 <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
                   <th className="px-5 py-3 font-semibold">Date</th>
-                  <th className="px-5 py-3 font-semibold">ID</th>
                   <th className="px-5 py-3 font-semibold">Product</th>
-                  <th className="px-5 py-3 font-semibold">From → To</th>
+                  <th className="px-5 py-3 font-semibold">Direction</th>
                   <th className="px-5 py-3 font-semibold text-right">Qty</th>
                   <th className="px-5 py-3 font-semibold">By</th>
                   <th className="px-5 py-3 font-semibold">Note</th>
@@ -234,20 +251,26 @@ export default function StockTransfer() {
               <tbody className="divide-y divide-gray-100">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">
-                      No transfers recorded.
+                    <td colSpan={6} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">
+                      No transfers recorded yet.
                     </td>
                   </tr>
                 ) : (
                   filteredHistory.map((t) => (
                     <tr key={t.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
                       <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDateTime(t.date)}</td>
-                      <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.id}</td>
-                      <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{t.name}</td>
-                      <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">
-                        {locations.find((l) => l.id === t.from)?.name ?? t.from} → {locations.find((l) => l.id === t.to)?.name ?? t.to}
+                      <td className="px-5 py-3">
+                        <span className="font-medium text-royal-950 dark:text-white">{t.name}</span>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.sku}</p>
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold text-emerald-600">+{t.qty}</td>
+                      <td className="px-5 py-3 text-sm">
+                        {t.kind === 'IN' ? (
+                          <span className="text-emerald-600">+{t.qty} → {t.location}</span>
+                        ) : (
+                          <span className="text-amber-600">{t.location} → −{t.qty}</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-right font-semibold text-emerald-600">{t.qty}</td>
                       <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{t.by}</td>
                       <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500">{t.note || '—'}</td>
                     </tr>

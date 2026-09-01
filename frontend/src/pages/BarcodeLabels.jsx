@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Printer, Search, Tag, Download, Plus, X, Filter } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -6,7 +7,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { Input } from '../components/ui/FormControls'
 import { formatINR } from '../utils/format'
-import { mockProducts } from '../mock/products'
+import { productsApi } from '../api/products'
 
 // Minimal 1D barcode (Code 39-like) renderer. Deterministic; safe, no deps.
 const CODE39 = {
@@ -132,7 +133,7 @@ const downloadPng = (value) => {
 }
 
 const printSingleLabel = (item) => {
-  const value = item.barcode || item.value
+  const value = item.sku || item.value
   const svg = barcodeSvgString(value)
   const name = item._kind === 'product' ? item.name : `Custom: ${item.value}`
   const sku = item._kind === 'product' ? item.sku : 'Custom barcode'
@@ -164,7 +165,7 @@ const printSingleLabel = (item) => {
   w.print()
 }
 
-const categories = ['All', ...Array.from(new Set(mockProducts.map((p) => p.category)))]
+const getBarcodeValue = (item) => item.sku || item.value
 
 export default function BarcodeLabels() {
   const [search, setSearch] = useState('')
@@ -176,15 +177,29 @@ export default function BarcodeLabels() {
   const [customInput, setCustomInput] = useState('')
   const [customBarcodes, setCustomBarcodes] = useState([])
 
-  const products = mockProducts.filter((p) => {
-    if (categoryFilter !== 'All' && p.category !== categoryFilter) return false
-    if (showLowStock && p.quantity > (p.lowStockThreshold || 5)) return false
-    if (search) {
-      const q = search.toLowerCase()
-      if (!p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q) && !p.barcode.includes(q)) return false
-    }
-    return true
+  const { data: apiProducts = [], isLoading } = useQuery({
+    queryKey: ['products', 'barcodes'],
+    queryFn: () => productsApi.list().then((r) => r.data.data),
   })
+
+  const products = (apiProducts || [])
+    .map((p) => ({
+      ...p,
+      category: p.category?.name || '',
+      quantity: Number(p.inventory?.quantity ?? 0),
+      lowStockThreshold: Number(p.lowStockThreshold ?? 5),
+    }))
+    .filter((p) => {
+      if (categoryFilter !== 'All' && p.category !== categoryFilter) return false
+      if (showLowStock && p.quantity > p.lowStockThreshold) return false
+      if (search) {
+        const q = search.toLowerCase()
+        if (!p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q)) return false
+      }
+      return true
+    })
+
+  const categories = ['All', ...Array.from(new Set((apiProducts || []).map((p) => p.category?.name).filter(Boolean)))]
 
   const handleCreateCustom = (e) => {
     e.preventDefault()
@@ -205,7 +220,7 @@ export default function BarcodeLabels() {
       onClick={() => setSelected(item.id === selected?.id ? null : item)}
     >
       <div className="barcode flex-shrink-0">
-        <Barcode value={item.barcode || item.value} />
+        <Barcode value={getBarcodeValue(item)} />
       </div>
       <div className="flex flex-col min-w-0">
         {isProduct ? (
@@ -222,10 +237,10 @@ export default function BarcodeLabels() {
         )}
       </div>
       <div className="ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-        <Button variant="ghost" size="sm" title="Download PNG" onClick={() => downloadPng(item.barcode || item.value)}>
+        <Button variant="ghost" size="sm" title="Download PNG" onClick={() => downloadPng(getBarcodeValue(item))}>
           <Download size={13} /> PNG
         </Button>
-        <Button variant="ghost" size="sm" title="Download SVG" onClick={() => downloadSvg(item.barcode || item.value)}>
+        <Button variant="ghost" size="sm" title="Download SVG" onClick={() => downloadSvg(getBarcodeValue(item))}>
           <Download size={13} /> SVG
         </Button>
         <Button variant="ghost" size="sm" title="Full view" onClick={() => setFullView(item)}>
@@ -368,22 +383,25 @@ export default function BarcodeLabels() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {products.map((p) => (
+                {isLoading && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400 dark:text-gray-500">Loading products...</td></tr>
+                )}
+                {!isLoading && products.map((p) => (
                   <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30">
                     <td className="px-4 py-2">
                       <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</p>
                     </td>
-                    <td className="px-4 py-2 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.barcode}</td>
+                    <td className="px-4 py-2 font-mono text-[11px] text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                     <td className="px-4 py-2 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(p.sellingPrice)}</td>
                     <td className="px-4 py-2 text-center">
                       <div className="flex justify-center">
-                        <Barcode value={p.barcode} />
+                        <Barcode value={p.sku} />
                       </div>
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex justify-center gap-1">
-                        <Button variant="ghost" size="sm" title="Download as PNG" onClick={() => downloadPng(p.barcode)}>
+                        <Button variant="ghost" size="sm" title="Download as PNG" onClick={() => downloadPng(p.sku)}>
                           <Download size={13} />
                         </Button>
                         <Button variant="ghost" size="sm" title="Full view" onClick={() => setFullView(p)}>
@@ -413,9 +431,9 @@ export default function BarcodeLabels() {
 
             <div className="flex flex-col items-center gap-4">
               <div className="p-3 border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1025] rounded">
-                <Barcode value={fullView.barcode || fullView.value} size={320} />
+                <Barcode value={getBarcodeValue(fullView)} size={320} />
               </div>
-              {fullView._kind === 'product' ? (
+              {fullView._kind === 'product' || fullView.sku ? (
                 <div className="text-center">
                   <h3 className="font-semibold text-royal-950 dark:text-white">{fullView.name}</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{fullView.sku}</p>
@@ -429,10 +447,10 @@ export default function BarcodeLabels() {
               )}
 
               <div className="flex items-center gap-2 pt-2">
-                <Button variant="outline" size="sm" onClick={() => downloadPng(fullView.barcode || fullView.value)}>
+                <Button variant="outline" size="sm" onClick={() => downloadPng(getBarcodeValue(fullView))}>
                   <Download size={13} /> Download PNG
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => downloadSvg(fullView.barcode || fullView.value)}>
+                <Button variant="outline" size="sm" onClick={() => downloadSvg(getBarcodeValue(fullView))}>
                   <Download size={13} /> Download SVG
                 </Button>
                 <Button size="sm" onClick={() => printSingleLabel(fullView)}>

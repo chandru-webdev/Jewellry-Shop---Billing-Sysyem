@@ -32,6 +32,18 @@ const inventoryController = {
     })
     success(res, 200, result, 'Stock removed')
   }),
+
+  stockTransfer: asyncHandler(async (req, res) => {
+    const result = await inventoryService.stockTransfer({
+      productId: req.body.productId,
+      quantity: req.body.quantity,
+      from: req.body.from,
+      to: req.body.to,
+      note: req.body.note,
+      userId: req.user.id,
+    })
+    success(res, 200, result, 'Stock transferred')
+  }),
 }
 
 module.exports = inventoryController

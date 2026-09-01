@@ -1,106 +1,115 @@
 import { useState } from 'react'
-import { RotateCw, Plus, Search, Trash2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { RotateCw, Plus, Search, RotateCcw } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import Modal from '../components/ui/Modal'
 import { Input, Select, Label } from '../components/ui/FormControls'
-import { formatINR } from '../utils/format'
-import { mockProducts, salesReturnHistory as initialHistory } from '../mock/products'
+import { formatINR, formatDate } from '../utils/format'
+import { ordersApi } from '../api/orders'
 
 const statusTone = {
-  Pending: 'orange',
-  Approved: 'green',
-  Rejected: 'red',
+  PAID: 'green',
+  FULFILLED: 'green',
+  REFUNDED: 'gray',
+  CANCELLED: 'red',
+  PENDING: 'orange',
+  CONFIRMED: 'blue',
+  PROCESSING: 'purple',
 }
+
+const RETURNABLE = ['PAID', 'FULFILLED']
 
 const reasonOptions = ['Defective', 'Wrong item', 'Damaged in transit', 'Changed mind', 'Other']
 
 export default function SalesReturns() {
-  const [history, setHistory] = useState(initialHistory)
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-
   const [showForm, setShowForm] = useState(false)
-  const [product, setProduct] = useState('')
-  const [qty, setQty] = useState('')
-  const [reason, setReason] = useState('')
-  const [customer, setCustomer] = useState('')
-  const [note, setNote] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [toast, setToast] = useState('')
+  const [confirmOrder, setConfirmOrder] = useState(null)
 
-  const selectedProduct = mockProducts.find((p) => String(p.id) === product)
+  const [orderId, setOrderId] = useState('')
+  const [reason, setReason] = useState('')
+  const [note, setNote] = useState('')
 
-  const resetForm = () => {
-    setProduct('')
-    setQty('')
-    setReason('')
-    setCustomer('')
-    setNote('')
-    setError('')
-    setSuccess('')
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
   }
+
+  const { data: apiOrders, isLoading } = useQuery({
+    queryKey: ['orders', 'returns'],
+    queryFn: () => ordersApi.list({ limit: 100 }).then((r) => r.data.data),
+  })
+
+  const orders = apiOrders || []
+  const returnable = orders.filter((o) => RETURNABLE.includes(o.status))
+
+  const refundMutation = useMutation({
+    mutationFn: (id) => ordersApi.updateStatus(id, 'REFUNDED'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders', 'returns'] })
+      setConfirmOrder(null)
+      setShowForm(false)
+      setOrderId('')
+      setReason('')
+      setNote('')
+      setError('')
+      showToast('Order refunded. Stock returned and invoice voided.')
+    },
+    onError: (err) => {
+      setError(err.response?.data?.message || 'Failed to process return.')
+      setConfirmOrder(null)
+    },
+  })
+
+  const showToastMsg = Boolean(toast)
+
+  const handleOpenForm = () => {
+    setError('')
+    setOrderId('')
+    setReason('')
+    setNote('')
+    setShowForm(true)
+  }
+
+  const selectedOrder = orders.find((o) => String(o.id) === String(orderId))
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
-    setSuccess('')
-
-    if (!product || !qty || !reason || !customer) {
-      setError('Please fill in all required fields.')
+    if (!orderId || !reason) {
+      setError('Please select an order and a reason.')
       return
     }
-    const requested = Number(qty)
-    if (Number.isNaN(requested) || requested <= 0) {
-      setError('Quantity must be a positive number.')
-      return
-    }
-    if (requested > (selectedProduct?.quantity ?? 0)) {
-      setError(`Quantity cannot exceed available stock (${selectedProduct?.quantity ?? 0}).`)
-      return
-    }
-
-    const refund = Math.round((selectedProduct.sellingPrice || 0) * requested)
-    setHistory((prev) => [
-      {
-        id: Date.now(),
-        returnNo: `SRN-${String(prev.length + 1).padStart(4, '0')}`,
-        date: new Date().toISOString().slice(0, 10),
-        customer,
-        sku: selectedProduct.sku,
-        name: selectedProduct.name,
-        qty: requested,
-        reason,
-        refund,
-        status: 'Pending',
-      },
-      ...prev,
-    ])
-    setSuccess(`Sales return #SRN-${String(history.length + 1).padStart(4, '0')} created (refund: ${formatINR(refund)}).`)
-    resetForm()
-    setShowForm(false)
+    const order = orders.find((o) => String(o.id) === String(orderId))
+    if (!order) return
+    setConfirmOrder(order)
   }
 
-  const showToast = (msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2500)
+  const handleRefund = () => {
+    refundMutation.mutate(confirmOrder.id)
   }
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this return request?')) {
-      setHistory((prev) => prev.filter((r) => r.id !== id))
-      showToast('Return deleted')
-    }
+  const handleRefundDirect = (order) => {
+    setError('')
+    setConfirmOrder(order)
   }
 
-  const filtered = history.filter((r) => {
+  const filtered = orders.filter((o) => {
+    if (filterStatus && o.status !== filterStatus) return false
     if (search) {
       const q = search.toLowerCase()
-      if (!r.customer.toLowerCase().includes(q) && !r.sku.toLowerCase().includes(q) && !r.name.toLowerCase().includes(q)) return false
+      const ref = o.orderNumber || o.shopifyId || `#${o.id}`
+      const customer = o.customer?.name || o.customer || ''
+      const item = o.items?.[0]?.name || ''
+      if (!String(ref).toLowerCase().includes(q) && !customer.toLowerCase().includes(q) && !item.toLowerCase().includes(q)) return false
     }
-    if (filterStatus && r.status !== filterStatus) return false
     return true
   })
 
@@ -108,82 +117,103 @@ export default function SalesReturns() {
     <div>
       <PageHeader
         title="Sales Returns"
-        subtitle="Process and track returned sales items"
+        subtitle="Process refunds and return stock to inventory for paid orders"
         actions={
-          <Button size="sm" onClick={() => setShowForm(true)}>
+          <Button size="sm" onClick={handleOpenForm} disabled={returnable.length === 0}>
             <Plus size={14} /> New Return
           </Button>
         }
       />
 
       {error && <div className="mb-4 bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3 border border-red-200">{error}</div>}
-      {success && <div className="mb-4 bg-emerald-50 text-emerald-700 text-sm rounded-lg px-4 py-3 border border-emerald-200">{success}</div>}
+      {toast && showToastMsg && (
+        <div className="mb-4 bg-emerald-50 text-emerald-700 text-sm rounded-lg px-4 py-3 border border-emerald-200">{toast}</div>
+      )}
 
       {showForm && (
         <Card title="New Sales Return" icon={Plus} className="mb-6">
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
-            <div>
-              <Label htmlFor="customer">Customer *</Label>
-              <Input id="customer" value={customer} onChange={(e) => setCustomer(e.target.value)} placeholder="e.g. Riya Sharma" required />
+          {returnable.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 p-2">
+              No paid orders are eligible for a refund right now. Sales that are paid or fulfilled can be returned.
             </div>
+          ) : (
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+              <div className="md:col-span-2">
+                <Label htmlFor="order">Order *</Label>
+                <Select id="order" value={orderId} onChange={(e) => { setOrderId(e.target.value); setError('') }} required>
+                  <option value="">Select paid order...</option>
+                  {returnable.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.orderNumber || `#${o.id}`} — {o.customer?.name || 'Walk-in'} ({formatINR(o.totalAmount)})
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="product">Product *</Label>
-              <Select id="product" value={product} onChange={(e) => { setProduct(e.target.value); setError('') }} required>
-                <option value="">Select product...</option>
-                {mockProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.sku}) — stock: {p.quantity}
-                  </option>
-                ))}
-              </Select>
-            </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="reason">Reason *</Label>
+                <Select id="reason" value={reason} onChange={(e) => setReason(e.target.value)} required>
+                  <option value="">Select reason...</option>
+                  {reasonOptions.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="qty">Quantity *</Label>
-              <Input id="qty" type="number" min="1" max={selectedProduct?.quantity ?? 1} value={qty} onChange={(e) => setQty(e.target.value)} placeholder="e.g. 1" required />
-            </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="note">Note (optional)</Label>
+                <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Additional details" />
+              </div>
 
-            <div>
-              <Label htmlFor="reason">Reason *</Label>
-              <Select id="reason" value={reason} onChange={(e) => setReason(e.target.value)} required>
-                <option value="">Select reason...</option>
-                {reasonOptions.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </Select>
-            </div>
+              {selectedOrder && (
+                <div className="md:col-span-2 bg-royal-50/60 border border-gray-200 dark:border-white/[0.08] rounded-lg p-4 text-sm">
+                  <p className="font-medium text-royal-950 dark:text-white">
+                    Refund {formatINR(selectedOrder.totalAmount)} for {selectedOrder.items?.length ?? 0} item(s)?
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
+                    Processing restocks the items and voids the linked invoice.
+                  </p>
+                </div>
+              )}
 
-            <div className="md:col-span-2">
-              <Label htmlFor="note">Note (optional)</Label>
-              <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Additional details" />
-            </div>
-
-            <div className="md:col-span-2 flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => { setShowForm(false); resetForm() }}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" variant="gold" disabled={!selectedProduct}>
-                Submit Return
-              </Button>
-            </div>
-          </form>
+              <div className="md:col-span-2 flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button type="submit" size="sm" variant="gold" disabled={!orderId || !reason}>Submit Return</Button>
+              </div>
+            </form>
+          )}
         </Card>
       )}
 
-      {toast && (
-        <div className="mb-4 inline-block bg-royal-950 dark:bg-white/10 text-white dark:text-gray-100 text-sm rounded-lg px-4 py-2.5 shadow-lg">
-          {toast}
-        </div>
-      )}
+      {/* Confirmation modal */}
+      <Modal open={Boolean(confirmOrder)} title="Confirm Refund" onClose={() => { setConfirmOrder(null); setShowForm(false) }}>
+        {confirmOrder && (
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-600 dark:text-gray-300">
+              Refund order <span className="font-semibold text-royal-950 dark:text-white">{confirmOrder.orderNumber || `#${confirmOrder.id}`}</span> for{' '}
+              <span className="font-semibold text-emerald-700">{formatINR(confirmOrder.totalAmount)}</span>?
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
+              This will return all items to stock and void the linked invoice{' '}
+              {confirmOrder.invoice?.invoiceNumber ? `(${confirmOrder.invoice.invoiceNumber})` : ''}. This action is permanent.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmOrder(null)}>Cancel</Button>
+              <Button size="sm" variant="gold" onClick={handleRefund} disabled={refundMutation.isPending}>
+                {refundMutation.isPending ? 'Processing...' : 'Confirm Refund'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
-      <Card title="Return Requests" icon={RotateCw} className="p-0 overflow-hidden">
+      <Card title="Sales Orders" icon={RotateCw} className="p-0 overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 p-4 border-b border-gray-100 dark:border-white/[0.05]">
           <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-64">
             <Search size={14} className="text-gray-400 dark:text-gray-500" />
             <input
               type="text"
-              placeholder="Search customer, SKU or product..."
+              placeholder="Search order, customer or product..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent text-sm focus:outline-none w-full"
@@ -191,57 +221,60 @@ export default function SalesReturns() {
           </div>
           <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
+            {Object.keys(statusTone).map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </Select>
+          <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 ml-auto">
+            <RotateCcw size={13} /> Refunded orders have stock returned automatically
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-royal-50 dark:bg-white/5 text-royal-900 dark:text-gray-200 text-left">
-                <th className="px-5 py-3 font-semibold">Return #</th>
+                <th className="px-5 py-3 font-semibold">Order</th>
                 <th className="px-5 py-3 font-semibold">Date</th>
                 <th className="px-5 py-3 font-semibold">Customer</th>
-                <th className="px-5 py-3 font-semibold">Product</th>
-                <th className="px-5 py-3 font-semibold text-right">Qty</th>
-                <th className="px-5 py-3 font-semibold">Reason</th>
-                <th className="px-5 py-3 font-semibold text-right">Refund</th>
+                <th className="px-5 py-3 font-semibold">Items</th>
+                <th className="px-5 py-3 font-semibold text-right">Amount</th>
+                <th className="px-5 py-3 font-semibold">Invoice</th>
                 <th className="px-5 py-3 font-semibold text-center">Status</th>
                 <th className="px-5 py-3 font-semibold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">No return requests found.</td>
-                </tr>
-              ) : (
-                filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
-                    <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.returnNo}</td>
-                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{r.date}</td>
-                    <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{r.customer}</td>
-                    <td className="px-5 py-3">
-                      <span className="text-royal-950 dark:text-white">{r.name}</span>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{r.sku}</p>
-                    </td>
-                    <td className="px-5 py-3 text-right font-semibold">{r.qty} pcs</td>
-                    <td className="px-5 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{r.reason}</td>
-                    <td className="px-5 py-3 text-right font-semibold text-emerald-700">{formatINR(r.refund)}</td>
-                    <td className="px-5 py-3 text-center"><Badge tone={statusTone[r.status] || 'gray'}>{r.status}</Badge></td>
-                    <td className="px-5 py-3 text-center">
-                      <button
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
-                        title="Delete"
-                        onClick={() => handleDelete(r.id)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+              {isLoading && (
+                <tr><td colSpan={8} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">Loading orders...</td></tr>
               )}
+              {!isLoading && filtered.length === 0 && (
+                <tr><td colSpan={8} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">No orders found.</td></tr>
+              )}
+              {filtered.map((o) => (
+                <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/50">
+                  <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.orderNumber || `#${o.id}`}</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs">{formatDate(o.createdAt)}</td>
+                  <td className="px-5 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || 'Walk-in'}</td>
+                  <td className="px-5 py-3">
+                    <span className="text-royal-950 dark:text-white">{o.items?.[0]?.name || '—'}</span>
+                    {o._count?.items > 1 && <span className="text-xs text-gray-400"> +{o._count.items - 1} more</span>}
+                  </td>
+                  <td className="px-5 py-3 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
+                  <td className="px-5 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.invoice?.invoiceNumber || '—'}</td>
+                  <td className="px-5 py-3 text-center">
+                    <Badge tone={statusTone[o.status] || 'gray'}>{o.status}</Badge>
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    {RETURNABLE.includes(o.status) ? (
+                      <Button variant="outline" size="sm" onClick={() => handleRefundDirect(o)}>
+                        <RotateCcw size={13} /> Refund
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

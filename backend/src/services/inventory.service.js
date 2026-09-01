@@ -40,6 +40,45 @@ const inventoryService = {
     return this.change(productId, -quantity, 'STOCK_OUT', userId, note)
   },
 
+  // Move stock between locations. A transfer does not change the product's total
+  // quantity, so it only appends a balanced pair of ledger entries (STOCK_OUT from
+  // the source location and STOCK_IN to the destination) atomically, validating
+  // that enough stock is available before recording the movement.
+  async stockTransfer({ productId, quantity, from, to, userId, note }) {
+    return prisma.$transaction(
+      async (tx) => {
+        const inv = await tx.inventory.findUnique({ where: { productId } })
+        if (!inv) throw new ApiError(404, 'This product has no inventory record')
+        if (quantity > inv.quantity) {
+          throw new ApiError(400, `Not enough stock to transfer. Available: ${inv.quantity}`)
+        }
+
+        const extra = note ? ` — ${note}` : ''
+        await tx.inventoryTransaction.create({
+          data: {
+            productId,
+            type: 'STOCK_OUT',
+            quantity: -quantity,
+            note: `Transfer OUT to ${to}${extra}`,
+            createdById: userId,
+          },
+        })
+        await tx.inventoryTransaction.create({
+          data: {
+            productId,
+            type: 'STOCK_IN',
+            quantity,
+            note: `Transfer IN from ${from}${extra}`,
+            createdById: userId,
+          },
+        })
+
+        return { productId, quantity, from, to }
+      },
+      { timeout: 60000 }
+    )
+  },
+
   // Core logic: update the quantity AND append a ledger entry in ONE database
   // transaction, so they can never fall out of sync.
   async change(productId, delta, type, userId, note) {

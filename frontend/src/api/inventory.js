@@ -5,4 +5,5 @@ export const inventoryApi = {
   transactions: (params) => apiClient.get('/inventory/transactions', { params }),
   stockIn: (data) => apiClient.post('/inventory/stock-in', data),
   stockOut: (data) => apiClient.post('/inventory/stock-out', data),
+  stockTransfer: (data) => apiClient.post('/inventory/stock-transfer', data),
 }

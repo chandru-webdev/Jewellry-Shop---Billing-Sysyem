@@ -36,7 +36,7 @@ const exportService = {
     const rows = customers.map((c) => [
       c.id, c.name, c.email ?? '', c.phone ?? '', c.gstin ?? '',
       c.city ?? '', c.state ?? '', c.invoices?.length ?? 0,
-      c.invoices?.reduce((s, inv) => s + Number(inv.totalAmount), 0) ?? 0,
+      c.invoices?.reduce((s, inv) => s + Number(inv.grandTotal), 0) ?? 0,
     ])
     return { csv: toCsvString(headers, rows), count: rows.length, size: toCsvString(headers, rows).length }
   },
@@ -48,8 +48,8 @@ const exportService = {
     })
     const headers = ['id', 'invoice_no', 'customer', 'date', 'total_amount', 'gst_amount', 'status']
     const rows = invoices.map((inv) => [
-      inv.id, inv.invoiceNo, inv.customer?.name ?? '',
-      inv.createdAt?.toISOString?.() ?? inv.createdAt ?? '', inv.totalAmount, inv.gstAmount, inv.status ?? 'PENDING',
+      inv.id, inv.invoiceNumber, inv.customer?.name ?? '',
+      inv.date?.toISOString?.() ?? inv.createdAt?.toISOString?.() ?? '', inv.grandTotal, inv.gstTotal, inv.status ?? 'DRAFT',
     ])
     return { csv: toCsvString(headers, rows), count: rows.length, size: toCsvString(headers, rows).length }
   },
@@ -59,10 +59,10 @@ const exportService = {
       include: { product: true },
       orderBy: { id: 'asc' },
     })
-    const headers = ['id', 'product', 'sku', 'quantity', 'reorder_level', 'updated_at']
+    const headers = ['id', 'product', 'sku', 'quantity', 'low_stock_threshold', 'updated_at']
     const rows = items.map((inv) => [
       inv.id, inv.product?.name ?? '', inv.product?.sku ?? '',
-      inv.quantity, inv.reorderLevel ?? 0, inv.updatedAt?.toISOString?.() ?? inv.updatedAt ?? '',
+      inv.quantity, inv.product?.lowStockThreshold ?? 0, inv.updatedAt?.toISOString?.() ?? inv.updatedAt ?? '',
     ])
     return { csv: toCsvString(headers, rows), count: rows.length, size: toCsvString(headers, rows).length }
   },
@@ -77,7 +77,7 @@ const exportService = {
       const d = inv.createdAt instanceof Date ? inv.createdAt : new Date(inv.createdAt)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       if (!byMonth[key]) byMonth[key] = { revenue: 0, orders: 0 }
-      byMonth[key].revenue += Number(inv.totalAmount) || 0
+      byMonth[key].revenue += Number(inv.grandTotal) || 0
       byMonth[key].orders++
     }
     const headers = ['month', 'revenue', 'orders', 'avg_order_value']
@@ -96,9 +96,9 @@ const exportService = {
       const d = inv.createdAt instanceof Date ? inv.createdAt : new Date(inv.createdAt)
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       if (!byPeriod[key]) byPeriod[key] = { taxable: 0, cgst: 0, sgst: 0 }
-      byPeriod[key].taxable += Number(inv.totalAmount) || 0
-      byPeriod[key].cgst += Number(inv.cgstAmount) || 0
-      byPeriod[key].sgst += Number(inv.sgstAmount) || 0
+      byPeriod[key].taxable += Number(inv.grandTotal) || 0
+      byPeriod[key].cgst += Number(inv.gstTotal) / 2 || 0
+      byPeriod[key].sgst += Number(inv.gstTotal) / 2 || 0
     }
     const headers = ['period', 'taxable_value', 'cgst', 'sgst', 'total_tax']
     const rows = Object.entries(byPeriod).map(([period, v]) => [

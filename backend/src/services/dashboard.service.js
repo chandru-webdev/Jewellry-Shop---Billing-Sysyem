@@ -109,16 +109,22 @@ const dashboardService = {
       // Total revenue (all time)
       totalRevenueAgg,
     ] = await Promise.all([
-      // Revenue for selected period
-      prisma.invoice.aggregate({
-        where: { date: { gte: dateRange.start, lte: dateRange.end }, status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      // Revenue for selected period (from orders — invoices don't exist for Shopify orders)
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: dateRange.start, lte: dateRange.end },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+        _sum: { totalAmount: true },
         _count: true,
       }),
 
-      // Invoice count for selected period
-      prisma.invoice.count({
-        where: { date: { gte: dateRange.start, lte: dateRange.end }, status: { not: 'VOID' } },
+      // Invoice count for selected period (revenue-eligible sales count)
+      prisma.order.count({
+        where: {
+          createdAt: { gte: dateRange.start, lte: dateRange.end },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
       }),
 
       // Orders count for selected period
@@ -126,29 +132,35 @@ const dashboardService = {
         where: { createdAt: { gte: dateRange.start, lte: dateRange.end } },
       }),
 
-      // Today revenue
-      prisma.invoice.aggregate({
-        where: { date: { gte: today }, status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      // Today revenue (from orders)
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: today },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+        _sum: { totalAmount: true },
       }),
 
-      // Today invoice count
-      prisma.invoice.count({
-        where: { date: { gte: today }, status: { not: 'VOID' } },
+      // Today sales count (orders)
+      prisma.order.count({
+        where: { createdAt: { gte: today }, status: { notIn: ['CANCELLED', 'REFUNDED'] } },
       }),
 
       // Today orders
       prisma.order.count({ where: { createdAt: { gte: today } } }),
 
-      // Month revenue
-      prisma.invoice.aggregate({
-        where: { date: { gte: month }, status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      // Month revenue (from orders)
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: month },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+        _sum: { totalAmount: true },
       }),
 
-      // Month invoice count
-      prisma.invoice.count({
-        where: { date: { gte: month }, status: { not: 'VOID' } },
+      // Month sales count (orders)
+      prisma.order.count({
+        where: { createdAt: { gte: month }, status: { notIn: ['CANCELLED', 'REFUNDED'] } },
       }),
 
       // Pending orders
@@ -201,7 +213,7 @@ const dashboardService = {
         take: 6,
       }),
 
-      // All orders in selected period (for top products calculation)
+      // All orders in selected period (for top products calculation + daily sales chart)
       prisma.orderItem.findMany({
         where: {
           order: {
@@ -211,6 +223,7 @@ const dashboardService = {
         },
         include: {
           product: { select: { id: true, name: true, sku: true, sellingPrice: true } },
+          order: { select: { createdAt: true } },
         },
       }),
 
@@ -230,10 +243,10 @@ const dashboardService = {
         take: 30,
       }),
 
-      // Total revenue (all time, non-void)
-      prisma.invoice.aggregate({
-        where: { status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      // Total revenue (all time, from orders)
+      prisma.order.aggregate({
+        where: { status: { notIn: ['CANCELLED', 'REFUNDED'] } },
+        _sum: { totalAmount: true },
       }),
     ])
 
@@ -359,12 +372,18 @@ const dashboardService = {
     const prevEnd = new Date(dateRange.start.getTime() - 1)
 
     const [prevRevenue, prevSalesCount, prevOrdersCount] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { date: { gte: prevStart, lte: prevEnd }, status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: prevStart, lte: prevEnd },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+        _sum: { totalAmount: true },
       }),
-      prisma.invoice.count({
-        where: { date: { gte: prevStart, lte: prevEnd }, status: { not: 'VOID' } },
+      prisma.order.count({
+        where: {
+          createdAt: { gte: prevStart, lte: prevEnd },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
       }),
       prisma.order.count({
         where: { createdAt: { gte: prevStart, lte: prevEnd } },
@@ -385,8 +404,8 @@ const dashboardService = {
     const todayExpenses = new Decimal(0)
 
     // Calculate period-specific totals
-    const periodRevenue = Number(revenuePeriod._sum.grandTotal ?? 0)
-    const prevPeriodRevenue = Number(prevRevenue._sum.grandTotal ?? 0)
+    const periodRevenue = Number(revenuePeriod._sum.totalAmount ?? 0)
+    const prevPeriodRevenue = Number(prevRevenue._sum.totalAmount ?? 0)
     const salesTrend = prevPeriodRevenue > 0
       ? Math.round(((periodRevenue - prevPeriodRevenue) / prevPeriodRevenue) * 100)
       : 0
@@ -400,17 +419,20 @@ const dashboardService = {
     const lastMonthEnd = startOfMonth(now)
 
     const [lastMonthRevenue, lastMonthOrders] = await Promise.all([
-      prisma.invoice.aggregate({
-        where: { date: { gte: lastMonthStart, lte: lastMonthEnd }, status: { not: 'VOID' } },
-        _sum: { grandTotal: true },
+      prisma.order.aggregate({
+        where: {
+          createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+        _sum: { totalAmount: true },
       }),
       prisma.order.count({
         where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
       }),
     ])
 
-    const monthRevenue = Number(revenueMonth._sum.grandTotal ?? 0)
-    const lastMonthRevenueNum = Number(lastMonthRevenue._sum.grandTotal ?? 0)
+    const monthRevenue = Number(revenueMonth._sum.totalAmount ?? 0)
+    const lastMonthRevenueNum = Number(lastMonthRevenue._sum.totalAmount ?? 0)
     const monthSalesTrend = lastMonthRevenueNum > 0
       ? Math.round(((monthRevenue - lastMonthRevenueNum) / lastMonthRevenueNum) * 100)
       : 0
@@ -445,9 +467,9 @@ const dashboardService = {
 
       // Today stats
       revenue: {
-        today: Number(revenueToday._sum.grandTotal ?? 0),
+        today: Number(revenueToday._sum.totalAmount ?? 0),
         month: monthRevenue,
-        total: Number(totalRevenueAgg._sum.grandTotal ?? 0),
+        total: Number(totalRevenueAgg._sum.totalAmount ?? 0),
       },
       sales: {
         today: salesToday,

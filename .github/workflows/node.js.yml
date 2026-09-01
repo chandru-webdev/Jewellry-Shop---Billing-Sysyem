@@ -27,5 +27,12 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+    - name: Generate Prisma Client
+      working-directory: backend
+      run: npx prisma generate
+    - name: Build frontend
+      working-directory: frontend
+      run: npm run build
+    - name: Run backend tests
+      working-directory: backend
+      run: npm test

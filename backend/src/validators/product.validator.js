@@ -6,7 +6,7 @@ const { z } = require('zod')
 const createProductSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   name: z.string().min(1, 'Product name is required'),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   categoryId: z.number().int().positive('Select a category'),
   collectionId: z.number().int().positive().nullable().optional(),
   supplierId: z.number().int().positive().nullable().optional(),
@@ -24,10 +24,10 @@ const createProductSchema = z.object({
   initialStock: z.number().int().nonnegative().optional(),
   lowStockThreshold: z.number().int().nonnegative().optional(),
   updateStock: z.boolean().optional(),
-  shopifyVendor: z.string().optional(),
-  shopifyProductType: z.string().optional(),
-  shopifyTags: z.string().optional(),
-  shopifyImageUrl: z.string().optional(),
+  shopifyVendor: z.string().nullable().optional(),
+  shopifyProductType: z.string().nullable().optional(),
+  shopifyTags: z.string().nullable().optional(),
+  shopifyImageUrl: z.string().nullable().optional(),
   trackInventory: z.boolean().optional(),
   pushToShopify: z.boolean().optional(),
 })

@@ -297,8 +297,14 @@ const dashboardService = {
     const failedPaymentAmount = periodPayments
       .filter((p) => p.status === 'FAILED')
       .reduce((sum, p) => sum.add(p.amount), new Decimal(0))
+    const refundedPaymentAmount = periodPayments
+      .filter((p) => p.status === 'REFUNDED')
+      .reduce((sum, p) => sum.add(p.amount), new Decimal(0))
 
-    const paymentTotal = paidAmount.plus(pendingPaymentAmount).plus(failedPaymentAmount)
+    const paymentTotal = paidAmount
+      .plus(pendingPaymentAmount)
+      .plus(failedPaymentAmount)
+      .plus(refundedPaymentAmount)
     const paymentTotalNum = Number(paymentTotal)
 
     const paymentStatus = [
@@ -319,6 +325,12 @@ const dashboardService = {
         value: Number(failedPaymentAmount),
         pct: paymentTotalNum > 0 ? Math.round((Number(failedPaymentAmount) / paymentTotalNum) * 100) : 0,
         color: '#ef4444',
+      },
+      {
+        name: 'Refunded',
+        value: Number(refundedPaymentAmount),
+        pct: paymentTotalNum > 0 ? Math.round((Number(refundedPaymentAmount) / paymentTotalNum) * 100) : 0,
+        color: '#64748b',
       },
     ]
 

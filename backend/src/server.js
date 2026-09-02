@@ -137,6 +137,93 @@ async function ensureSchema() {
       END $$
     `)
     console.log('Collection table + expanded Product columns ensured.')
+
+    // ---------- Purchase order / return models (migration may not be runtime-applied) ----------
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
+        "id" SERIAL PRIMARY KEY,
+        "poNumber" TEXT NOT NULL,
+        "supplierId" INTEGER NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "totalItems" INTEGER NOT NULL DEFAULT 0,
+        "totalQuantity" DECIMAL(10,2) NOT NULL DEFAULT 0,
+        "totalAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "notes" TEXT,
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseOrderItem" (
+        "id" SERIAL PRIMARY KEY,
+        "purchaseOrderId" INTEGER NOT NULL,
+        "productId" INTEGER,
+        "sku" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "quantity" DECIMAL(10,2) NOT NULL,
+        "unitPrice" DECIMAL(12,2) NOT NULL,
+        "lineTotal" DECIMAL(12,2) NOT NULL
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseReturn" (
+        "id" SERIAL PRIMARY KEY,
+        "returnNumber" TEXT NOT NULL,
+        "purchaseOrderId" INTEGER,
+        "supplierId" INTEGER NOT NULL,
+        "reason" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "totalItems" INTEGER NOT NULL DEFAULT 0,
+        "totalQuantity" DECIMAL(10,2) NOT NULL DEFAULT 0,
+        "totalAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseReturnItem" (
+        "id" SERIAL PRIMARY KEY,
+        "purchaseReturnId" INTEGER NOT NULL,
+        "productId" INTEGER,
+        "sku" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "quantity" DECIMAL(10,2) NOT NULL,
+        "unitPrice" DECIMAL(12,2) NOT NULL,
+        "lineTotal" DECIMAL(12,2) NOT NULL
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PurchaseOrder_poNumber_key" ON "PurchaseOrder"("poNumber")`)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PurchaseReturn_returnNumber_key" ON "PurchaseReturn"("returnNumber")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseOrder_supplierId_idx" ON "PurchaseOrder"("supplierId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseOrder_status_idx" ON "PurchaseOrder"("status")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseOrder_createdAt_idx" ON "PurchaseOrder"("createdAt")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseOrderItem_purchaseOrderId_idx" ON "PurchaseOrderItem"("purchaseOrderId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseReturn_supplierId_idx" ON "PurchaseReturn"("supplierId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseReturn_status_idx" ON "PurchaseReturn"("status")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseReturn_createdAt_idx" ON "PurchaseReturn"("createdAt")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseReturnItem_purchaseReturnId_idx" ON "PurchaseReturnItem"("purchaseReturnId")`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PurchaseOrder" ADD CONSTRAINT "PurchaseOrder_supplierId_fkey"
+          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseOrderItem" ADD CONSTRAINT "PurchaseOrderItem_purchaseOrderId_fkey"
+          FOREIGN KEY ("purchaseOrderId") REFERENCES "PurchaseOrder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseOrderItem" ADD CONSTRAINT "PurchaseOrderItem_productId_fkey"
+          FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseReturn" ADD CONSTRAINT "PurchaseReturn_supplierId_fkey"
+          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseReturn" ADD CONSTRAINT "PurchaseReturn_purchaseOrderId_fkey"
+          FOREIGN KEY ("purchaseOrderId") REFERENCES "PurchaseOrder"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseReturnItem" ADD CONSTRAINT "PurchaseReturnItem_purchaseReturnId_fkey"
+          FOREIGN KEY ("purchaseReturnId") REFERENCES "PurchaseReturn"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseReturnItem" ADD CONSTRAINT "PurchaseReturnItem_productId_fkey"
+          FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    console.log('Purchase order / return models ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

@@ -322,8 +322,12 @@ const reportService = {
     const where = {}
     const fromDate = parseDate(from)
     const toDate = parseDate(to)
-    if (fromDate) where.createdAt = { ...where.createdAt, gte: fromDate }
-    if (toDate) where.createdAt = { ...where.createdAt, lte: toDate }
+    if (fromDate || toDate) {
+      // OrderItem has no createdAt — filter through the parent order.
+      where.order = { createdAt: {} }
+      if (fromDate) where.order.createdAt.gte = fromDate
+      if (toDate) where.order.createdAt.lte = toDate
+    }
 
     const items = await prisma.orderItem.findMany({
       where,

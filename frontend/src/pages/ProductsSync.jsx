@@ -11,6 +11,13 @@ import { productsApi } from '../api/products'
 
 const statusColor = { active: 'green', draft: 'gray', archived: 'gray' }
 
+// Permanent rule: only products with a real ERP-style SKU take part in sync.
+// Demo/test entries (empty SKU like the store's Gift Card, numeric or
+// lowercase test SKUs like 00001 / slr-002) are excluded automatically —
+// no list to maintain.
+const REAL_SKU_PATTERN = /^[A-Z]{2,}-\d{3,4}$/
+const isRealSku = (sku) => REAL_SKU_PATTERN.test(String(sku || '').trim().toUpperCase())
+
 export default function ProductsSync() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
@@ -44,12 +51,19 @@ export default function ProductsSync() {
     return map
   }, [erpQuery.data])
 
+  // Permanent rule: only products with a real ERP-style SKU take part in sync.
+  // Demo/test entries (empty SKU like the store's Gift Card, numeric or
+  // lowercase test SKUs like 00001 / slr-002) are excluded automatically —
+  // no list to maintain.
   const products = useMemo(() => {
-    return (previewQuery.data || []).map((p) => {
+    const all = (previewQuery.data || []).map((p) => {
       const erp = erpBySku.get(String(p.sku || '').trim().toLowerCase())
       return { ...p, erpId: erp?.id || null, erpMapped: Boolean(erp) }
     })
+    return all.filter((p) => isRealSku(p.sku))
   }, [previewQuery.data, erpBySku])
+
+  const hiddenCount = (previewQuery.data || []).length - products.length
 
   const refreshAll = () => {
     previewQuery.refetch()
@@ -166,6 +180,9 @@ export default function ProductsSync() {
             {f === 'all' ? 'All' : f === 'mapped' ? 'Mapped' : 'Unmapped'}
           </button>
         ))}
+        {hiddenCount > 0 && (
+          <span className="text-[11px] text-gray-400 ml-auto">Hiding {hiddenCount} demo/test product(s) without an ERP-style SKU</span>
+        )}
       </div>
 
       <Card noPadding className="overflow-hidden">

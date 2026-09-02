@@ -3,6 +3,9 @@ import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { Input, Select, Label, Textarea } from '../ui/FormControls'
 
+// Real ERP SKUs look like SLR-001 / SLC-002 (letters, hyphen, digits).
+const SKU_PATTERN = /^[A-Z]{2,}-\d{3,4}$/
+
 const emptyForm = {
   sku: '',
   name: '',
@@ -15,8 +18,9 @@ const emptyForm = {
   initialStock: '0',
 }
 
-export default function ProductFormModal({ open, onClose, onSubmit, product, categories, submitting }) {
+export default function ProductFormModal({ open, onClose, onSubmit, product, categories, submitting, existingSkus = [], submitError = '' }) {
   const [form, setForm] = useState(emptyForm)
+  const [skuError, setSkuError] = useState('')
   const isEdit = Boolean(product)
 
   // Fill the form when editing a product
@@ -39,12 +43,28 @@ export default function ProductFormModal({ open, onClose, onSubmit, product, cat
     }
   }, [open, product])
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
+  const set = (field) => (e) => {
+    setForm({ ...form, [field]: e.target.value })
+    if (field === 'sku') setSkuError('')
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    const sku = form.sku.trim().toUpperCase()
+
+    if (!isEdit && !SKU_PATTERN.test(sku)) {
+      setSkuError('SKU must look like SLR-001 — letters, a hyphen, then digits (e.g. SLR-001, SLC-002).')
+      return
+    }
+
+    if (!isEdit && existingSkus.some((s) => s && String(s).trim().toUpperCase() === sku)) {
+      setSkuError(`SKU "${sku}" already exists.`)
+      return
+    }
+
     onSubmit({
-      sku: form.sku.trim(),
+      sku,
       name: form.name.trim(),
       categoryId: Number(form.categoryId),
       description: form.description.trim() || undefined,
@@ -71,10 +91,17 @@ export default function ProductFormModal({ open, onClose, onSubmit, product, cat
       }
     >
       <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
+        {submitError && (
+          <div className="text-xs text-red-700 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-lg px-3 py-2">
+            {submitError}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="sku">SKU</Label>
-            <Input id="sku" value={form.sku} onChange={set('sku')} required disabled={isEdit} />
+            <Input id="sku" value={form.sku} onChange={set('sku')} required disabled={isEdit} placeholder="e.g. SLR-001" />
+            {skuError && <p className="text-xs text-red-600 mt-1">{skuError}</p>}
           </div>
           <div>
             <Label htmlFor="category">Category</Label>

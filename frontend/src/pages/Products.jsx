@@ -16,6 +16,7 @@ export default function Products() {
   const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
+  const [modalKey, setModalKey] = useState(0)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
@@ -58,8 +59,8 @@ export default function Products() {
       setModalOpen(false)
       setEditing(null)
       setError('')
+      showToast(editing ? 'Product updated successfully' : 'Product created successfully')
     },
-    onError: (err) => setError(err.response?.data?.message || 'Failed to save product'),
   })
 
   const toggleMutation = useMutation({
@@ -159,7 +160,7 @@ export default function Products() {
               <Button variant="outline" size="sm" onClick={() => showToast('Products imported from Shopify')}><Upload size={14} /> Import</Button>
               <Button variant="outline" size="sm" onClick={handleExport}><Download size={14} /> Export</Button>
               <Button variant="outline" size="sm" onClick={handleSyncShopify} disabled={syncing}>{syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Sync Shopify</Button>
-              <Button size="sm" onClick={() => { setEditing(null); setModalOpen(true) }}>
+              <Button size="sm" onClick={() => { setEditing(null); setModalKey((k) => k + 1); setModalOpen(true) }}>
                 <Plus size={14} /> Add Product
               </Button>
             </div>
@@ -170,6 +171,12 @@ export default function Products() {
       {error && (
         <div className="mb-4 bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3 border border-red-200">
           {error}
+        </div>
+      )}
+
+      {toast && (
+        <div className="mb-4 bg-emerald-50 text-emerald-700 text-sm rounded-lg px-4 py-3 border border-emerald-200">
+          {toast}
         </div>
       )}
 
@@ -322,7 +329,7 @@ export default function Products() {
                   {canEdit && (
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => { setEditing(p); setModalOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit">
+                        <button onClick={() => { setEditing(p); setModalKey((k) => k + 1); setModalOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => toggleMutation.mutate(p)} className={`p-1.5 rounded-lg cursor-pointer ${p.isActive ? 'text-red-500 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`} title={p.isActive ? 'Deactivate' : 'Activate'}>
@@ -339,10 +346,13 @@ export default function Products() {
       </Card>
 
       <ProductFormModal
+        key={modalKey}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         product={editing}
         categories={categories || []}
+        existingSkus={(products || []).map((p) => p.sku)}
+        submitError={saveMutation.isError ? saveMutation.error?.response?.data?.message || saveMutation.error?.message || 'Failed to save product' : ''}
         onSubmit={(payload) => saveMutation.mutate(payload)}
         submitting={saveMutation.isPending}
       />

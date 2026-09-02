@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Store, Coins, Building2, X, CheckCircle2 } from 'lucide-react'
+import { Store, Coins, Building2, X, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import { settingsApi } from '../api/settings'
 
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
+
 export default function Settings() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const [storeName, setStoreName] = useState('Opal Line Jewellery')
-  const [gstin, setGstin] = useState('27AABCU9603R1ZM')
+  const [gstin, setGstin] = useState('')
   const [pan, setPan] = useState('AABCU9603R')
   const [address, setAddress] = useState('123 Jewellery Lane, Zaveri Bazaar, Mumbai 400003')
   const [shopUrl, setShopUrl] = useState('https://opalline.myshopify.com')
@@ -24,6 +26,7 @@ export default function Settings() {
   const [defaultPurity, setDefaultPurity] = useState('92.5 Sterling Silver')
 
   const [toast, setToast] = useState(null)
+  const [gstinError, setGstinError] = useState('')
 
   useEffect(() => {
     settingsApi.getAll().then((res) => {
@@ -35,13 +38,37 @@ export default function Settings() {
     }).catch(() => {})
   }, [])
 
+  const validateGstin = (value) => {
+    if (!value) {
+      setGstinError('')
+      return true
+    }
+    if (!GSTIN_REGEX.test(value)) {
+      setGstinError('GSTIN must be 15 characters: 2-digit state code + PAN + entity + Z + check digit')
+      return false
+    }
+    setGstinError('')
+    return true
+  }
+
+  const handleGstinChange = (e) => {
+    const value = e.target.value.toUpperCase()
+    setGstin(value)
+    validateGstin(value)
+  }
+
   const storeMutation = useMutation({
-    mutationFn: () => settingsApi.update({ businessName: storeName, gstin, businessAddress: address }),
+    mutationFn: () => {
+      if (gstin && !GSTIN_REGEX.test(gstin)) {
+        throw new Error('GSTIN must be 15 characters: 2-digit state code + PAN + entity + Z + check digit')
+      }
+      return settingsApi.update({ businessName: storeName, gstin, businessAddress: address })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       showToast('Store information saved successfully')
     },
-    onError: () => showToast('Failed to save store information'),
+    onError: (error) => showToast(error.response?.data?.message || error.message || 'Failed to save store information'),
   })
 
   const invoiceMutation = useMutation({
@@ -84,7 +111,23 @@ export default function Settings() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">GSTIN</label>
-              <input type="text" value={gstin} onChange={(e) => setGstin(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input 
+                type="text" 
+                value={gstin} 
+                onChange={handleGstinChange}
+                maxLength={15}
+                placeholder="27AABCU9603R1ZM"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 ${
+                  gstinError ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-600'
+                }`} 
+              />
+              {gstinError && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <AlertCircle size={12} />
+                  {gstinError}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">15-character GST Identification Number (e.g., 27AABCU9603R1ZM)</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PAN</label>
@@ -94,7 +137,7 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
               <textarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 min-h-16" />
             </div>
-            <Button size="sm" onClick={() => storeMutation.mutate()} disabled={storeMutation.isPending}>
+            <Button size="sm" onClick={() => storeMutation.mutate()} disabled={storeMutation.isPending || gstinError}>
               {storeMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>

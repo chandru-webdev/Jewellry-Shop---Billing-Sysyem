@@ -9,12 +9,14 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 
 // Everything the Settings page can store. `type` drives validation.
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
+
 const SETTING_DEFS = {
   businessName: { type: 'string', default: 'OPAL LINE' },
   businessAddress: { type: 'string', default: '' },
   businessPhone: { type: 'string', default: '' },
   businessEmail: { type: 'string', default: '' },
-  gstin: { type: 'string', default: '' },
+  gstin: { type: 'string', default: '', validate: (v) => !v || GSTIN_REGEX.test(v) || 'GSTIN must be 15 characters: 2-digit state code + PAN + entity + Z + check digit' },
   invoicePrefix: { type: 'string', default: 'INV' },
   invoiceFooter: { type: 'string', default: 'Thank you for shopping with us!' },
   // JSON configs used by the Pricing Rules and Tax/HSN settings pages.
@@ -95,6 +97,12 @@ const settingService = {
         }
         if (!Array.isArray(parsed)) {
           throw new ApiError(400, `${key} must be an array`)
+        }
+      }
+      if (def.validate) {
+        const error = def.validate(parsed)
+        if (error !== true && error) {
+          throw new ApiError(400, error)
         }
       }
       return [key, parsed]

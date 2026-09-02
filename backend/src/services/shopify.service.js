@@ -77,8 +77,11 @@ const shopifyService = {
             },
           })
 
-          // Create inventory if it doesn't exist
-          if (!existing.inventoryId) {
+          // Create inventory row if it doesn't exist (one inventory per product).
+          // Inventory holds the single unique constraint on productId, so a
+          // second create() for an existing product violates it.
+          const invRow = await prisma.inventory.findUnique({ where: { productId: existing.id } })
+          if (!invRow) {
             await prisma.inventory.create({
               data: { productId: existing.id, quantity: variant.inventory_quantity || 0 },
             })

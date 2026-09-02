@@ -141,6 +141,9 @@ after(async () => {
     await prisma.inventoryTransaction.deleteMany({ where: { productId } })
     const orders = await prisma.order.findMany({ where: { shopifyOrderId: SHOPIFY_ORDER_ID } })
     for (const o of orders) {
+      // A linked Payment row is created for the order; must be removed
+      // before the order/customer (Payment FK is RESTRICT).
+      await prisma.payment.deleteMany({ where: { orderId: o.id } })
       await prisma.orderItem.deleteMany({ where: { orderId: o.id } })
     }
     await prisma.order.deleteMany({ where: { shopifyOrderId: SHOPIFY_ORDER_ID } })

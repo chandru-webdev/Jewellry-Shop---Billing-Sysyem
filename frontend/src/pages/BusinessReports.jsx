@@ -67,7 +67,7 @@ export default function BusinessReports() {
 
   const kpis = [
     { label: 'Revenue', value: formatINR(t.revenue), trend: trend(t.revenue, prev.revenue), icon: Banknote, up: true, tone: 'text-emerald-600' },
-    { label: 'Purchases (COGS)', value: formatINR(t.purchases), icon: Package, tone: 'text-royal-600', up: false },
+    { label: 'COGS (Cost of Goods)', value: formatINR(t.cogs || t.purchases), icon: Package, tone: 'text-royal-600', up: false },
     { label: 'Operating Expenses', value: formatINR(t.expenses), trend: trend(t.expenses, prev.expenses), icon: Wallet, up: false, tone: 'text-royal-600' },
     { label: 'Gross Profit', value: formatINR(t.grossProfit), icon: TrendingUp, tone: 'text-emerald-600', up: true },
     { label: 'Net Profit', value: formatINR(t.netProfit), icon: TrendingUp, tone: 'text-emerald-600', up: true },
@@ -186,8 +186,8 @@ export default function BusinessReports() {
                 <td className="py-2.5 text-right font-bold text-royal-950 dark:text-white">{formatINR(t.revenue)}</td>
               </tr>
               <tr>
-                <td className="py-2.5 text-gray-600 dark:text-gray-400">Less: Purchases (COGS proxy)</td>
-                <td className="py-2.5 text-right font-semibold text-red-500">− {formatINR(t.purchases)}</td>
+                <td className="py-2.5 text-gray-600 dark:text-gray-400">Less: COGS (Cost of Goods Sold)</td>
+                <td className="py-2.5 text-right font-semibold text-red-500">− {formatINR(t.cogs || t.purchases)}</td>
               </tr>
               <tr className="bg-emerald-50 dark:bg-emerald-500/10">
                 <td className="py-2.5 font-medium text-royal-950 dark:text-white">Gross Profit <span className="text-xs text-gray-400">({gpm.toFixed(1)}% margin)</span></td>

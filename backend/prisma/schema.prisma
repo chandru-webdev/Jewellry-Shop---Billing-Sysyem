@@ -168,6 +168,7 @@ model Product {
   baseAmount             Decimal                @db.Decimal(12, 2) // calculated by pricing engine
   gstAmount              Decimal                @default(0) @db.Decimal(12, 2)
   sellingPrice           Decimal                @db.Decimal(12, 2) // final price, published to Shopify
+  costPrice              Decimal?               @db.Decimal(12, 2) // cost of goods (per unit), used for margin calculation
   compareAtPrice         Decimal?               @db.Decimal(12, 2) // strikethrough / discount reference on Shopify
   isActive               Boolean                @default(true)
   lowStockThreshold      Int                    @default(5)

@@ -164,17 +164,18 @@ const invoiceService = {
         await inventoryService.applyInTx(tx, line.productId, -line.quantity, 'SALE', userId, null, invoiceNumber)
       }
 
-      if (isPaid) {
-        await tx.payment.create({
-          data: {
-            invoiceId: inv.id,
-            customerId: customer.id,
-            amount: grandTotal.toDecimalPlaces(2),
-            method: data.paymentMethod,
-            status: 'PAID',
-          },
-        })
-      }
+      // Always record a linked payment so the dashboard Payment Status
+      // card stays consistent with Period Sales. PAID when a method was
+      // provided, otherwise a PENDING payment marked for later collection.
+      await tx.payment.create({
+        data: {
+          invoiceId: inv.id,
+          customerId: customer.id,
+          amount: grandTotal.toDecimalPlaces(2),
+          method: isPaid ? data.paymentMethod : 'OTHER',
+          status: isPaid ? 'PAID' : 'PENDING',
+        },
+      })
 
       return inv
       },

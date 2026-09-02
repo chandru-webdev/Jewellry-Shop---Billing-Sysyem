@@ -124,7 +124,7 @@ const reportService = {
 
   // ---------- BUSINESS REPORT ----------
   // Profit-and-loss style aggregation over a date range: revenue, GST,
-  // purchases (COGS proxy), operating expenses, cash flow, top customers.
+  // COGS (from product costPrice × sold quantity), operating expenses, cash flow, top customers.
   async business({ from, to } = {}) {
     const fromDate = parseDate(from)
     const toDate = parseDate(to)
@@ -132,7 +132,7 @@ const reportService = {
     if (fromDate) whereDate.gte = fromDate
     if (toDate) whereDate.lte = toDate
 
-    const [invoices, payments, expenses, purchaseOrders, prevRevenueAgg, prevExpenseAgg] = await Promise.all([
+    const [invoices, payments, expenses, purchaseOrders, orderItems, prevRevenueAgg, prevExpenseAgg] = await Promise.all([
       prisma.invoice.findMany({
         where: { status: { not: 'VOID' }, ...(Object.keys(whereDate).length ? { date: whereDate } : {}) },
         select: { date: true, grandTotal: true, gstTotal: true, invoiceNumber: true, customer: { select: { id: true, name: true } } },
@@ -148,6 +148,15 @@ const reportService = {
       prisma.purchaseOrder.findMany({
         where: { status: { in: ['RECEIVED', 'PROCESSING'] }, ...(Object.keys(whereDate).length ? { createdAt: whereDate } : {}) },
         select: { createdAt: true, totalAmount: true },
+      }),
+      prisma.orderItem.findMany({
+        where: {
+          order: {
+            createdAt: Object.keys(whereDate).length ? whereDate : {},
+            status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          },
+        },
+        select: { quantity: true, product: { select: { costPrice: true } } },
       }),
       null,
       null,
@@ -228,8 +237,15 @@ const reportService = {
       totalPurchases = totalPurchases.plus(po.totalAmount)
     }
 
+    // Real COGS: sum of (sold quantity × product costPrice) for orders in range
+    let totalCogs = new Decimal(0)
+    for (const item of orderItems) {
+      const cp = item.product?.costPrice
+      if (cp) totalCogs = totalCogs.plus(new Decimal(cp).mul(item.quantity))
+    }
+
     const taxableRevenue = totalRevenue.minus(totalGst)
-    const grossProfit = taxableRevenue.minus(totalPurchases)
+    const grossProfit = taxableRevenue.minus(totalCogs)
     const netProfit = grossProfit.minus(totalExpenses)
 
     return {
@@ -239,6 +255,7 @@ const reportService = {
         gst: Number(totalGst),
         taxableRevenue: Number(taxableRevenue),
         purchases: Number(totalPurchases),
+        cogs: Number(totalCogs),
         expenses: Number(totalExpenses),
         grossProfit: Number(grossProfit),
         netProfit: Number(netProfit),

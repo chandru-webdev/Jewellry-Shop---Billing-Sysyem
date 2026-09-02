@@ -207,6 +207,18 @@ const webhookService = {
           await reduceStockInTx(tx, productBySku.get(l.sku).id, Number(l.quantity || 1), orderNumber)
         }
 
+        // Record a linked payment so the dashboard Payment Status card
+        // reflects Shopify sales too. Shopify orders are treated as paid.
+        await tx.payment.create({
+          data: {
+            orderId: ord.id,
+            customerId,
+            amount: new Decimal(payload.total_price || 0).toDecimalPlaces(2),
+            method: paymentMethod || 'ONLINE',
+            status: 'PAID',
+          },
+        })
+
         return ord
       },
       { timeout: 60000 }

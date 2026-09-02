@@ -411,9 +411,20 @@ const dashboardService = {
       prisma.product.aggregate({ where: { isActive: true }, _sum: { sellingPrice: true } }),
     ])
 
-    // Today's expenses (payments out - for now use total payments in period)
-    // This is a placeholder until an expenses model is added
-    const todayExpenses = new Decimal(0)
+    // ---------- COGS: real cost of goods sold for the month ----------
+    const monthOrderItems = await prisma.orderItem.findMany({
+      where: {
+        order: {
+          createdAt: { gte: month },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+      },
+      select: { quantity: true, product: { select: { costPrice: true } } },
+    })
+    const cogs = monthOrderItems.reduce((sum, item) => {
+      const cp = item.product?.costPrice
+      return cp ? sum + Number(item.quantity) * Number(cp) : sum
+    }, 0)
 
     // Calculate period-specific totals
     const periodRevenue = Number(revenuePeriod._sum.totalAmount ?? 0)
@@ -535,7 +546,7 @@ const dashboardService = {
       // Outstanding / pending
       outstanding: Number(outstandingAgg._sum.amount ?? 0),
       outstandingInvoices: outstandingAgg._count,
-      todayExpenses: Number(todayExpenses),
+      todayExpenses: Math.round(cogs * 100) / 100,
 
       // Bottom analytics
       monthSales: monthRevenue,
@@ -546,7 +557,7 @@ const dashboardService = {
       avgOrderTrend,
       returnRate: 0,
       returnRateTrend: 0,
-      profitMargin: monthRevenue > 0 ? Math.round(((monthRevenue - Number(todayExpenses)) / monthRevenue) * 100 * 100) / 100 : 0,
+      profitMargin: monthRevenue > 0 ? Math.round(((monthRevenue - cogs) / monthRevenue) * 100 * 100) / 100 : 0,
       profitMarginTrend: 0,
       inventoryValue,
 

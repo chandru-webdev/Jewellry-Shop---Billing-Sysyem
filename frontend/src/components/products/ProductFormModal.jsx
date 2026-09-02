@@ -48,6 +48,7 @@ const emptyForm = {
   makingCharge: '20',
   gstPercent: '3',
   compareAtPrice: '',
+  costPrice: '',
   initialStock: '0',
   shopifyVendor: 'Opal Line',
   shopifyProductType: '',
@@ -78,6 +79,7 @@ function buildForm(product, silverRate) {
     makingCharge: String(product.makingCharge ?? 20),
     gstPercent: String(product.gstPercent ?? 3),
     compareAtPrice: product.compareAtPrice != null ? String(product.compareAtPrice) : '',
+    costPrice: product.costPrice != null ? String(product.costPrice) : '',
     initialStock: String(product.inventory?.quantity ?? 0),
     shopifyVendor: product.shopifyVendor || 'Opal Line',
     shopifyProductType: product.shopifyProductType || '',
@@ -199,6 +201,7 @@ export default function ProductFormModal({
       makingCharge: numOr(form.makingCharge, 20),
       gstPercent: numOr(form.gstPercent, 3),
       compareAtPrice: form.compareAtPrice !== '' ? numOr(form.compareAtPrice, 0) : null,
+      costPrice: form.costPrice !== '' ? numOr(form.costPrice, 0) : null,
       ...(isEdit ? {} : { initialStock: numOr(form.initialStock, 0) }),
       shopifyVendor: form.shopifyVendor.trim() || 'Opal Line',
       shopifyProductType: form.shopifyProductType.trim() || undefined,
@@ -349,6 +352,10 @@ export default function ProductFormModal({
             <div>
               <Label htmlFor="compareAtPrice">Compare-at price (₹)</Label>
               <Input id="compareAtPrice" type="number" step="0.01" min="0" value={form.compareAtPrice} onChange={set('compareAtPrice')} placeholder="Optional — strikethrough on Shopify" />
+            </div>
+            <div>
+              <Label htmlFor="costPrice">Cost price (₹)</Label>
+              <Input id="costPrice" type="number" step="0.01" min="0" value={form.costPrice} onChange={set('costPrice')} placeholder="Cost of goods per unit — used for margin reports" />
             </div>
             {!isEdit && (
               <div>

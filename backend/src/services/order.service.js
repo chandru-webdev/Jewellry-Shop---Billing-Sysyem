@@ -168,38 +168,39 @@ const orderService = {
       }
 
       let invoiceId = null
-      if (isPaid) {
-        const inv = await tx.invoice.create({
-          data: {
-            invoiceNumber,
-            customerId,
-            orderId: ord.id,
-            date: new Date(),
-            paymentMethod: data.paymentMethod,
-            salespersonId: userId,
-            status: 'PAID',
-            subtotal: subtotal.toDecimalPlaces(2),
-            discount: new Decimal(0).toDecimalPlaces(2),
-            gstTotal: gstTotal.toDecimalPlaces(2),
-            grandTotal: totalAmount.toDecimalPlaces(2),
-            totalWeight: totalWeight.toDecimalPlaces(3),
-            totalMakingCharge: totalMaking.toDecimalPlaces(2),
-            items: { create: invoiceItemsData },
-          },
-        })
-        invoiceId = inv.id
+      const inv = await tx.invoice.create({
+        data: {
+          invoiceNumber,
+          customerId,
+          orderId: ord.id,
+          date: new Date(),
+          paymentMethod: data.paymentMethod,
+          salespersonId: userId,
+          status: isPaid ? 'PAID' : 'DRAFT',
+          subtotal: subtotal.toDecimalPlaces(2),
+          discount: new Decimal(0).toDecimalPlaces(2),
+          gstTotal: gstTotal.toDecimalPlaces(2),
+          grandTotal: totalAmount.toDecimalPlaces(2),
+          totalWeight: totalWeight.toDecimalPlaces(3),
+          totalMakingCharge: totalMaking.toDecimalPlaces(2),
+          items: { create: invoiceItemsData },
+        },
+      })
+      invoiceId = inv.id
 
-        await tx.payment.create({
-          data: {
-            invoiceId: inv.id,
-            orderId: ord.id,
-            customerId,
-            amount: totalAmount.toDecimalPlaces(2),
-            method: data.paymentMethod,
-            status: 'PAID',
-          },
-        })
-      }
+      // Always record a linked payment so the dashboard Payment Status
+      // card stays consistent with Period Sales. PAID when a method was
+      // provided, otherwise a PENDING payment marked for later collection.
+      await tx.payment.create({
+        data: {
+          invoiceId: inv.id,
+          orderId: ord.id,
+          customerId,
+          amount: totalAmount.toDecimalPlaces(2),
+          method: isPaid ? data.paymentMethod : 'OTHER',
+          status: isPaid ? 'PAID' : 'PENDING',
+        },
+      })
 
       return { ord, invoiceId }
       },

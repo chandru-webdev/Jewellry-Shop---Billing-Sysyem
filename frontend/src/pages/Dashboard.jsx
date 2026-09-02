@@ -751,7 +751,7 @@ export default function Dashboard() {
           { label: 'Total Orders (Period)', value: d.periodOrdersCount, trend: d.ordersTrend >= 0 ? 'up' : 'down', trendVal: `${d.ordersTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.ordersTrend)}%` },
           { label: 'Average Order Value', value: formatINR(d.avgOrderValue), trend: d.avgOrderTrend >= 0 ? 'up' : 'down', trendVal: `${d.avgOrderTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.avgOrderTrend)}%` },
           { label: 'Return Rate', value: `${d.returnRate}%`, trend: d.returnRateTrend <= 0 ? 'down' : 'up', trendVal: `▼ ${Math.abs(d.returnRateTrend)}%` },
-          { label: 'Gross Profit Margin', value: `Pending`, trend: null, trendVal: `awaiting cost data` },
+          { label: 'Gross Profit Margin', value: d.profitMargin != null ? `${d.profitMargin}%` : 'N/A', trend: null, trendVal: d.profitMargin > 30 ? '▲ healthy' : d.profitMargin > 0 ? '▼ low' : '' },
           { label: 'Inventory Value', value: formatINR(d.inventoryValue), trend: null },
         ].map((c) => (
           <div key={c.label} className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm px-4 py-3">

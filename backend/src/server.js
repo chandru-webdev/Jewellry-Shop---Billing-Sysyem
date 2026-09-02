@@ -138,6 +138,15 @@ async function ensureSchema() {
     `)
     console.log('Collection table + expanded Product columns ensured.')
 
+    // costPrice: COGS per unit for margin calculation.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Product" ADD COLUMN "costPrice" DECIMAL(12,2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Product.costPrice column ensured.')
+
     // ---------- Purchase order / return models (migration may not be runtime-applied) ----------
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "PurchaseOrder" (
@@ -257,7 +266,66 @@ async function ensureSchema() {
   }
 }
 
+// Backfill Payment records for paid invoices/orders that were created before
+// payments were always recorded. This keeps the dashboard Payment Status
+// card consistent with Period Sales for historical data. Idempotent — only
+// inserts for records that have no payment yet.
+async function backfillMissingPayments() {
+  try {
+    // Only records with a customer (Payment.customerId is required) and no
+    // payment yet — safe to insert directly since the filter guarantees
+    // `payments: { none: {} }`, so there is no existing payment to collide.
+    const paidInvoices = await prisma.invoice.findMany({
+      where: { customerId: { not: null }, status: { in: ['PAID', 'FINAL'] }, payments: { none: {} } },
+      select: { id: true, customerId: true, grandTotal: true, paymentMethod: true },
+    })
+    for (const inv of paidInvoices) {
+      await prisma.payment.create({
+        data: {
+          invoiceId: inv.id,
+          customerId: inv.customerId,
+          amount: inv.grandTotal,
+          method: inv.paymentMethod || 'OTHER',
+          status: 'PAID',
+        },
+      })
+    }
+
+    const paidOrders = await prisma.order.findMany({
+      where: {
+        customerId: { not: null },
+        status: { in: ['PAID', 'FULFILLED'] },
+        payments: { none: {} },
+        invoice: { is: null },
+      },
+      select: { id: true, customerId: true, totalAmount: true },
+    })
+    for (const ord of paidOrders) {
+      await prisma.payment.create({
+        data: {
+          orderId: ord.id,
+          customerId: ord.customerId,
+          amount: ord.totalAmount,
+          method: 'OTHER',
+          status: 'PAID',
+        },
+      })
+    }
+
+    if (paidInvoices.length + paidOrders.length > 0) {
+      console.log(`Backfilled ${paidInvoices.length} invoice + ${paidOrders.length} order payments.`)
+    }
+  } catch (e) {
+    if (e.message?.includes('payments')) {
+      console.error('Payment backfill skipped (payments relation unavailable):', e.message)
+    } else {
+      console.error('Payment backfill failed:', e.message)
+    }
+  }
+}
+
 ensureSchema()
+  .then(() => backfillMissingPayments())
   .then(() => registerWebhooks().catch((err) => console.error('[WEBHOOKS] Registration error:', err.message)))
   .then(() => {
     app.listen(env.port, () => {

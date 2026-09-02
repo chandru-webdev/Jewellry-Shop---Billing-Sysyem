@@ -104,6 +104,7 @@ const productService = {
         gstAmount: price.gstAmount,
         sellingPrice: hasOverride ? makeDecimal(data.sellingPrice, price.sellingPrice) : price.sellingPrice,
         compareAtPrice: data.compareAtPrice ? makeDecimal(data.compareAtPrice, null) : null,
+        costPrice: data.costPrice ? makeDecimal(data.costPrice, null) : null,
         trackInventory: data.trackInventory !== false,
         pushToShopify: data.pushToShopify !== false,
         shopifyVendor: data.shopifyVendor || null,

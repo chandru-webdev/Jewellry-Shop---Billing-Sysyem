@@ -224,6 +224,34 @@ async function ensureSchema() {
       END $$
     `)
     console.log('Purchase order / return models ensured.')
+
+    // ---------- Expense model (migration may not be runtime-applied) ----------
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Expense" (
+        "id" SERIAL PRIMARY KEY,
+        "category" TEXT NOT NULL,
+        "description" TEXT NOT NULL,
+        "amount" DECIMAL(12,2) NOT NULL,
+        "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "paymentMethod" TEXT NOT NULL DEFAULT 'Cash',
+        "reference" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'PAID',
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_category_idx" ON "Expense"("category")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_status_idx" ON "Expense"("status")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_date_idx" ON "Expense"("date")`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_createdById_fkey"
+          FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    console.log('Expense model ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

@@ -316,16 +316,13 @@ const shopifyService = {
     }
   },
 
-  // Fetch products from Shopify store (for preview/listing in UI)
+  // Fetch products from Shopify store (for preview/listing in UI).
+  // Shopify's /products.json only supports cursor pagination now — the legacy
+  // "page" param is rejected with a 400 — so we fetch the first page of up to
+  // 250 products and let the calling page filter client-side.
   async fetchProducts(params = {}) {
-    const { limit = 50, page = 1, search } = params
-    const queryParams = new URLSearchParams({
-      limit: String(limit),
-      page: String(page),
-    })
-    if (search) queryParams.set('search', search)
-
-    const res = await request(`/products.json?${queryParams.toString()}`)
+    const { limit = 250 } = params
+    const res = await request(`/products.json?limit=${encodeURIComponent(limit)}`)
     const products = res.products || []
 
     return products.map((p) => {

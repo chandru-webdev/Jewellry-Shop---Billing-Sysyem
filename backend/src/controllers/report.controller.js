@@ -9,6 +9,12 @@ const reportController = {
     success(res, 200, report, 'Sales report fetched')
   }),
 
+  // GET /api/reports/business?from=&to= — profit & loss style aggregation
+  business: asyncHandler(async (req, res) => {
+    const report = await reportService.business(req.query)
+    success(res, 200, report, 'Business report fetched')
+  }),
+
   // GET /api/reports/inventory
   inventory: asyncHandler(async (req, res) => {
     const report = await reportService.inventory()

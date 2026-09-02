@@ -8,6 +8,7 @@ const router = express.Router()
 router.use(authenticate)
 
 router.get('/sales', reportController.sales)
+router.get('/business', reportController.business)
 router.get('/inventory', reportController.inventory)
 router.get('/products', reportController.products)
 

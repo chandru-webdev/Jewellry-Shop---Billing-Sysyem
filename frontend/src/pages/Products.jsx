@@ -8,6 +8,9 @@ import Badge from '../components/ui/Badge'
 import ProductFormModal from '../components/products/ProductFormModal'
 import { productsApi } from '../api/products'
 import { categoriesApi } from '../api/categories'
+import { collectionsApi } from '../api/collections'
+import { suppliersApi } from '../api/suppliers'
+import { metalRatesApi } from '../api/metalRates'
 import { formatINR, formatWeight } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 
@@ -39,6 +42,22 @@ export default function Products() {
     queryFn: () => categoriesApi.list().then((r) => r.data.data),
   })
 
+  const { data: collections } = useQuery({
+    queryKey: ['collections'],
+    queryFn: () => collectionsApi.list().then((r) => r.data.data),
+  })
+
+  const { data: suppliers } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => suppliersApi.list().then((r) => r.data.data),
+  })
+
+  const { data: silverRate } = useQuery({
+    queryKey: ['silver-rate'],
+    queryFn: () => metalRatesApi.getCurrent().then((r) => r.data.data),
+    retry: false,
+  })
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => productsApi.update(id, data),
     onSuccess: () => {
@@ -54,12 +73,17 @@ export default function Products() {
       editing
         ? productsApi.update(editing.id, payload)
         : productsApi.create(payload),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       setModalOpen(false)
       setEditing(null)
       setError('')
-      showToast(editing ? 'Product updated successfully' : 'Product created successfully')
+      const saved = res.data?.data
+      if (saved?.shopifyError) {
+        showToast(`Saved locally — Shopify push failed: ${saved.shopifyError}`, 'warn')
+      } else {
+        showToast(editing ? 'Product updated successfully' : 'Product created successfully')
+      }
     },
   })
 
@@ -96,8 +120,8 @@ export default function Products() {
 
   const isEditing = (productId, field) => inlineEdit.productId === productId && inlineEdit.field === field
 
-  const showToast = (message) => {
-    setToast(message)
+  const showToast = (message, tone = 'success') => {
+    setToast({ message, tone })
     if (toastTimer.current) clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(''), 3000)
   }
@@ -175,8 +199,8 @@ export default function Products() {
       )}
 
       {toast && (
-        <div className="mb-4 bg-emerald-50 text-emerald-700 text-sm rounded-lg px-4 py-3 border border-emerald-200">
-          {toast}
+        <div className={`mb-4 text-sm rounded-lg px-4 py-3 border ${toast.tone === 'warn' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+          {toast.message}
         </div>
       )}
 
@@ -321,7 +345,13 @@ export default function Products() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone="blue">Synced</Badge>
+                    {p.pushToShopify === false ? (
+                      <span className="text-[11px] text-gray-400">—</span>
+                    ) : p.shopifyProductId ? (
+                      <Badge tone="blue">Synced</Badge>
+                    ) : (
+                      <Badge tone="orange">Pending</Badge>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
@@ -351,6 +381,9 @@ export default function Products() {
         onClose={() => setModalOpen(false)}
         product={editing}
         categories={categories || []}
+        collections={collections || []}
+        suppliers={suppliers || []}
+        silverRate={silverRate?.rate != null ? Number(silverRate.rate) : null}
         existingSkus={(products || []).map((p) => p.sku)}
         submitError={saveMutation.isError ? saveMutation.error?.response?.data?.message || saveMutation.error?.message || 'Failed to save product' : ''}
         onSubmit={(payload) => saveMutation.mutate(payload)}

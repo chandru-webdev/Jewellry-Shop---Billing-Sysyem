@@ -427,68 +427,87 @@ const shopifyService = {
 
   // Create a brand-new product on Shopify. Returns the Shopify ids.
   async createProductOnShopify(product) {
+    const variant = {
+      sku: product.sku,
+      price: Number(product.sellingPrice).toFixed(2),
+      weight: Number(product.netWeight ?? product.weight ?? 0),
+      weight_unit: 'g',
+      inventory_management: product.trackInventory === false ? null : 'shopify',
+    }
+
+    if (product.compareAtPrice && Number(product.compareAtPrice) > 0) {
+      variant.compare_at_price = Number(product.compareAtPrice).toFixed(2)
+    }
+
+    const shopifyProduct = {
+      title: product.name,
+      vendor: product.shopifyVendor || 'OPAL LINE',
+      product_type: product.shopifyProductType || product.category?.name || 'Jewellery',
+      body_html: product.description || '',
+      status: product.isActive ? 'active' : 'draft',
+      variants: [variant],
+    }
+
+    if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
+    if (product.shopifyImageUrl) shopifyProduct.images = [{ src: product.shopifyImageUrl }]
+
     const res = await request('/products.json', {
       method: 'POST',
-      body: {
-        product: {
-          title: product.name,
-          vendor: 'OPAL LINE',
-          product_type: product.category?.name || 'Jewellery',
-          body_html: product.description || '',
-          status: product.isActive ? 'active' : 'draft',
-          variants: [
-            {
-              sku: product.sku,
-              price: Number(product.sellingPrice).toFixed(2),
-              weight: Number(product.weight),
-              weight_unit: 'g',
-              inventory_management: 'shopify',
-            },
-          ],
-        },
-      },
+      body: { product: shopifyProduct },
     })
 
     const p = res.product
-    const variant = p.variants[0]
+    const createdVariant = p.variants[0]
 
-    // Give the new variant its starting stock
-    await this.setInventoryLevel(variant.inventory_item_id, product.inventory?.quantity ?? 0)
+    // Give the new variant its starting stock (only when Shopify manages it)
+    const invQty = product.inventory?.quantity ?? 0
+    if (product.trackInventory !== false && createdVariant.inventory_item_id) {
+      await this.setInventoryLevel(createdVariant.inventory_item_id, invQty)
+    }
 
     return {
       shopifyProductId: p.id,
-      shopifyVariantId: variant.id,
-      shopifyInventoryItemId: variant.inventory_item_id,
+      shopifyVariantId: createdVariant.id,
+      shopifyInventoryItemId: createdVariant.inventory_item_id,
     }
   },
 
   // Update an existing Shopify product's details + price (and stock)
   async updateProductOnShopify(product) {
+    const shopifyProduct = {
+      id: Number(product.shopifyProductId),
+      title: product.name,
+      vendor: product.shopifyVendor || 'OPAL LINE',
+      product_type: product.shopifyProductType || product.category?.name || 'Jewellery',
+      body_html: product.description || '',
+      status: product.isActive ? 'active' : 'draft',
+    }
+
+    if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
+
     await request(`/products/${product.shopifyProductId}.json`, {
       method: 'PUT',
-      body: {
-        product: {
-          id: Number(product.shopifyProductId),
-          title: product.name,
-          product_type: product.category?.name || 'Jewellery',
-          body_html: product.description || '',
-          status: product.isActive ? 'active' : 'draft',
-        },
-      },
+      body: { product: shopifyProduct },
     })
+
+    const variantUpdate = {
+      id: Number(product.shopifyVariantId),
+      price: Number(product.sellingPrice).toFixed(2),
+      sku: product.sku,
+    }
+
+    if (product.compareAtPrice && Number(product.compareAtPrice) > 0) {
+      variantUpdate.compare_at_price = Number(product.compareAtPrice).toFixed(2)
+    } else if (product.compareAtPrice === null || product.compareAtPrice === undefined) {
+      variantUpdate.compare_at_price = null
+    }
 
     await request(`/variants/${product.shopifyVariantId}.json`, {
       method: 'PUT',
-      body: {
-        variant: {
-          id: Number(product.shopifyVariantId),
-          price: Number(product.sellingPrice).toFixed(2),
-          sku: product.sku,
-        },
-      },
+      body: { variant: variantUpdate },
     })
 
-    if (product.shopifyInventoryItemId) {
+    if (product.shopifyInventoryItemId && product.trackInventory !== false) {
       await this.setInventoryLevel(Number(product.shopifyInventoryItemId), product.inventory?.quantity ?? 0)
     }
   },

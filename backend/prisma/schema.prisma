@@ -133,6 +133,16 @@ model Category {
   updatedAt   DateTime  @updatedAt
 }
 
+// Product collections (e.g. "Eid Collection", "Bridal Collection").
+model Collection {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model Product {
   id                     Int                    @id @default(autoincrement())
   sku                    String                 @unique
@@ -140,19 +150,37 @@ model Product {
   description            String?
   categoryId             Int
   category               Category               @relation(fields: [categoryId], references: [id])
+  // Expanded catalog fields
+  barcode                String?                @unique // 12-digit EAN, optional
+  collectionId           Int?
+  collection             Collection?            @relation(fields: [collectionId], references: [id])
+  supplierId             Int?
+  supplier               Supplier?              @relation(fields: [supplierId], references: [id])
+  purity                 Decimal                @default(92.5) @db.Decimal(5, 2)
+  grossWeight            Decimal                @default(0) @db.Decimal(10, 3)
+  stoneWeight            Decimal                @default(0) @db.Decimal(10, 3)
+  netWeight              Decimal                @default(0) @db.Decimal(10, 3)
   metal                  MetalType              @default(silver)
-  weight                 Decimal                @db.Decimal(10, 3) // grams
+  weight                 Decimal                @db.Decimal(10, 3) // kept in sync with netWeight for legacy consumers
+  silverRateUsed         Decimal?               @db.Decimal(10, 2) // rate used at time of pricing (overridable)
   makingCharge           Decimal                @db.Decimal(10, 2) // per gram
   gstPercent             Decimal                @default(3) @db.Decimal(5, 2)
   baseAmount             Decimal                @db.Decimal(12, 2) // calculated by pricing engine
   gstAmount              Decimal                @default(0) @db.Decimal(12, 2)
   sellingPrice           Decimal                @db.Decimal(12, 2) // final price, published to Shopify
+  compareAtPrice         Decimal?               @db.Decimal(12, 2) // strikethrough / discount reference on Shopify
   isActive               Boolean                @default(true)
   lowStockThreshold      Int                    @default(5)
   // Shopify linkage (Phases 15-16)
   shopifyProductId       BigInt?
   shopifyVariantId       BigInt?
   shopifyInventoryItemId BigInt?
+  shopifyVendor          String?
+  shopifyProductType     String?
+  shopifyTags            String?
+  shopifyImageUrl        String?
+  trackInventory         Boolean                @default(true) // Shopify manages stock
+  pushToShopify          Boolean                @default(true) // false = billing-software-only product
   inventory              Inventory?
   transactions           InventoryTransaction[]
   orderItems             OrderItem[]
@@ -164,6 +192,8 @@ model Product {
   updatedAt              DateTime               @updatedAt
 
   @@index([categoryId])
+  @@index([collectionId])
+  @@index([supplierId])
   @@index([isActive])
   @@index([sku])
 }
@@ -246,6 +276,7 @@ model Supplier {
   updatedAt       DateTime @updatedAt
   purchaseOrders  PurchaseOrder[]
   purchaseReturns PurchaseReturn[]
+  products        Product[]
 }
 
 // ---------- ORDERS (POS + Shopify) ----------

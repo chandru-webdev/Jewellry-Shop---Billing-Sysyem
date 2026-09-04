@@ -234,6 +234,22 @@ async function ensureSchema() {
     `)
     console.log('Purchase order / return models ensured.')
 
+    // Weight per unit (g) and rate per unit (₹/g) on PurchaseOrderItem — additive,
+    // nullable so existing POs are not broken.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PurchaseOrderItem" ADD COLUMN "weight" DECIMAL(10, 2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PurchaseOrderItem" ADD COLUMN "rate" DECIMAL(12, 2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('PurchaseOrderItem.weight and rate columns ensured.')
+
     // ---------- Expense model (migration may not be runtime-applied) ----------
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Expense" (

@@ -26,6 +26,7 @@ export default function Products() {
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStock, setFilterStock] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterMissingData, setFilterMissingData] = useState(false)
   const [inlineEdit, setInlineEdit] = useState({ productId: null, field: null })
   const [inlineValue, setInlineValue] = useState('')
   const [toast, setToast] = useState('')
@@ -170,6 +171,7 @@ export default function Products() {
     if (filterStock === 'in' && (p.inventory?.quantity || 0) <= 0) return false
     if (filterStatus === 'active' && !p.isActive) return false
     if (filterStatus === 'inactive' && p.isActive) return false
+    if (filterMissingData && !(p.weight === 0 || p.costPrice === '' || p.costPrice === 0)) return false
     return true
   })
 
@@ -226,15 +228,23 @@ export default function Products() {
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <select
+<select
           value={filterStock}
           onChange={(e) => setFilterStock(e.target.value)}
-          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
+          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-royal-500"
         >
           <option value="">All Stock</option>
           <option value="in">In Stock</option>
           <option value="low">Low Stock</option>
           <option value="out">Out of Stock</option>
+        </select>
+        <select
+          value={filterMissingData}
+          onChange={(e) => setFilterMissingData(e.target.value === 'true')}
+          className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-500 focus:outline-none focus:ring-2 focus:ring-royal-500"
+        >
+          <option value="false">Show All</option>
+          <option value="true">Missing Data</option>
         </select>
         <select
           value={filterStatus}

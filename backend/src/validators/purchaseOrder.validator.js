@@ -6,6 +6,9 @@ const purchaseOrderItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   quantity: z.coerce.number().positive('Quantity must be positive'),
   unitPrice: z.coerce.number().positive('Unit price must be positive'),
+  weight: z.coerce.number().optional(),
+  rate: z.coerce.number().optional(),
+  lineTotal: z.coerce.number().optional(),
 })
 
 const createPurchaseOrderSchema = z.object({
@@ -15,7 +18,7 @@ const createPurchaseOrderSchema = z.object({
 })
 
 const updatePurchaseOrderStatusSchema = z.object({
-  status: z.enum(['PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']),
+  status: z.enum(['DRAFT', 'PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']),
 })
 
 module.exports = { createPurchaseOrderSchema, updatePurchaseOrderStatusSchema }

@@ -73,12 +73,14 @@ const purchaseOrderService = {
       totalQuantity = totalQuantity.plus(qty)
       totalAmount = totalAmount.plus(lineTotal)
       return {
-        productId: item.productId || null,
+        product: item.productId ? { connect: { id: Number(item.productId) } } : undefined,
         sku: item.sku,
         name: item.name,
         quantity: qty,
         unitPrice: price,
         lineTotal,
+        weight: item.weight !== undefined ? new Decimal(item.weight) : new Decimal(0),
+        rate: item.rate !== undefined ? new Decimal(item.rate) : new Decimal(0),
       }
     })
 
@@ -104,7 +106,7 @@ const purchaseOrderService = {
 
   async updateStatus(id, status) {
     const order = await this.getById(id)
-    const allowed = ['PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']
+    const allowed = ['DRAFT', 'PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']
     if (!allowed.includes(status)) {
       throw new ApiError(400, `Invalid status: ${status}`)
     }

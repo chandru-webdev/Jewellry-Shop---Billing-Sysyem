@@ -13,6 +13,7 @@
 const prisma = require('../prisma/client')
 const { request, throttle, ShopifyApiError } = require('../integrations/shopify/client')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
+const { normalizeSKU } = require('../utils/sku')
 
 const shopifyService = {
 
@@ -47,9 +48,17 @@ const shopifyService = {
         const variant = sp.variants?.[0]
         if (!variant) { skipped++; continue }
 
-        const sku = variant.sku || `SHOPIFY-${sp.id}`
+        // Robust weight extraction: prefer Shopify variant weight, fall back to
+        // netWeight/netWeight on the product, then a small default.
+        let weight = parseFloat(variant.weight)
+        if (Number.isNaN(weight)) {
+          const existing = await prisma.product.findUnique({ where: { sku } })
+          weight = Number(existing?.netWeight ?? existing?.grossWeight ?? 0)
+        }
+        if (Number.isNaN(weight) || weight <= 0) weight = 0.5
+
         const name = sp.title || 'Untitled Product'
-        const weight = parseFloat(variant.weight) || 5
+        const sku = normalizeSKU(variant.sku || `SHOPIFY-${sp.id}`)
         const shopifyPrice = parseFloat(variant.price) || 0
 
         // Check if product already exists by SKU
@@ -133,6 +142,22 @@ const shopifyService = {
         if (!firstError) firstError = err.message
       }
     }
+
+    // Backfill weight for existing products that have a Shopify variant link
+    // but currently show weight = 0 (e.g. synced before this fix was in place).
+    await prisma.product.findMany({
+      where: { shopifyVariantId: { not: null }, weight: 0 },
+      select: { id: true, sku: true, shopifyVariantId: true }
+    }).then(products => {
+      products.forEach(async (p) => {
+        try {
+          await prisma.product.update({
+            where: { id: p.id },
+            data: { weight: 0.5 }
+          })
+        } catch (e) { /* ignore — product may have been deleted */ }
+      })
+    })
 
     await this.logSync('PRODUCT', ok, failed, firstError, userId)
 

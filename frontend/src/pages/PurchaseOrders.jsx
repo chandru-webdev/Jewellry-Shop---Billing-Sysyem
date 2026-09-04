@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, Package, X, Save } from 'lucide-react'
+import { Search, Eye, Package, X, Save, Pencil, Truck } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -9,8 +9,11 @@ import Modal from '../components/ui/Modal'
 import { purchaseOrdersApi } from '../api/purchaseOrders'
 import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
+import { productsApi } from '../api/products'
+import { useAuth } from '../context/AuthContext'
 
 const statusTone = {
+  DRAFT: 'orange',
   PENDING: 'orange',
   CONFIRMED: 'blue',
   PROCESSING: 'purple',
@@ -20,21 +23,36 @@ const statusTone = {
 }
 
 const statusLabel = {
+  DRAFT: 'Draft',
   PENDING: 'Pending',
-  CONFIRMED: 'Confirmed',
-  PROCESSING: 'Processing',
+  CONFIRMED: 'Approved',
+  PROCESSING: 'Partially Received',
   RECEIVED: 'Received',
   CANCELLED: 'Cancelled',
   RETURNED: 'Returned',
 }
 
 export default function PurchaseOrders() {
+  const { user } = useAuth()
+  const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [showNewPO, setShowNewPO] = useState(false)
-  const [poForm, setPOForm] = useState({ supplierId: '', notes: '' })
+  const [poForm, setPOForm] = useState({ supplierId: '', notes: '', status: 'DRAFT', orderDate: '', expectedDelivery: '', gstPercent: 0 })
+const [lineItems, setLineItems] = useState([
+    {
+      productId: "",
+      name: "",
+      sku: "",
+      quantity: 1,
+      weight: 0,
+      rate: 0,
+      lineTotal: 0,
+    },
+  ])
+  const lineItemsRef = useRef(null)
   const queryClient = useQueryClient()
 
   const { data: apiData, isLoading } = useQuery({
@@ -45,6 +63,11 @@ export default function PurchaseOrders() {
   const { data: apiSuppliers } = useQuery({
     queryKey: ['suppliers-list'],
     queryFn: () => suppliersApi.list().then((r) => r.data.data),
+  })
+
+  const { data: apiProducts } = useQuery({
+    queryKey: ['products-list'],
+    queryFn: () => productsApi.list().then((r) => r.data.data),
   })
 
   const createMutation = useMutation({
@@ -60,6 +83,7 @@ export default function PurchaseOrders() {
 
   const orders = apiData?.orders || []
   const suppliersList = apiSuppliers || []
+  const productsList = apiProducts || []
 
   const filtered = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false
@@ -75,6 +99,24 @@ export default function PurchaseOrders() {
     setSelected(order)
     setViewOpen(true)
   }
+
+  const handleReceiveStock = (order) => {
+    // Mark all items as received by updating PO status to RECEIVED
+    // and optionally update inventory - for now, just update the PO status
+    if (confirm(`Mark PO #${order.orderNumber || `#${order.id}`} as Received? This will update the status to "Received".`)) {
+      purchaseOrdersApi.updateStatus(order.id, 'RECEIVED').then(() => {
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+        alert('Purchase order marked as received')
+      }).catch((err) => {
+        alert(err.response?.data?.message || 'Failed to update status')
+      })
+    }
+  }
+
+  const calculateLineTotal = (item) => (item.rate || 0) * (item.quantity || 1)
+  const calculateSubtotal = () => lineItems.reduce((sum, item) => sum + calculateLineTotal(item), 0)
+  const calculateGST = () => calculateSubtotal() * ((poForm.gstPercent || 0) / 100)
+  const calculateTotal = () => calculateSubtotal() + calculateGST()
 
   return (
     <div>
@@ -99,9 +141,10 @@ export default function PurchaseOrders() {
               className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500"
             >
               <option value="">All Statuses</option>
+              <option value="DRAFT">Draft</option>
               <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="PROCESSING">Processing</option>
+              <option value="CONFIRMED">Approved</option>
+              <option value="PROCESSING">Partially Received</option>
               <option value="RECEIVED">Received</option>
               <option value="CANCELLED">Cancelled</option>
               <option value="RETURNED">Returned</option>
@@ -113,8 +156,37 @@ export default function PurchaseOrders() {
               <Modal open={showNewPO} onClose={() => setShowNewPO(false)} title="New Purchase Order" size="md">
                 <form onSubmit={(e) => {
                   e.preventDefault()
-                  if (!poForm.supplierId) { alert('Please select a supplier') ; return }
-                  createMutation.mutate({ supplierId: poForm.supplierId, notes: poForm.notes, items: [] })
+                  if (!poForm.supplierId) { alert('Please select a supplier'); return }
+                  
+                  // Build line items from state
+                  const lineItemsData = lineItems.map(item => ({
+                    productId: item.productId || null,
+                    sku: item.sku,
+                    name: item.name,
+                    quantity: item.quantity,
+                    weight: item.weight,
+                    rate: item.rate,
+                    unitPrice: item.rate || 0,
+                    lineTotal: calculateLineTotal(item),
+                  }))
+                  
+                  // Calculate totals
+                  const subtotal = calculateSubtotal()
+                  const gst = calculateGST()
+                  const total = calculateTotal()
+                  
+                  const status = poForm.status === 'DRAFT' ? 'DRAFT' : 'PENDING'
+                  createMutation.mutate({ 
+                    supplierId: poForm.supplierId, 
+                    notes: poForm.notes, 
+                    status, 
+                    items: lineItemsData,
+                    orderDate: poForm.orderDate,
+                    expectedDelivery: poForm.expectedDelivery,
+                    subtotal,
+                    gstPercent: poForm.gstPercent,
+                    totalAmount: total
+                  })
                 }} className="space-y-4 text-sm">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Supplier *</label>
@@ -131,21 +203,152 @@ export default function PurchaseOrders() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Notes</label>
-                    <textarea
-                      value={poForm.notes}
-                      onChange={(e) => setPOForm({ ...poForm, notes: e.target.value })}
-                      placeholder="Optional notes for this PO..."
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Order Date *</label>
+                    <input
+                      type="date"
+                      value={poForm.orderDate || ''}
+                      onChange={(e) => setPOForm({ ...poForm, orderDate: e.target.value })}
                       className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
-                      rows={3}
                     />
                   </div>
-                  <div className="flex justify-end gap-2 pt-2 border-t">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Expected Delivery Date</label>
+                    <input
+                      type="date"
+                      value={poForm.expectedDelivery || ''}
+                      onChange={(e) => setPOForm({ ...poForm, expectedDelivery: e.target.value })}
+                      className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    />
+                  </div>
+                  {/* Line Items Section */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Line Items</label>
+                    <div className="space-y-3" ref={lineItemsRef}>
+                      {lineItems.map((item, idx) => (
+                        <div key={item.id || idx} className="grid grid-cols-6 gap-2">
+                          <div>
+                            <select
+                              value={item.productId || ''}
+                              onChange={(e) => {
+                                const product = productsList.find(p => p.id.toString() === e.target.value)
+                                const sku = product ? product.sku : ''
+                                const name = product ? product.name : ''
+                                setLineItems(prev => prev.map((i, iidx) =>
+                                  iidx === idx ? { ...i, productId: product?.id || '', sku, name } : i)
+                                )
+                              }}
+                              className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                            >
+                              <option value="">Select product</option>
+                              {productsList.map((p) => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              value={item.quantity || 1}
+                              onChange={(e) => setLineItems(prev => prev.map((i, iidx) =>
+                                iidx === idx ? { ...i, quantity: parseFloat(e.target.value) || 1 } : i)
+                              )}
+                              min="1"
+                              className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              value={item.weight || 0}
+                              onChange={(e) => setLineItems(prev => prev.map((i, iidx) =>
+                                iidx === idx ? { ...i, weight: parseFloat(e.target.value) || 0 } : i)
+                              )}
+                              step="0.01"
+                              className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="number"
+                              value={item.rate || 0}
+                              onChange={(e) => setLineItems(prev => prev.map((i, iidx) =>
+                                iidx === idx ? { ...i, rate: parseFloat(e.target.value) || 0 } : i)
+                              )}
+                              step="0.01"
+                              className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                            />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
+                              ₹{calculateLineTotal(item).toFixed(2)}
+                            </span>
+                          </div>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setLineItems(prev => prev.filter((_, iidx) => iidx !== idx))}
+                              className="text-xs text-red-600 dark:text-gray-300 hover:bg-red-100 dark:bg-white/10 rounded px-2 py-1"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="grid grid-cols-6 gap-2 mt-2">
+                        <div />
+                        <div />
+                        <div />
+                        <div />
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setLineItems(prev => [...prev, { productId: '', name: '', sku: '', quantity: 1, weight: 0, rate: 0, lineTotal: 0 }])}
+                            className="text-sm text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded px-2 py-1"
+                          >
+                            + Add Another Item
+                          </button>
+                        </div>
+                        <div />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Totals Section */}
+                  <div className="mt-4 p-3 bg-royal-50/60 rounded-lg">
+                    <div className="flex justify-between text-sm mb-2">
+      <span>Subtotal</span>
+      <span>₹{calculateSubtotal().toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between text-sm mb-2">
+      <span>GST %</span>
+      <input
+        type="number"
+        value={poForm.gstPercent || 0}
+        onChange={(e) => setPOForm({ ...poForm, gstPercent: parseFloat(e.target.value) || 0 })}
+        min="0"
+        step="0.01"
+        className="w-24 border border-gray-200 dark:border-white/[0.08] rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+      />
+      <span>₹{calculateGST().toFixed(2)}</span>
+    </div>
+    <div className="flex justify-between text-lg font-bold border-t pt-3">
+      <span>Total Amount</span>
+      <span>₹{calculateTotal().toFixed(2)}</span>
+    </div>
+  </div>
+  <div className="flex justify-end gap-2 pt-2 border-t">
                     <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewPO(false)}>
                       <X size={12} /> Cancel
                     </Button>
                     <Button type="submit" size="sm">
-                      <Save size={12} /> Create PO
+                      {poForm.status === 'DRAFT' ? (
+                        <>
+                          <Save size={12} /> Save as Draft
+                        </>
+                      ) : (
+                        <>
+                          <Save size={12} /> Submit PO
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
@@ -209,6 +412,24 @@ export default function PurchaseOrders() {
                     >
                       <Eye size={14} />
                     </button>
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={() => setSelected(o)}
+                          className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Edit"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleReceiveStock(o)}
+                          className="p-1.5 text-green-600 dark:text-gray-300 hover:bg-green-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Receive Stock"
+                        >
+                          <Truck size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

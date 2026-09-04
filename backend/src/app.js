@@ -53,9 +53,11 @@ if (env.nodeEnv === 'development') {
 }
 
 // Rate limiting — protects against brute force / abuse
+// Max is configurable via API_RATE_LIMIT_MAX (default 300) so local e2e
+// test suites aren't blocked, while production keeps the strict default.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // max 300 requests per window per IP
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 300, // max 300 requests per window per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
@@ -63,9 +65,11 @@ const apiLimiter = rateLimit({
 app.use('/api', apiLimiter)
 
 // Stricter rate limit for auth endpoints (login, forgot-password, reset-password)
+// The max is configurable via AUTH_RATE_LIMIT_MAX (default 10) so local e2e
+// test suites aren't blocked, while production keeps the strict default.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // max 10 attempts per window per IP
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10, // max attempts per window per IP
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many authentication attempts, please try again later.' },

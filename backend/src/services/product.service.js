@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
 const { escapeLike } = require('../utils/sanitizeSearch')
+const { normalizeSKU } = require('../utils/sku')
 
 const Decimal = Prisma.Decimal
 
@@ -56,7 +57,7 @@ const productService = {
   // POST /api/products  — price is calculated by the backend, never sent by the client.
   // Pricing uses NET weight (gross - stone) and the product's silver rate.
   async create(data, userId) {
-    const sku = String(data.sku || '').trim()
+    const sku = normalizeSKU(data.sku)
     const duplicate = await prisma.product.findUnique({ where: { sku } })
     if (duplicate) throw new ApiError(400, `SKU "${sku}" already exists`)
 

@@ -20,7 +20,7 @@ export default function Settings() {
   const [shopUrl, setShopUrl] = useState('https://opalline.myshopify.com')
   const [apiKey, setApiKey] = useState('shpat_xxxxxxxxxxxxx')
   const [syncFreq, setSyncFreq] = useState('Every 5 minutes')
-  const [invoicePrefix, setInvoicePrefix] = useState('SI')
+  const [invoicePrefix, setInvoicePrefix] = useState('INV')
   const [gstRate, setGstRate] = useState('3')
   const [hsnCode, setHsnCode] = useState('7113')
   const [defaultPurity, setDefaultPurity] = useState('92.5 Sterling Silver')

@@ -245,6 +245,7 @@ export default function PurchaseReturns() {
                     name: item.name,
                     quantity: item.quantity,
                     unitPrice: item.rate,
+                    weight: Number(item.weight) || 0,
                   }))
                   if (editingReturn) {
                     updateMutation.mutate({

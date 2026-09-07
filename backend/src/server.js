@@ -200,7 +200,8 @@ async function ensureSchema() {
         "name" TEXT NOT NULL,
         "quantity" DECIMAL(10,2) NOT NULL,
         "unitPrice" DECIMAL(12,2) NOT NULL,
-        "lineTotal" DECIMAL(12,2) NOT NULL
+        "lineTotal" DECIMAL(12,2) NOT NULL,
+        "weight" DECIMAL(10,2) NOT NULL DEFAULT 0
       )
     `)
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PurchaseOrder_poNumber_key" ON "PurchaseOrder"("poNumber")`)
@@ -245,6 +246,13 @@ async function ensureSchema() {
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN
         ALTER TABLE "PurchaseOrderItem" ADD COLUMN "rate" DECIMAL(12, 2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    // Weight per unit (g) on PurchaseReturnItem — additive, nullable so existing rows are not broken.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PurchaseReturnItem" ADD COLUMN "weight" DECIMAL(10, 2) NOT NULL DEFAULT 0;
       EXCEPTION WHEN duplicate_column THEN NULL;
       END $$
     `)

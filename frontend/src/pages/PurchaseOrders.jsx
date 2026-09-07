@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, Package, X, Save, Pencil, Truck, Check, Copy, Trash2, Plus, Clock, Filter } from 'lucide-react'
+import { Search, Eye, Package, X, Save, Pencil, Truck, Check, Copy, Trash2, Plus, Clock, Filter, BadgeCheck, XCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -35,6 +35,7 @@ const statusLabel = {
 export default function PurchaseOrders() {
   const { user } = useAuth()
   const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
+  const isSuperAdmin = user?.role?.name === 'SUPER_ADMIN'
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [selected, setSelected] = useState(null)
@@ -178,6 +179,39 @@ export default function PurchaseOrders() {
         alert('Purchase order marked as pending')
       }).catch((err) => {
         alert(err.response?.data?.message || 'Failed to update status')
+      })
+    }
+  }
+
+  const handleApprove = (order) => {
+    if (confirm(`Approve PO #${order.poNumber || `#${order.id}`}? This will update the status to "Approved".`)) {
+      purchaseOrdersApi.updateStatus(order.id, 'CONFIRMED').then(() => {
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+        alert('Purchase order approved')
+      }).catch((err) => {
+        alert(err.response?.data?.message || 'Failed to update status')
+      })
+    }
+  }
+
+  const handleCancel = (order) => {
+    if (confirm(`Cancel PO #${order.poNumber || `#${order.id}`}? This will update the status to "Cancelled".`)) {
+      purchaseOrdersApi.updateStatus(order.id, 'CANCELLED').then(() => {
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+        alert('Purchase order cancelled')
+      }).catch((err) => {
+        alert(err.response?.data?.message || 'Failed to update status')
+      })
+    }
+  }
+
+  const handleDelete = (order) => {
+    if (confirm(`Delete PO #${order.poNumber || `#${order.id}`}? This cannot be undone. Only pending orders can be deleted.`)) {
+      purchaseOrdersApi.remove(order.id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+        alert('Purchase order deleted')
+      }).catch((err) => {
+        alert(err.response?.data?.message || 'Failed to delete purchase order')
       })
     }
   }
@@ -635,6 +669,29 @@ export default function PurchaseOrders() {
                         >
                           <Clock size={14} />
                         </button>
+                        <button
+                          onClick={() => handleApprove(o)}
+                          className="p-1.5 text-blue-600 dark:text-gray-300 hover:bg-blue-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Approve"
+                        >
+                          <BadgeCheck size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleCancel(o)}
+                          className="p-1.5 text-red-600 dark:text-gray-300 hover:bg-red-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Cancel Order"
+                        >
+                          <XCircle size={14} />
+                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => handleDelete(o)}
+                            className="p-1.5 text-red-700 dark:text-gray-300 hover:bg-red-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

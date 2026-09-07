@@ -54,7 +54,7 @@ const productPriceHistoryService = {
       prisma.productPriceHistory.findMany({
         where,
         include: {
-          product: { select: { id: true, name: true, sku: true, sellingPrice: true, weight: true, makingCharge: true, metal: true } },
+          product: { select: { id: true, name: true, sku: true, sellingPrice: true, weight: true, makingCharge: true, metal: true, category: { select: { name: true } } } },
           changedBy: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: 'desc' },

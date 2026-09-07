@@ -40,7 +40,7 @@ const purchaseOrderService = {
     const orders = rows.map((o) => ({
       ...o,
       totalQuantity: o.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0),
-      totalWeight: o.items.reduce((s, it) => s + (Number(it.weight) || 0), 0),
+      totalWeight: o.items.reduce((s, it) => s + (Number(it.weight) || 0) * (Number(it.quantity) || 1), 0),
     }))
 
     return { orders, total, page: Number(page) || 1, limit: take, totalPages: Math.ceil(total / take) }
@@ -50,7 +50,7 @@ const purchaseOrderService = {
     const order = await prisma.purchaseOrder.findUnique({
       where: { id: Number(id) },
       include: {
-        supplier: { select: { id: true, name: true, phone: true, email: true, address: true } },
+        supplier: { select: { id: true, name: true, phone: true, email: true, address: true, contactPerson: true, gstin: true } },
         items: true,
         returns: true,
         createdById_rel: { select: { id: true, name: true } },
@@ -60,7 +60,7 @@ const purchaseOrderService = {
     return order
   },
 
-  async create({ supplierId, items, notes, createdById, orderDate, expectedDelivery, gstPercent, subtotal, totalAmount: providedTotal }) {
+  async create({ supplierId, status, items, notes, createdById, orderDate, expectedDelivery, gstPercent, subtotal, totalAmount: providedTotal }) {
     if (!items || items.length === 0) {
       throw new ApiError(400, 'At least one item is required')
     }
@@ -71,6 +71,7 @@ const purchaseOrderService = {
     const poNumber = `${prefix}${String((last?.id ?? 0) + 1).padStart(4, '0')}`
 
     let totalQuantity = new Decimal(0)
+    let totalWeight = new Decimal(0)
     let subTotal = new Decimal(0)
     const itemsData = items.map((item) => {
       const qty = new Decimal(item.quantity)
@@ -79,6 +80,7 @@ const purchaseOrderService = {
       const perUnit = weight.greaterThan(0) ? weight.mul(rate) : rate
       const lineTotal = perUnit.mul(qty)
       totalQuantity = totalQuantity.plus(qty)
+      totalWeight = totalWeight.plus(weight.mul(qty))
       subTotal = subTotal.plus(lineTotal)
       return {
         product: item.productId ? { connect: { id: Number(item.productId) } } : undefined,
@@ -101,6 +103,7 @@ const purchaseOrderService = {
     const order = await prisma.purchaseOrder.create({
       data: {
         poNumber,
+        status: status || 'DRAFT',
         supplierId: Number(supplierId),
         orderDate: orderDate ? new Date(orderDate) : null,
         expectedDelivery: expectedDelivery ? new Date(expectedDelivery) : null,
@@ -108,6 +111,7 @@ const purchaseOrderService = {
         subtotal: subTotal,
         totalItems: items.length,
         totalQuantity,
+        totalWeight,
         totalAmount: finalTotal,
         notes: notes || null,
         createdById: createdById || null,
@@ -160,6 +164,7 @@ const purchaseOrderService = {
 
     if (data.items !== undefined) {
       let totalQuantity = new Decimal(0)
+      let totalWeight = new Decimal(0)
       let subTotal = new Decimal(0)
       const itemsData = data.items.map((item) => {
         const qty = new Decimal(item.quantity)
@@ -168,6 +173,7 @@ const purchaseOrderService = {
         const perUnit = weight.greaterThan(0) ? weight.mul(rate) : rate
         const lineTotal = perUnit.mul(qty)
         totalQuantity = totalQuantity.plus(qty)
+        totalWeight = totalWeight.plus(weight.mul(qty))
         subTotal = subTotal.plus(lineTotal)
         return {
           product: item.productId ? { connect: { id: Number(item.productId) } } : undefined,
@@ -192,6 +198,7 @@ const purchaseOrderService = {
         subtotal: subTotal,
         totalItems: data.items.length,
         totalQuantity,
+        totalWeight,
         totalAmount: finalTotal,
         items: {
           deleteMany: {},

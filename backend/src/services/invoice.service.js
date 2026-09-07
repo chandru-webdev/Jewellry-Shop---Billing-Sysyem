@@ -36,6 +36,7 @@ const invoiceService = {
       include: {
         customer: true,
         salesperson: { select: { id: true, name: true } },
+        order: { select: { orderNumber: true } },
         _count: { select: { items: true } },
         items: { select: { quantity: true } },
       },
@@ -70,11 +71,22 @@ const invoiceService = {
       // Update details in case anything changed
       return prisma.customer.update({
         where: { id: existing.id },
-        data: { name: data.name, email: data.email, address: data.address },
+        data: {
+          name: data.name,
+          email: data.email,
+          address: data.address,
+          ...(data.gstin !== undefined ? { gstin: data.gstin } : {}),
+        },
       })
     }
     return prisma.customer.create({
-      data: { name: data.name, phone: data.phone, email: data.email, address: data.address },
+      data: {
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        address: data.address,
+        ...(data.gstin !== undefined ? { gstin: data.gstin } : {}),
+      },
     })
   },
 

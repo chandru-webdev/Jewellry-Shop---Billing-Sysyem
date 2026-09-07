@@ -13,6 +13,7 @@ const purchaseOrderItemSchema = z.object({
 
 const createPurchaseOrderSchema = z.object({
   supplierId: z.coerce.number().int().positive('Supplier is required'),
+  status: z.enum(['DRAFT', 'PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']).optional(),
   items: z.array(purchaseOrderItemSchema).min(1, 'At least one item is required'),
   notes: z.string().optional(),
   orderDate: z.union([z.string(), z.date()]).optional(),

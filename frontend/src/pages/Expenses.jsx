@@ -53,7 +53,9 @@ export default function Expenses() {
   const categories = [...new Set(expenses.map(e => e.category))]
   const totalExpenses = expenses.filter(e => e.status === 'PAID').reduce((s, e) => s + e.amount, 0)
   const pendingExpenses = expenses.filter(e => e.status === 'PENDING').reduce((s, e) => s + e.amount, 0)
-  const thisMonth = expenses.filter(e => e.date.startsWith('2026-08')).reduce((s, e) => s + e.amount, 0)
+  const now = new Date()
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const thisMonth = expenses.filter(e => e.date.startsWith(thisMonthKey)).reduce((s, e) => s + e.amount, 0)
 
   const handleSubmit = (e) => {
     e.preventDefault()

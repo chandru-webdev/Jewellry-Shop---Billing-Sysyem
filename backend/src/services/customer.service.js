@@ -12,12 +12,22 @@ const customerService = {
         { phone: { contains: q } },
       ]
     }
-    return prisma.customer.findMany({
+    const customers = await prisma.customer.findMany({
       where,
-      include: { _count: { select: { invoices: true } } },
+      include: {
+        invoices: { select: { grandTotal: true, date: true }, orderBy: { date: 'desc' } },
+        _count: { select: { invoices: true } },
+      },
       orderBy: { name: 'asc' },
       take: Number(limit),
     })
+    return customers.map((c) => ({
+      ...c,
+      orders: c._count.invoices,
+      totalSpent: c.invoices.reduce((sum, inv) => sum + (Number(inv.grandTotal) || 0), 0),
+      lastOrder: c.invoices[0]?.date ?? null,
+      invoices: undefined,
+    }))
   },
 
   async getById(id) {

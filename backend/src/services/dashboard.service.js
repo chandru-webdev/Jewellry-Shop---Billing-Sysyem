@@ -257,6 +257,17 @@ const dashboardService = {
       (p) => (p.inventory?.quantity ?? 0) <= p.lowStockThreshold
     )
 
+    // Orders within the period — used for the daily sales chart so the chart
+    // exactly matches the Period Sales KPI (Σ order.totalAmount, incl. GST).
+    const periodOrdersList = await prisma.order.findMany({
+      where: {
+        createdAt: { gte: dateRange.start, lte: dateRange.end },
+        status: { notIn: ['CANCELLED', 'REFUNDED'] },
+      },
+      select: { createdAt: true, totalAmount: true },
+      orderBy: { createdAt: 'asc' },
+    })
+
     // Calculate top selling products from period orders
     const productSales = {}
     for (const item of periodOrders) {
@@ -344,18 +355,13 @@ const dashboardService = {
       const dayEnd = new Date(day)
       dayEnd.setHours(23, 59, 59, 999)
 
-      // We'll calculate these with a quick query in parallel below, but for now
-      // use a simpler approach: group by date from order data
-      const dayOrders = periodOrders.filter((item) => {
-        const created = new Date(item.order?.createdAt || 0)
+      const dayOrders = periodOrdersList.filter((o) => {
+        const created = new Date(o.createdAt || 0)
         return created >= day && created <= dayEnd
       })
 
       const dayLabel = day.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
-      const dayRevenue = dayOrders.reduce(
-        (sum, item) => sum + Number(item.lineTotal || 0),
-        0
-      )
+      const dayRevenue = dayOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
 
       salesOverview.push({
         date: dayLabel,
@@ -383,7 +389,7 @@ const dashboardService = {
     const prevStart = new Date(dateRange.start.getTime() - periodLength)
     const prevEnd = new Date(dateRange.start.getTime() - 1)
 
-    const [prevRevenue, prevSalesCount, prevOrdersCount] = await Promise.all([
+    const [prevRevenue, prevSalesCount, prevOrdersCount, prevRefundedAgg] = await Promise.all([
       prisma.order.aggregate({
         where: {
           createdAt: { gte: prevStart, lte: prevEnd },
@@ -399,6 +405,10 @@ const dashboardService = {
       }),
       prisma.order.count({
         where: { createdAt: { gte: prevStart, lte: prevEnd } },
+      }),
+      prisma.payment.aggregate({
+        where: { createdAt: { gte: prevStart, lte: prevEnd }, status: 'REFUNDED' },
+        _sum: { amount: true },
       }),
     ])
 
@@ -426,11 +436,34 @@ const dashboardService = {
       return cp ? sum + Number(item.quantity) * Number(cp) : sum
     }, 0)
 
-    // Calculate period-specific totals
+    // Period COGS for the Gross Profit card (matches the Period Sales KPI window)
+    const periodOrderCostItems = await prisma.orderItem.findMany({
+      where: {
+        order: {
+          createdAt: { gte: dateRange.start, lte: dateRange.end },
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+      },
+      select: { quantity: true, product: { select: { costPrice: true } } },
+    })
+    const periodCogs = periodOrderCostItems.reduce((sum, item) => {
+      const cp = item.product?.costPrice
+      return cp ? sum + Number(item.quantity) * Number(cp) : sum
+    }, 0)
+
+    // Period-specific totals
     const periodRevenue = Number(revenuePeriod._sum.totalAmount ?? 0)
     const prevPeriodRevenue = Number(prevRevenue._sum.totalAmount ?? 0)
     const salesTrend = prevPeriodRevenue > 0
       ? Math.round(((periodRevenue - prevPeriodRevenue) / prevPeriodRevenue) * 100)
+      : 0
+
+    // Return rate: refunded payments as % of period revenue (with prev-period trend)
+    const refundedAmountPeriod = Number(refundedPaymentAmount)
+    const refundedAmountPrev = Number(prevRefundedAgg._sum.amount ?? 0)
+    const returnRate = periodRevenue > 0 ? Math.round((refundedAmountPeriod / periodRevenue) * 100 * 100) / 100 : 0
+    const returnRateTrend = refundedAmountPrev > 0
+      ? Math.round(((refundedAmountPeriod - refundedAmountPrev) / refundedAmountPrev) * 100)
       : 0
 
     const ordersTrend = prevOrdersCount > 0
@@ -555,10 +588,10 @@ const dashboardService = {
       monthOrdersTrend,
       avgOrderValue,
       avgOrderTrend,
-      returnRate: 0,
-      returnRateTrend: 0,
+      returnRate, returnRateTrend,
       profitMargin: monthRevenue > 0 ? Math.round(((monthRevenue - cogs) / monthRevenue) * 100 * 100) / 100 : 0,
       profitMarginTrend: 0,
+      periodCogs: Number(periodCogs),
       inventoryValue,
 
       shopifySync: await shopifyService.syncStatus().catch(() => null),

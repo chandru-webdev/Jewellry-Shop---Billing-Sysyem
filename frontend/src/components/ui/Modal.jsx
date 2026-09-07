@@ -1,7 +1,14 @@
 import { X } from 'lucide-react'
 
+const sizeClasses = {
+  sm: 'max-w-md',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+}
+
 // Reusable popup window with a dark backdrop.
-export default function Modal({ open, title, onClose, children, footer }) {
+export default function Modal({ open, title, onClose, children, footer, size = 'md' }) {
   if (!open) return null
 
   return (
@@ -10,7 +17,7 @@ export default function Modal({ open, title, onClose, children, footer }) {
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-[#1a1025] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className={`bg-white dark:bg-[#1a1025] rounded-xl shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md} max-h-[90vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/[0.08]">

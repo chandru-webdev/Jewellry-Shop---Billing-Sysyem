@@ -19,4 +19,12 @@ const updatePurchaseReturnStatusSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'PROCESSING', 'COMPLETED', 'REJECTED']),
 })
 
-module.exports = { createPurchaseReturnSchema, updatePurchaseReturnStatusSchema }
+const updatePurchaseReturnSchema = z.object({
+  supplierId: z.coerce.number().int().positive('Supplier is required').optional(),
+  purchaseOrderId: z.coerce.number().int().positive().nullable().optional(),
+  status: z.enum(['PENDING', 'APPROVED', 'PROCESSING', 'COMPLETED', 'REJECTED']).optional(),
+  reason: z.string().optional(),
+  items: z.array(purchaseReturnItemSchema).min(1, 'At least one item is required').optional(),
+})
+
+module.exports = { createPurchaseReturnSchema, updatePurchaseReturnStatusSchema, updatePurchaseReturnSchema }

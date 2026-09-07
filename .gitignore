@@ -28,3 +28,8 @@ dev.log
 Thumbs.db
 .vscode/
 .idea/
+
+# Playwright
+e2e/.auth/
+test-results/
+playwright-report/

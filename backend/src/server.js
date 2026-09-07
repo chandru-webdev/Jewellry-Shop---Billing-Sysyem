@@ -277,6 +277,124 @@ async function ensureSchema() {
       END $$
     `)
     console.log('Expense model ensured.')
+
+    // ---------- Purchase order header additions (dates, GST, weight) ----------
+    const poColumns = [
+      ['orderDate', 'TIMESTAMP(3)'],
+      ['expectedDelivery', 'TIMESTAMP(3)'],
+      ['gstPercent', 'DECIMAL(5,2)'],
+      ['subtotal', 'DECIMAL(12,2)'],
+      ['totalWeight', 'DECIMAL(12,3)'],
+    ]
+    for (const [col, type] of poColumns) {
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TABLE "PurchaseOrder" ADD COLUMN "${col}" ${type};
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+      `)
+    }
+    await prisma.$executeRawUnsafe(`ALTER TABLE "PurchaseOrder" ALTER COLUMN "gstPercent" SET DEFAULT 3`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "PurchaseOrder" ALTER COLUMN "subtotal" SET DEFAULT 0`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "PurchaseOrder" ALTER COLUMN "totalWeight" SET DEFAULT 0`)
+    console.log('PurchaseOrder header columns ensured.')
+
+    // ---------- Supplier additions ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Supplier" ADD COLUMN "contactPerson" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Supplier" ADD COLUMN "gstin" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Supplier.contactPerson / gstin columns ensured.')
+
+    // ---------- Sales Invoice due date ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Invoice" ADD COLUMN "dueDate" TIMESTAMP(3);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Invoice.dueDate column ensured.')
+
+    // ---------- Purchase Invoice (supplier bills) model ----------
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseInvoice" (
+        "id" SERIAL PRIMARY KEY,
+        "invoiceNumber" TEXT NOT NULL,
+        "supplierId" INTEGER NOT NULL,
+        "purchaseOrderId" INTEGER,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "invoiceDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "dueDate" TIMESTAMP(3),
+        "subtotal" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "gstPercent" DECIMAL(5,2) NOT NULL DEFAULT 0,
+        "gstAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "totalAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "amountPaid" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "notes" TEXT,
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseInvoiceItem" (
+        "id" SERIAL PRIMARY KEY,
+        "purchaseInvoiceId" INTEGER NOT NULL,
+        "productId" INTEGER,
+        "sku" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "quantity" DECIMAL(10,2) NOT NULL,
+        "unitPrice" DECIMAL(12,2) NOT NULL,
+        "weight" DECIMAL(10,3) NOT NULL DEFAULT 0,
+        "lineTotal" DECIMAL(12,2) NOT NULL
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "PurchaseInvoicePayment" (
+        "id" SERIAL PRIMARY KEY,
+        "purchaseInvoiceId" INTEGER NOT NULL,
+        "amount" DECIMAL(12,2) NOT NULL,
+        "method" TEXT NOT NULL DEFAULT 'OTHER',
+        "reference" TEXT,
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "PurchaseInvoice_invoiceNumber_key" ON "PurchaseInvoice"("invoiceNumber")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoice_supplierId_idx" ON "PurchaseInvoice"("supplierId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoice_purchaseOrderId_idx" ON "PurchaseInvoice"("purchaseOrderId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoice_status_idx" ON "PurchaseInvoice"("status")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoice_invoiceDate_idx" ON "PurchaseInvoice"("invoiceDate")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoiceItem_purchaseInvoiceId_idx" ON "PurchaseInvoiceItem"("purchaseInvoiceId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "PurchaseInvoicePayment_purchaseInvoiceId_idx" ON "PurchaseInvoicePayment"("purchaseInvoiceId")`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "PurchaseInvoice" ADD CONSTRAINT "PurchaseInvoice_supplierId_fkey"
+          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoice" ADD CONSTRAINT "PurchaseInvoice_purchaseOrderId_fkey"
+          FOREIGN KEY ("purchaseOrderId") REFERENCES "PurchaseOrder"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoice" ADD CONSTRAINT "PurchaseInvoice_createdById_fkey"
+          FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoiceItem" ADD CONSTRAINT "PurchaseInvoiceItem_purchaseInvoiceId_fkey"
+          FOREIGN KEY ("purchaseInvoiceId") REFERENCES "PurchaseInvoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoiceItem" ADD CONSTRAINT "PurchaseInvoiceItem_productId_fkey"
+          FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoicePayment" ADD CONSTRAINT "PurchaseInvoicePayment_purchaseInvoiceId_fkey"
+          FOREIGN KEY ("purchaseInvoiceId") REFERENCES "PurchaseInvoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "PurchaseInvoicePayment" ADD CONSTRAINT "PurchaseInvoicePayment_createdById_fkey"
+          FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    console.log('PurchaseInvoice model ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

@@ -26,6 +26,11 @@ const purchaseOrderController = {
     success(res, 200, order, 'Purchase order status updated')
   }),
 
+  update: asyncHandler(async (req, res) => {
+    const order = await purchaseOrderService.update(req.params.id, req.body)
+    success(res, 200, order, 'Purchase order updated')
+  }),
+
   remove: asyncHandler(async (req, res) => {
     const result = await purchaseOrderService.remove(req.params.id)
     success(res, 200, result, 'Purchase order deleted')

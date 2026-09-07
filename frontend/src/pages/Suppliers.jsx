@@ -17,7 +17,7 @@ export default function Suppliers() {
   const [filterActive, setFilterActive] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '' })
+  const [formData, setFormData] = useState({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
 
   const canManage = user?.role?.name === 'SUPER_ADMIN' || user?.role?.name === 'MANAGER'
 
@@ -60,8 +60,10 @@ export default function Suppliers() {
     setEditingSupplier(supplier)
     setFormData({
       name: supplier.name || '',
+      contactPerson: supplier.contactPerson || '',
       phone: supplier.phone || '',
       email: supplier.email || '',
+      gstin: supplier.gstin || '',
       address: supplier.address || '',
     })
   }
@@ -81,21 +83,24 @@ export default function Suppliers() {
     if (filterActive !== '' && String(s.isActive) !== filterActive) return false
     if (search) {
       const q = search.toLowerCase()
-      return (s.name || '').toLowerCase().includes(q) || (s.phone || '').toLowerCase().includes(q)
+      return (s.name || '').toLowerCase().includes(q) || 
+             (s.contactPerson || '').toLowerCase().includes(q) ||
+             (s.phone || '').toLowerCase().includes(q) ||
+             (s.gstin || '').toLowerCase().includes(q)
     }
     return true
   })
 
   const openAddForm = () => {
     setEditingSupplier(null)
-    setFormData({ name: '', phone: '', email: '', address: '' })
+    setFormData({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
     setShowAdd(true)
   }
 
   const closeForm = () => {
     setShowAdd(false)
     setEditingSupplier(null)
-    setFormData({ name: '', phone: '', email: '', address: '' })
+    setFormData({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
   }
 
   return (
@@ -152,6 +157,15 @@ export default function Suppliers() {
               />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Contact Person</label>
+              <input
+                type="text"
+                value={formData.contactPerson}
+                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Phone</label>
               <input
                 type="text"
@@ -167,6 +181,16 @@ export default function Suppliers() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">GSTIN</label>
+              <input
+                type="text"
+                value={formData.gstin}
+                onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
+                className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                placeholder="27AAAAA0000A1Z5"
               />
             </div>
             <div>
@@ -196,10 +220,14 @@ export default function Suppliers() {
             <thead>
               <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Supplier</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Contact</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Products</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Purchased</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Purchase</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Contact Person</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Phone</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Email</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Address</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">GSTIN</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total POs</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Purchase Value</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Outstanding</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
@@ -207,14 +235,14 @@ export default function Suppliers() {
             <tbody className="divide-y divide-gray-100">
               {isLoading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+                  <td colSpan={11} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                     Loading suppliers...
                   </td>
                 </tr>
               )}
               {!isLoading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+                  <td colSpan={11} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
                     No suppliers found.
                   </td>
                 </tr>
@@ -229,21 +257,14 @@ export default function Suppliers() {
                       <span className="font-medium text-royal-950 dark:text-white">{s.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
-                        <Phone size={10} /> {s.phone}
-                      </span>
-                      {s.email && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-                          <Mail size={10} /> {s.email}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{s.products || 0}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(s.totalPurchased || 0)}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.lastPurchase ? formatDate(s.lastPurchase) : '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.contactPerson || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.phone || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{s.email || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm max-w-xs truncate">{s.address || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 font-mono text-xs">{s.gstin || '—'}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{s.totalPOs || 0}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(s.totalPurchaseValue || 0)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">{formatINR(s.outstanding || 0)}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={s.isActive === false ? 'red' : 'green'}>{s.isActive === false ? 'Inactive' : 'Active'}</Badge>
                   </td>

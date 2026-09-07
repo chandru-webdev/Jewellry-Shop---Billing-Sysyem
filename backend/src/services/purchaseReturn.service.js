@@ -122,6 +122,68 @@ const purchaseReturnService = {
     })
   },
 
+  async update(id, data) {
+    const existing = await this.getById(id)
+
+    if (data.items !== undefined && (!data.items || data.items.length === 0)) {
+      throw new ApiError(400, 'At least one item is required')
+    }
+
+    if (!['PENDING'].includes(existing.status)) {
+      throw new ApiError(400, 'Only pending purchase returns can be edited')
+    }
+
+    const baseData = {}
+    if (data.supplierId !== undefined) baseData.supplierId = Number(data.supplierId)
+    if (data.purchaseOrderId !== undefined) baseData.purchaseOrderId = data.purchaseOrderId ? Number(data.purchaseOrderId) : null
+    if (data.status !== undefined) baseData.status = data.status
+    if (data.reason !== undefined) baseData.reason = data.reason || null
+
+    let update = { ...baseData }
+
+    if (data.items !== undefined) {
+      let totalQuantity = new Decimal(0)
+      let totalAmount = new Decimal(0)
+      const itemsData = data.items.map((item) => {
+        const qty = new Decimal(item.quantity)
+        const price = new Decimal(item.unitPrice)
+        const lineTotal = qty.mul(price)
+        totalQuantity = totalQuantity.plus(qty)
+        totalAmount = totalAmount.plus(lineTotal)
+        return {
+          productId: item.productId || null,
+          sku: item.sku,
+          name: item.name,
+          quantity: qty,
+          unitPrice: price,
+          lineTotal,
+        }
+      })
+
+      update = {
+        ...update,
+        totalItems: data.items.length,
+        totalQuantity,
+        totalAmount,
+        items: {
+          deleteMany: {},
+          create: itemsData,
+        },
+      }
+    }
+
+    return prisma.purchaseReturn.update({
+      where: { id: existing.id },
+      data: update,
+      include: {
+        supplier: { select: { id: true, name: true, phone: true } },
+        items: true,
+        purchaseOrder: { select: { id: true, poNumber: true } },
+        _count: { select: { items: true } },
+      },
+    })
+  },
+
   async remove(id) {
     const ret = await this.getById(id)
     if (ret.status !== 'PENDING') {

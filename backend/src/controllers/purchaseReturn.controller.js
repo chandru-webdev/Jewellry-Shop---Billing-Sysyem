@@ -26,6 +26,11 @@ const purchaseReturnController = {
     success(res, 200, ret, 'Purchase return status updated')
   }),
 
+  update: asyncHandler(async (req, res) => {
+    const ret = await purchaseReturnService.update(req.params.id, req.body)
+    success(res, 200, ret, 'Purchase return updated')
+  }),
+
   remove: asyncHandler(async (req, res) => {
     const result = await purchaseReturnService.remove(req.params.id)
     success(res, 200, result, 'Purchase return deleted')

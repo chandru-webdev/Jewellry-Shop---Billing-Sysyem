@@ -15,10 +15,27 @@ const createPurchaseOrderSchema = z.object({
   supplierId: z.coerce.number().int().positive('Supplier is required'),
   items: z.array(purchaseOrderItemSchema).min(1, 'At least one item is required'),
   notes: z.string().optional(),
+  orderDate: z.union([z.string(), z.date()]).optional(),
+  expectedDelivery: z.union([z.string(), z.date()]).optional(),
+  gstPercent: z.coerce.number().nonnegative().optional(),
+  subtotal: z.coerce.number().nonnegative().optional(),
+  totalAmount: z.coerce.number().nonnegative().optional(),
 })
 
 const updatePurchaseOrderStatusSchema = z.object({
   status: z.enum(['DRAFT', 'PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']),
 })
 
-module.exports = { createPurchaseOrderSchema, updatePurchaseOrderStatusSchema }
+const updatePurchaseOrderSchema = z.object({
+  supplierId: z.coerce.number().int().positive('Supplier is required').optional(),
+  status: z.enum(['DRAFT', 'PENDING', 'CONFIRMED', 'PROCESSING', 'RECEIVED', 'CANCELLED', 'RETURNED']).optional(),
+  notes: z.string().optional(),
+  orderDate: z.union([z.string(), z.date()]).optional(),
+  expectedDelivery: z.union([z.string(), z.date()]).optional(),
+  gstPercent: z.coerce.number().nonnegative().optional(),
+  subtotal: z.coerce.number().nonnegative().optional(),
+  totalAmount: z.coerce.number().nonnegative().optional(),
+  items: z.array(purchaseOrderItemSchema).min(1, 'At least one item is required').optional(),
+})
+
+module.exports = { createPurchaseOrderSchema, updatePurchaseOrderStatusSchema, updatePurchaseOrderSchema }

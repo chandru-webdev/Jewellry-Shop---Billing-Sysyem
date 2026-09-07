@@ -18,6 +18,7 @@ import { formatINR } from '../utils/format'
 import { dashboardApi } from '../api/dashboard'
 import { productsApi } from '../api/products'
 import { inventoryApi } from '../api/inventory'
+import AnalyticsWidgets from '../components/dashboard/AnalyticsWidgets'
 
 const DATE_FILTERS = [
   { value: 'today', label: 'Today' },
@@ -606,6 +607,16 @@ export default function Dashboard() {
             </button>
           </div>
         </Card>
+      </div>
+
+      {/* Financial Analytics Widgets */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <BarChart3 size={16} className="text-royal-500 dark:text-gray-400" />
+          <h2 className="text-sm font-bold text-royal-950 dark:text-white">Financial Analytics</h2>
+          <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded">Live from Orders, Invoices & Expenses</span>
+        </div>
+        <AnalyticsWidgets />
       </div>
 
       {/* Top Selling Products */}

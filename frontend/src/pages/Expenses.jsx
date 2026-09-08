@@ -6,6 +6,7 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
+import { useAuth } from '../context/AuthContext'
 import { expensesApi } from '../api/expenses'
 import { formatINR, formatDate } from '../utils/format'
 import { exportExpensesExcel, inRange } from '../utils/exportExcel'
@@ -24,6 +25,9 @@ export default function Expenses() {
   const [formData, setFormData] = useState({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
 
   const queryClient = useQueryClient()
+
+  const { user } = useAuth()
+  const canManage = user?.role?.name === 'SUPER_ADMIN' || user?.role?.name === 'MANAGER'
 
   const { data: apiExpenses } = useQuery({
     queryKey: ['expenses'],
@@ -72,7 +76,7 @@ export default function Expenses() {
 
   return (
     <div>
-      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<div className="flex gap-2"><ExportControls onExport={handleExport} /><Button onClick={() => setFormOpen(true)}><Plus size={14} className="mr-1" /> Add Expense</Button></div>} />
+      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<div className="flex gap-2"><ExportControls onExport={handleExport} /><Button onClick={() => canManage && setFormOpen(true)}><Plus size={14} className="mr-1" /> Add Expense</Button></div>} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
@@ -168,7 +172,7 @@ export default function Expenses() {
       <Modal open={formOpen} title="Add Expense" onClose={() => setFormOpen(false)} footer={
         <>
           <Button variant="ghost" onClick={() => setFormOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit}>Save Expense</Button>
+          <Button onClick={handleSubmit} disabled={!canManage}>Save Expense</Button>
         </>
       }>
         <form onSubmit={handleSubmit} className="space-y-4">

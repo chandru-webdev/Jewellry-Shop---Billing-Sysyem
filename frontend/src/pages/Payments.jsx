@@ -8,6 +8,8 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { paymentsApi } from '../api/payments'
 import { formatINR, formatDate } from '../utils/format'
+import { exportPaymentsExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { PAID: 'green', COMPLETED: 'green', PENDING: 'orange', FAILED: 'red', REFUNDED: 'red' }
 const typeTone = { RECEIVED: 'green', SENT: 'red' }
@@ -27,6 +29,12 @@ export default function Payments() {
 
   const payments = apiPayments || []
 
+  const handleExport = async ({ from, to }) => {
+    const r = await paymentsApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((p) => inRange(p.createdAt, from, to))
+    exportPaymentsExcel(all)
+  }
+
   const filtered = payments.filter((p) => {
     if (filterType && payDir(p) !== filterType) return false
     if (search) {
@@ -42,7 +50,7 @@ export default function Payments() {
 
   return (
     <div>
-      <PageHeader title="Payments" subtitle="Track all payment transactions — Razorpay, bank transfers and more" />
+      <PageHeader title="Payments" subtitle="Track all payment transactions — Razorpay, bank transfers and more" actions={<ExportControls onExport={handleExport} />} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">

@@ -8,6 +8,8 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { expensesApi } from '../api/expenses'
 import { formatINR, formatDate } from '../utils/format'
+import { exportExpensesExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { PAID: 'green', PENDING: 'orange', CANCELLED: 'red' }
 const categoryTone = { Rent: 'blue', Salaries: 'purple', Utilities: 'emerald', Marketing: 'orange', Maintenance: 'red', 'Office Supplies': 'gray', Insurance: 'indigo' }
@@ -30,6 +32,12 @@ export default function Expenses() {
   })
 
   const expenses = apiExpenses || []
+
+  const handleExport = async ({ from, to }) => {
+    const r = await expensesApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((e) => inRange(e.date, from, to))
+    exportExpensesExcel(all)
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => expensesApi.create(data),
@@ -64,7 +72,7 @@ export default function Expenses() {
 
   return (
     <div>
-      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<Button onClick={() => setFormOpen(true)}><Plus size={14} className="mr-1" /> Add Expense</Button>} />
+      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<div className="flex gap-2"><ExportControls onExport={handleExport} /><Button onClick={() => setFormOpen(true)}><Plus size={14} className="mr-1" /> Add Expense</Button></div>} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">

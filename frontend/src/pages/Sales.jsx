@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Search, Download, Eye, Calendar,
+  Search, Download, Eye, Calendar, Edit,
   Plus, X, CreditCard, Users, Receipt, Package, ShoppingCart,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
@@ -14,7 +14,16 @@ import { customersApi } from '../api/customers'
 import { ordersApi } from '../api/orders'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
 import { downloadInvoicePDF } from '../utils/pdfInvoice'
+import { inRange } from '../utils/exportExcel'
+import {
+  exportSalesInvoicesExcel,
+  exportSalesOrdersExcel,
+  exportCustomersExcel,
+  exportReturnsExcel,
+} from '../utils/exportSalesExcel'
+import SaleEditForm from '../components/SaleEditForm'
 import { useAuth } from '../context/AuthContext'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = {
   PAID: 'green',
@@ -297,6 +306,7 @@ function InvoiceDetail({ invoice }) {
 }
 
 export default function Sales() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('invoices')
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -306,6 +316,10 @@ export default function Sales() {
   const [dateTo, setDateTo] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [selectedInvoiceForEdit, setSelectedInvoiceForEdit] = useState(null)
+  const [invoiceEditOpen, setInvoiceEditOpen] = useState(false)
+  const [pendingEditInvoice, setPendingEditInvoice] = useState(null)
+  const [editConfirmOpen, setEditConfirmOpen] = useState(false)
   const [orderDetailOpen, setOrderDetailOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
 
@@ -351,7 +365,76 @@ export default function Sales() {
     downloadInvoicePDF(inv)
   }
 
+  const handleInvoiceEdit = async (inv) => {
+    const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
+    if (!canEdit) return alert('You do not have permission to edit invoices.')
+
+    // Load the full invoice (with line items) so the form can be pre-filled
+    try {
+      const r = await invoicesApi.get(inv.id)
+      const full = r.data.data
+      if (full.status === 'DRAFT') {
+        setSelectedInvoiceForEdit(full)
+        setInvoiceEditOpen(true)
+      } else {
+        // Finalized invoices: ask for confirmation inside the app (no browser dialog)
+        setPendingEditInvoice(full)
+        setEditConfirmOpen(true)
+      }
+    } catch {
+      alert('Could not load invoice details. Please try again.')
+    }
+  }
+
   const filteredInvoices = displayInvoices
+
+  const handleExport = async ({ from, to }) => {
+    if (activeTab === 'invoices') {
+      const r = await invoicesApi.list({ limit: 100000 })
+      const all = (r.data.data || []).filter((inv) => inRange(inv.date || inv.createdAt, from, to))
+      const itemRows = []
+      const chunk = 8
+      for (let i = 0; i < all.length; i += chunk) {
+        const slice = all.slice(i, i + chunk)
+        const details = await Promise.all(
+          slice.map((inv) => invoicesApi.get(inv.id).then((x) => x.data.data).catch(() => null))
+        )
+        for (let j = 0; j < slice.length; j++) {
+          const full = details[j]
+          if (!full?.items) continue
+          for (const it of full.items) {
+            itemRows.push({
+              invoiceNumber: full.invoiceNumber,
+              date: full.date || full.createdAt,
+              name: it.name,
+              sku: it.sku,
+              product: it.product,
+              quantity: it.quantity,
+              weight: it.weight,
+              makingCharge: it.makingCharge,
+              silverRate: it.silverRate,
+              baseAmount: it.baseAmount,
+              gstAmount: it.gstAmount,
+              finalAmount: it.finalAmount,
+            })
+          }
+        }
+      }
+      exportSalesInvoicesExcel(all, itemRows)
+    } else if (activeTab === 'orders') {
+      const r = await ordersApi.list({ limit: 100000 })
+      const all = (r.data.data || []).filter((o) => inRange(o.createdAt, from, to))
+      exportSalesOrdersExcel(all)
+    } else if (activeTab === 'customers') {
+      const r = await customersApi.list({ limit: 100000 })
+      const all = (r.data.data || []).filter((c) => inRange(c.createdAt, from, to))
+      exportCustomersExcel(all)
+    } else if (activeTab === 'returns') {
+      const r = await ordersApi.list({ status: 'CANCELLED', limit: 100000 })
+      const all = (r.data.data || []).filter((o) => inRange(o.createdAt, from, to))
+      exportReturnsExcel(all)
+    }
+  }
 
   const clearFilters = () => {
     setSearch('')
@@ -380,6 +463,7 @@ export default function Sales() {
                 <X size={12} /> Clear
               </Button>
             )}
+            <ExportControls onExport={handleExport} />
             <Button size="sm" onClick={() => (window.location.href = '/billing')}>
               <Plus size={14} /> New Sale
             </Button>
@@ -542,21 +626,28 @@ export default function Sales() {
                         <Badge tone={statusTone[inv.status]}>{statusLabel[inv.status] || inv.status}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            onClick={() => fetchInvoice(inv.id)}
-                            className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                            title="View Details"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            onClick={() => downloadPdf(inv)}
-                            className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                            title="Download PDF"
-                          >
-                            <Download size={14} />
-                          </button>
+<div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => fetchInvoice(inv.id)}
+                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                        title="View Details"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleInvoiceEdit(inv)}
+                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                        title="Edit Invoice"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={() => downloadPdf(inv)}
+                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                        title="Download PDF"
+                      >
+                        <Download size={14} />
+                      </button>
                         </div>
                       </td>
                     </tr>
@@ -764,6 +855,67 @@ export default function Sales() {
         }
       >
         {selectedInvoice && <InvoiceDetail invoice={selectedInvoice} />}
+      </Modal>
+
+      {/* Confirm editing a finalized invoice */}
+      <Modal
+        open={editConfirmOpen}
+        title={`Edit ${pendingEditInvoice?.invoiceNumber || 'invoice'}?`}
+        onClose={() => setEditConfirmOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setEditConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditConfirmOpen(false)
+                setSelectedInvoiceForEdit(pendingEditInvoice)
+                setInvoiceEditOpen(true)
+              }}
+            >
+              Proceed
+            </Button>
+          </>
+        }
+      >
+        <div className="text-sm space-y-3">
+          <p>
+            This invoice is already{' '}
+            <span className="font-semibold text-royal-950 dark:text-white">
+              "{statusLabel[pendingEditInvoice?.status] || pendingEditInvoice?.status}"
+            </span>
+            .
+          </p>
+          <p>Changing line items, quantities, or amounts on a finalized invoice may affect:</p>
+          <ul className="list-disc pl-5 text-gray-600 dark:text-gray-400 space-y-1">
+            <li>Accounting records and tax reports</li>
+            <li>Stock/inventory levels</li>
+            <li>Payment reconciliation and customer balances</li>
+            <li>GST/GSTR-1/GSTR-3B summaries</li>
+          </ul>
+          <p className="font-medium text-royal-950 dark:text-white">Are you sure you want to proceed?</p>
+        </div>
+      </Modal>
+
+      {/* Edit Invoice Modal */}
+      <Modal
+        open={invoiceEditOpen}
+        title={`Edit Invoice ${selectedInvoiceForEdit?.invoiceNumber || ''}`}
+        onClose={() => setInvoiceEditOpen(false)}
+        size="xl"
+      >
+        {selectedInvoiceForEdit && (
+          <SaleEditForm
+            invoice={selectedInvoiceForEdit}
+            onCancel={() => setInvoiceEditOpen(false)}
+            onSaved={() => {
+              setInvoiceEditOpen(false)
+              setSelectedInvoiceForEdit(null)
+            }}
+          />
+        )}
       </Modal>
 
       <Modal open={orderDetailOpen} title={`Order — ${selectedOrder?.orderNumber || ''}`} onClose={() => setOrderDetailOpen(false)} footer={

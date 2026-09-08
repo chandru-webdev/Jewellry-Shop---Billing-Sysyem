@@ -8,6 +8,8 @@ import Modal from '../components/ui/Modal'
 import { Label, Input } from '../components/ui/FormControls'
 import { customersApi } from '../api/customers'
 import { formatINR, formatDate } from '../utils/format'
+import { exportCustomersExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const EMPTY_CUSTOMER = { name: '', email: '', phone: '' }
 
@@ -46,6 +48,18 @@ export default function Customers() {
     setTimeout(() => setToast(''), 2500)
   }
 
+  const handleExport = async ({ from, to }) => {
+    const r = await customersApi.list({ limit: 100000 })
+    const customers = (r.data.data || []).map((c) => ({
+      ...c,
+      orders: c.orders ?? c._count?.invoices ?? 0,
+      totalSpent: c.totalSpent ?? 0,
+      lastOrder: c.lastOrder ?? c.invoices?.[0]?.date ?? null,
+    }))
+    const all = customers.filter((c) => inRange(c.createdAt, from, to))
+    exportCustomersExcel(all)
+  }
+
   const handleCloseModal = () => {
     setShowAddModal(false)
     setNewCustomer(EMPTY_CUSTOMER)
@@ -68,7 +82,7 @@ export default function Customers() {
 
   return (
     <div>
-      <PageHeader title="Customers" subtitle="Manage your ecommerce customer database" actions={<Button size="sm" onClick={() => setShowAddModal(true)}><Plus size={14} /> Add Customer</Button>} />
+      <PageHeader title="Customers" subtitle="Manage your ecommerce customer database" actions={<div className="flex gap-2"><ExportControls onExport={handleExport} /><Button size="sm" onClick={() => setShowAddModal(true)}><Plus size={14} /> Add Customer</Button></div>} />
 
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 w-72">

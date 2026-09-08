@@ -9,6 +9,8 @@ import Modal from '../components/ui/Modal'
 import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
+import { exportSuppliersExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 export default function Suppliers() {
   const queryClient = useQueryClient()
@@ -27,6 +29,12 @@ export default function Suppliers() {
   })
 
   const suppliers = apiSuppliers || []
+
+  const handleExport = async ({ from, to }) => {
+    const r = await suppliersApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((s) => inRange(s.createdAt, from, to))
+    exportSuppliersExcel(all)
+  }
 
   const createMutation = useMutation({
     mutationFn: (data) => suppliersApi.create(data),
@@ -134,6 +142,7 @@ export default function Suppliers() {
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
+            <ExportControls onExport={handleExport} />
             {canManage && (
               <Button size="sm" onClick={openAddForm}>
                 <Plus size={14} /> Add Supplier

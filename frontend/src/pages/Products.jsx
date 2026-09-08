@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Power, Upload, Download, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Power, Upload, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -13,6 +13,8 @@ import { suppliersApi } from '../api/suppliers'
 import { metalRatesApi } from '../api/metalRates'
 import { formatINR, formatWeight } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
+import { exportProductsExcel } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 export default function Products() {
   const { user } = useAuth()
@@ -127,31 +129,11 @@ export default function Products() {
     toastTimer.current = setTimeout(() => setToast(''), 3000)
   }
 
-  const handleExport = () => {
-    const demoProducts = [
-      { name: 'Gold Ring Classic', sku: 'RNG-001', purity: '92.5', weight: 4.2, makingCharge: 350, sellingPrice: 28500, stock: 12 },
-      { name: 'Silver Chain Rope', sku: 'CHN-014', purity: '92.5', weight: 12.8, makingCharge: 280, sellingPrice: 9450, stock: 34 },
-      { name: 'Diamond Stud Earrings', sku: 'EAR-102', purity: '18K', weight: 2.1, makingCharge: 900, sellingPrice: 46200, stock: 6 },
-      { name: 'Temple Necklace Set', sku: 'NCK-207', purity: '22K', weight: 38.5, makingCharge: 420, sellingPrice: 238000, stock: 3 },
-      { name: 'Gold Bangle Pair', sku: 'BNG-031', purity: '22K', weight: 21.4, makingCharge: 380, sellingPrice: 132500, stock: 8 },
-    ]
-    const headers = ['Name', 'SKU', 'Purity', 'Weight (g)', 'Making Charge (INR/g)', 'Selling Price (INR)', 'Stock']
-    const rows = demoProducts.map((p) =>
-      [p.name, p.sku, p.purity, p.weight, p.makingCharge, p.sellingPrice, p.stock]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
-    )
-    const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'products-export.csv'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    showToast('Products exported as CSV')
+  const handleExport = async () => {
+    const r = await productsApi.list({ limit: 100000 })
+    const all = r.data.data || []
+    exportProductsExcel(all)
+    showToast('Products exported')
   }
 
   const handleSyncShopify = () => {
@@ -184,7 +166,7 @@ export default function Products() {
           canEdit && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => showToast('Products imported from Shopify')}><Upload size={14} /> Import</Button>
-              <Button variant="outline" size="sm" onClick={handleExport}><Download size={14} /> Export</Button>
+              <ExportControls onExport={handleExport} />
               <Button variant="outline" size="sm" onClick={handleSyncShopify} disabled={syncing}>{syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Sync Shopify</Button>
               <Button size="sm" onClick={() => { setEditing(null); setModalKey((k) => k + 1); setModalOpen(true) }}>
                 <Plus size={14} /> Add Product

@@ -8,6 +8,8 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { ordersApi } from '../api/orders'
 import { formatINR, formatDate } from '../utils/format'
+import { exportOrdersExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = {
   PENDING: 'orange', PAID: 'green',
@@ -48,13 +50,22 @@ export default function Orders() {
     return true
   })
 
+  const handleExport = async ({ from, to }) => {
+    const r = await ordersApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((o) => inRange(o.createdAt, from, to))
+    exportOrdersExcel(all)
+  }
+
   return (
     <div>
       <PageHeader
         title="Sales Orders"
         subtitle="Track Shopify and manual orders through fulfillment"
         actions={
-          <Button variant="outline" size="sm" onClick={() => showToast('Orders imported from Shopify')}><ExternalLink size={14} /> Import from Shopify</Button>
+          <div className="flex gap-2">
+            <ExportControls onExport={handleExport} />
+            <Button variant="outline" size="sm" onClick={() => showToast('Orders imported from Shopify')}><ExternalLink size={14} /> Import from Shopify</Button>
+          </div>
         }
       />
 

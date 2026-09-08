@@ -32,7 +32,7 @@ const expenseService = {
     return prisma.expense.findMany({
       where,
       orderBy: { date: 'desc' },
-      take: Math.min(Number(limit) || 100, 500),
+      take: Math.min(Number(limit) || 100, 100000),
     })
   },
 

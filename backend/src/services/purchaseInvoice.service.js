@@ -19,7 +19,7 @@ const purchaseInvoiceService = {
       ]
     }
 
-    const take = Math.min(Number(limit) || 50, 200)
+    const take = Math.min(Number(limit) || 50, 100000)
     const skip = (Number(page) - 1) * take
 
     const [invoices, total] = await Promise.all([

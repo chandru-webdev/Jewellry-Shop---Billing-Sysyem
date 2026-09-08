@@ -38,8 +38,6 @@ export default function GSTReports() {
     return { from: r.from.toISOString().slice(0, 10), to: r.to.toISOString().slice(0, 10) }
   }, [preset])
 
-  useQuery({ queryKey: ['gst-dummy'], queryFn: () => reportsApi.sales({ from, to }).then(() => ({})), retry: false, enabled: false })
-
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsApi.getAll().then((r) => r.data.data),
@@ -77,7 +75,7 @@ export default function GSTReports() {
           grandTotal: Number(inv.grandTotal),
         }
       })
-      .sort((a, b) => b.date - a.date)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
   }, [invData, ownState])
 
   const summary = useMemo(() => {

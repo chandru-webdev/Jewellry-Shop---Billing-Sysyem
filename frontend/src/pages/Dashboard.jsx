@@ -448,8 +448,8 @@ export default function Dashboard() {
           },
           {
             icon: TrendingUp,
-            label: 'Gross Profit (Revenue)',
-            value: formatINR(d.periodRevenue),
+            label: 'Gross Profit',
+            value: formatINR(d.periodRevenue - (d.periodCogs ?? 0)),
             trend: d.salesTrend >= 0 ? 'up' : 'down',
             trendValue: `${d.salesTrend >= 0 ? '▲' : '▼'} ${Math.abs(d.salesTrend)}% vs prev period`,
             accent: 'green',

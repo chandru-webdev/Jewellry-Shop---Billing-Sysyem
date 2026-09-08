@@ -9,8 +9,9 @@ import Modal from '../components/ui/Modal'
 import { paymentsApi } from '../api/payments'
 import { formatINR, formatDate } from '../utils/format'
 
-const statusTone = { COMPLETED: 'green', PENDING: 'orange', FAILED: 'red' }
+const statusTone = { PAID: 'green', COMPLETED: 'green', PENDING: 'orange', FAILED: 'red', REFUNDED: 'red' }
 const typeTone = { RECEIVED: 'green', SENT: 'red' }
+const payDir = (p) => p.type || (String(p.status || '').toUpperCase() === 'REFUNDED' ? 'SENT' : 'RECEIVED')
 
 export default function Payments() {
   const [search, setSearch] = useState('')
@@ -27,7 +28,7 @@ export default function Payments() {
   const payments = apiPayments || []
 
   const filtered = payments.filter((p) => {
-    if (filterType && p.type !== filterType) return false
+    if (filterType && payDir(p) !== filterType) return false
     if (search) {
       const q = search.toLowerCase()
       if (!p.customer?.toLowerCase().includes(q) && !p.invoice?.toLowerCase().includes(q) && !p.reference?.toLowerCase().includes(q)) return false
@@ -35,8 +36,8 @@ export default function Payments() {
     return true
   })
 
-  const totalReceived = payments.filter(p => p.type === 'RECEIVED' && p.status === 'COMPLETED').reduce((s, p) => s + p.amount, 0)
-  const totalSent = payments.filter(p => p.type === 'SENT' && p.status === 'COMPLETED').reduce((s, p) => s + p.amount, 0)
+  const totalReceived = payments.filter(p => payDir(p) === 'RECEIVED' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
+  const totalSent = payments.filter(p => payDir(p) === 'SENT' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
   const pendingAmount = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0)
 
   return (
@@ -94,14 +95,14 @@ export default function Payments() {
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{p.method}</Badge></td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={typeTone[p.type]}>
-                      {p.type === 'RECEIVED' ? <ArrowDownRight size={10} className="mr-0.5" /> : <ArrowUpRight size={10} className="mr-0.5" />}
-                      {p.type}
+                    <Badge tone={typeTone[payDir(p)]}>
+                      {payDir(p) === 'RECEIVED' ? <ArrowDownRight size={10} className="mr-0.5" /> : <ArrowUpRight size={10} className="mr-0.5" />}
+                      {payDir(p) === 'RECEIVED' ? 'Received' : 'Sent'}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-center"><Badge tone={statusTone[p.status]}>{p.status}</Badge></td>
                   <td className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.reference}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(p.date)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(p.createdAt || p.date)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(p); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>

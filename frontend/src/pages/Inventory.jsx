@@ -20,10 +20,10 @@ export default function Inventory() {
 
   const items = (apiItems || []).map((item) => {
     const qty = item.quantity ?? 0
-    const weight = Number(item.weight ?? 0)
+    const weight = Number(item.weight ?? item.product?.weight ?? 0)
     const costValue = Number(item.costValue ?? item.product?.costPrice ?? 0) * qty
     const sellingValue = Number(item.sellingValue ?? item.product?.sellingPrice ?? 0) * qty
-    const reorderLevel = item.reorderLevel ?? 10
+    const reorderLevel = item.reorderLevel ?? item.product?.lowStockThreshold ?? 5
     const status = qty === 0 ? 'Out of Stock' : qty <= reorderLevel ? 'Low Stock' : 'In Stock'
     return {
       name: item.product?.name || item.name || 'Unknown',

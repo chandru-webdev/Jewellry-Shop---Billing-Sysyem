@@ -156,7 +156,7 @@ const reportService = {
             status: { notIn: ['CANCELLED', 'REFUNDED'] },
           },
         },
-        select: { quantity: true, product: { select: { costPrice: true } } },
+        select: { quantity: true, product: { select: { costPrice: true } }, order: { select: { createdAt: true } } },
       }),
       null,
       null,
@@ -193,7 +193,7 @@ const reportService = {
     const bucket = (key) => {
       if (!key) return null
       if (!monthly.has(key)) {
-        monthly.set(key, { month: key, revenue: new Decimal(0), gst: new Decimal(0), inflow: new Decimal(0), outflow: new Decimal(0), purchases: new Decimal(0) })
+        monthly.set(key, { month: key, revenue: new Decimal(0), gst: new Decimal(0), inflow: new Decimal(0), outflow: new Decimal(0), purchases: new Decimal(0), cogs: new Decimal(0) })
       }
       return monthly.get(key)
     }
@@ -241,7 +241,12 @@ const reportService = {
     let totalCogs = new Decimal(0)
     for (const item of orderItems) {
       const cp = item.product?.costPrice
-      if (cp) totalCogs = totalCogs.plus(new Decimal(cp).mul(item.quantity))
+      if (cp) {
+        const lineCogs = new Decimal(cp).mul(item.quantity)
+        totalCogs = totalCogs.plus(lineCogs)
+        const b = bucket(toMonth(item.order?.createdAt, 'createdAt'))
+        if (b) b.cogs = b.cogs.plus(lineCogs)
+      }
     }
 
     const taxableRevenue = totalRevenue.minus(totalGst)
@@ -268,6 +273,8 @@ const reportService = {
           revenue: Number(m.revenue),
           gst: Number(m.gst),
           expense: Number(m.outflow.minus(m.purchases)),
+          cogs: Number(m.cogs),
+          netProfit: Number(m.revenue.minus(m.gst).minus(m.cogs).minus(m.outflow.minus(m.purchases))),
           inflow: Number(m.inflow),
           outflow: Number(m.outflow),
           purchases: Number(m.purchases),

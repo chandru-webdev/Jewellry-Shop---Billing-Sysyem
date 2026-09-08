@@ -5,7 +5,7 @@ import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-import { formatINR } from '../utils/format'
+import { formatINR, formatDate } from '../utils/format'
 import { reportsApi } from '../api/reports'
 import { inventoryApi } from '../api/inventory'
 
@@ -97,7 +97,7 @@ export default function InventoryReports() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-1"><Package size={14} className="text-royal-500 dark:text-gray-400" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Total SKUs</p></div>
-              <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{summary.products}</p>
+              <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{rows.length || summary.products || 0}</p>
             </div>
             <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-1"><Warehouse size={14} className="text-royal-500 dark:text-gray-400" /><p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Total Units</p></div>
@@ -181,7 +181,7 @@ export default function InventoryReports() {
                       const direction = (m.quantity ?? 0) >= 0 ? 'IN' : 'OUT'
                       return (
                         <tr key={m.id ?? i} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
-                          <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{new Date(m.createdAt).toISOString().slice(0, 10)}</td>
+                          <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{formatDate(m.createdAt)}</td>
                           <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{m.product?.name ?? '—'}</td>
                           <td className="px-4 py-2.5"><Badge tone={direction === 'IN' ? 'green' : 'red'}>{direction}</Badge></td>
                           <td className="px-4 py-2.5 text-right font-mono font-semibold">{Math.abs(m.quantity ?? 0)}</td>

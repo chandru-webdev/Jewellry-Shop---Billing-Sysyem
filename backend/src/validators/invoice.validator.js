@@ -11,6 +11,7 @@ const createInvoiceSchema = z.object({
     phone: z.string().min(5, 'Valid phone number required'),
     email: z.email().optional(),
     address: z.string().optional(),
+    gstin: z.string().optional(),
   }),
   items: z.array(lineSchema).min(1, 'Add at least one product'),
   discount: z.number().min(0).default(0),

@@ -168,7 +168,7 @@ export default function Invoices() {
                 <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{inv.invoiceNumber}</td>
                   <td className="px-4 py-3">
-                    {inv.orderNumber ? <Badge tone="blue">#{inv.orderNumber}</Badge> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
+                    {inv.order?.orderNumber ? <Badge tone="blue">#{inv.order.orderNumber}</Badge> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{inv.customer?.name || 'Walk-in'}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</td>

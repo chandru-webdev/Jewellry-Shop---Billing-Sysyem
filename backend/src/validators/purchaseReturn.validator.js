@@ -6,6 +6,7 @@ const purchaseReturnItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   quantity: z.coerce.number().positive('Quantity must be positive'),
   unitPrice: z.coerce.number().positive('Unit price must be positive'),
+  weight: z.coerce.number().nonnegative().optional(),
 })
 
 const createPurchaseReturnSchema = z.object({

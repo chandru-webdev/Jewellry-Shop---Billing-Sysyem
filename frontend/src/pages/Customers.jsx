@@ -4,7 +4,6 @@ import { Search, Plus, Phone, Mail } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { Label, Input } from '../components/ui/FormControls'
 import { customersApi } from '../api/customers'
@@ -88,7 +87,6 @@ export default function Customers() {
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Spent</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Order</th>
-                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Source</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -109,8 +107,7 @@ export default function Customers() {
                   <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{c.orders}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(c.totalSpent)}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(c.lastOrder)}</td>
-                  <td className="px-4 py-3 text-center"><Badge tone="blue">Shopify</Badge></td>
-                </tr>
+                  </tr>
               ))}
             </tbody>
           </table>

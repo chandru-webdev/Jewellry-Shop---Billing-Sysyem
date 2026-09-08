@@ -10,9 +10,15 @@ import { ordersApi } from '../api/orders'
 import { formatINR, formatDate } from '../utils/format'
 
 const statusTone = {
-  PENDING: 'orange', CONFIRMED: 'blue', PROCESSING: 'purple',
-  FULFILLED: 'green', CANCELLED: 'red', RETURNED: 'gray', REFUNDED: 'gray',
-  IMPORTED: 'blue',
+  PENDING: 'orange', PAID: 'green',
+  FULFILLED: 'green', CANCELLED: 'red', REFUNDED: 'gray',
+}
+
+const fulfillmentFromStatus = (status) => {
+  if (status === 'FULFILLED') return { label: 'Fulfilled', tone: 'green' }
+  if (status === 'CANCELLED') return { label: 'Cancelled', tone: 'red' }
+  if (status === 'REFUNDED') return { label: 'Refunded', tone: 'gray' }
+  return { label: 'Pending', tone: 'orange' }
 }
 
 export default function Orders() {
@@ -36,7 +42,7 @@ export default function Orders() {
     if (filterStatus && o.status !== filterStatus) return false
     if (search) {
       const q = search.toLowerCase()
-      const id = o.shopifyId || o.orderNumber || o.internalId || ''
+      const id = o.orderNumber || o.id || ''
       if (!id.toLowerCase().includes(q) && !o.customer?.name?.toLowerCase().includes(q)) return false
     }
     return true
@@ -61,12 +67,10 @@ export default function Orders() {
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Status</option>
-          <option value="IMPORTED">Imported</option>
-          <option value="CONFIRMED">Confirmed</option>
-          <option value="PROCESSING">Processing</option>
+          <option value="PENDING">Pending</option>
+          <option value="PAID">Paid</option>
           <option value="FULFILLED">Fulfilled</option>
           <option value="CANCELLED">Cancelled</option>
-          <option value="RETURNED">Returned</option>
           <option value="REFUNDED">Refunded</option>
         </select>
       </div>
@@ -93,23 +97,23 @@ export default function Orders() {
               {!isLoading && filtered.length === 0 && <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">No orders found.</td></tr>}
               {filtered.map((o) => (
                 <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.shopifyId || o.orderNumber || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.internalId}</td>
-                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || o.customer}</td>
-                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.value || o.totalAmount)}</td>
+                  <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || (o.shopifyOrderId ? `#${o.shopifyOrderId}` : '—')}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{o.id}</td>
+                  <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || o.customer || 'Walk-in'}</td>
+                  <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={o.payment === 'Paid' || o.paymentStatus === 'PAID' ? 'green' : 'orange'}>{o.payment || o.paymentStatus || '—'}</Badge>
+                    <Badge tone={o.paymentMethod ? 'green' : 'orange'}>{o.paymentMethod || '—'}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={o.fulfillment === 'Fulfilled' ? 'green' : o.fulfillment === 'Cancelled' ? 'red' : 'blue'}>{o.fulfillment || '—'}</Badge>
+                    <Badge tone={fulfillmentFromStatus(o.status).tone}>{fulfillmentFromStatus(o.status).label}</Badge>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {o.invoice ? <span className="font-mono text-xs text-royal-700 dark:text-gray-300">{o.invoice.invoiceNumber || o.invoice}</span> : <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={statusTone[o.status]}>{o.status}</Badge>
+                    <Badge tone={statusTone[o.status] || 'gray'}>{o.status}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.date || o.createdAt)}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(o); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
@@ -130,20 +134,20 @@ export default function Orders() {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-royal-50/60 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Shopify Order</p>
-                <p className="font-bold text-royal-950 dark:text-white text-lg">{selected.shopifyId || selected.orderNumber}</p>
+                <p className="font-bold text-royal-950 dark:text-white text-lg">{selected.orderNumber}</p>
               </div>
               <div className="bg-royal-50/60 rounded-lg p-3">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Status</p>
-                <Badge tone={statusTone[selected.status]}>{selected.status}</Badge>
+                <Badge tone={statusTone[selected.status] || 'gray'}>{selected.status}</Badge>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Value</p><p className="font-bold text-royal-950 dark:text-white">{formatINR(selected.value || selected.totalAmount)}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer || 'Walk-in'}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Value</p><p className="font-bold text-royal-950 dark:text-white">{formatINR(selected.totalAmount)}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Payment</p><Badge tone={selected.payment === 'Paid' ? 'green' : 'orange'}>{selected.payment || selected.paymentStatus || '—'}</Badge></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Fulfillment</p><Badge tone="blue">{selected.fulfillment || '—'}</Badge></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Payment</p><Badge tone={selected.paymentMethod ? 'green' : 'orange'}>{selected.paymentMethod || '—'}</Badge></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Fulfillment</p><Badge tone={fulfillmentFromStatus(selected.status).tone}>{fulfillmentFromStatus(selected.status).label}</Badge></div>
             </div>
           </div>
         )}

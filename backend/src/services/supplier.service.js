@@ -15,11 +15,23 @@ const supplierService = {
     if (isActive !== undefined && isActive !== null && isActive !== '') {
       where.isActive = isActive === 'true' || isActive === true
     }
-    return prisma.supplier.findMany({
+    const suppliers = await prisma.supplier.findMany({
       where,
+      include: {
+        purchaseOrders: { select: { totalAmount: true } },
+        purchaseInvoices: { select: { totalAmount: true, amountPaid: true } },
+      },
       orderBy: { name: 'asc' },
       take: Number(limit),
     })
+    return suppliers.map((s) => ({
+      ...s,
+      totalPOs: s.purchaseOrders.length,
+      totalPurchaseValue: s.purchaseOrders.reduce((sum, po) => sum + (Number(po.totalAmount) || 0), 0),
+      outstanding: s.purchaseInvoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0) - (Number(inv.amountPaid) || 0), 0),
+      purchaseOrders: undefined,
+      purchaseInvoices: undefined,
+    }))
   },
 
   async getById(id) {

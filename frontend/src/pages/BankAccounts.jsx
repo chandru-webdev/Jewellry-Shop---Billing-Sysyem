@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Edit, Trash2 } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -179,6 +179,7 @@ export default function BankAccounts() {
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.ifsc}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                      <button onClick={() => { setSelected(a); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
                       <button onClick={() => handleEdit(a)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(a.id)} className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg cursor-pointer" title="Delete"><Trash2 size={14} /></button>
                     </div>

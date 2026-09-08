@@ -23,7 +23,7 @@ export default function Billing() {
   const queryClient = useQueryClient()
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
-  const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '' })
+  const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '', gstin: '' })
   const [paymentMethod, setPaymentMethod] = useState('CASH')
   const [error, setError] = useState('')
 
@@ -125,6 +125,7 @@ export default function Billing() {
         phone: customer.phone,
         email: customer.email || undefined,
         address: customer.address || undefined,
+        gstin: customer.gstin || undefined,
       },
       items: items.map((i) => ({
         productId: i.productId,
@@ -247,6 +248,7 @@ export default function Billing() {
               <input type="text" placeholder="Phone *" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
               <input type="email" placeholder="Email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
               <input type="text" placeholder="Address" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              <input type="text" placeholder="GSTIN (optional)" value={customer.gstin} onChange={(e) => setCustomer({ ...customer, gstin: e.target.value.trim().toUpperCase() })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500 font-mono" />
             </div>
           </Card>
 

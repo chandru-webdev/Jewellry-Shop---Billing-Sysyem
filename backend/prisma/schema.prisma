@@ -391,6 +391,7 @@ model Payment {
   customerId Int
   customer   Customer      @relation(fields: [customerId], references: [id])
   amount     Decimal       @db.Decimal(12, 2)
+  pendingAmount Decimal    @db.Decimal(12, 2) @default(0)
   method     PaymentMethod
   status     PaymentStatus @default(PAID)
   reference  String? // transaction ID / UPI ref
@@ -699,6 +700,7 @@ model Expense {
   category      String
   description   String
   amount        Decimal  @db.Decimal(12, 2)
+  pendingAmount Decimal  @db.Decimal(12, 2) @default(0)
   date          DateTime @default(now())
   paymentMethod String   @default("Cash")
   reference     String?

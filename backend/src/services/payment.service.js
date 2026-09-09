@@ -110,6 +110,66 @@ const paymentService = {
     }
   },
 
+  // Re-sync a linked invoice's PAID status from its PAID payments after edits.
+  async _syncInvoice(invoiceId) {
+    const inv = await prisma.invoice.findUnique({ where: { id: invoiceId } })
+    if (!inv || inv.status === 'VOID') return
+    const agg = await prisma.payment.aggregate({
+      where: { invoiceId, status: 'PAID' },
+      _sum: { amount: true },
+    })
+    const paid = agg._sum.amount ?? new Decimal(0)
+    if (paid.greaterThanOrEqualTo(new Decimal(inv.grandTotal))) {
+      await prisma.invoice.update({ where: { id: invoiceId }, data: { status: 'PAID' } })
+      if (inv.orderId) {
+        await prisma.order.updateMany({
+          where: { id: inv.orderId, status: 'PENDING' },
+          data: { status: 'PAID' },
+        })
+      }
+    } else if (inv.status === 'PAID') {
+      await prisma.invoice.update({ where: { id: invoiceId }, data: { status: 'FINAL' } })
+    }
+  },
+
+  // PUT /api/payments/:id — edit amount/method/status/reference, then keep the
+  // linked invoice's PAID state in sync with the PAID payments total.
+  async update(id, data, userId) {
+    const existing = await this.getById(id)
+    const patch = {}
+    if (data.amount !== undefined) patch.amount = new Decimal(data.amount).toDecimalPlaces(2)
+    if (data.pendingAmount !== undefined && data.pendingAmount !== null) patch.pendingAmount = new Decimal(data.pendingAmount).toDecimalPlaces(2)
+    if (data.method !== undefined) patch.method = data.method
+    if (data.status !== undefined) patch.status = data.status
+    if (data.reference !== undefined) patch.reference = data.reference || null
+
+    const updated = await prisma.payment.update({ where: { id: existing.id }, data: patch })
+
+    if (existing.invoiceId) await this._syncInvoice(existing.invoiceId)
+    else if (existing.orderId && updated.status === 'REFUNDED') {
+      await prisma.order.updateMany({
+        where: { id: existing.orderId, status: 'PAID' },
+        data: { status: 'PENDING' },
+      })
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'PAYMENT_UPDATED',
+        entity: 'Payment',
+        entityId: updated.id,
+        metadata: {
+          amount: updated.amount.toString(),
+          method: updated.method,
+          status: updated.status,
+        },
+      },
+    })
+
+    return this.getById(updated.id)
+  },
+
   async getById(id) {
     const payment = await prisma.payment.findUnique({
       where: { id: Number(id) },
@@ -145,6 +205,9 @@ const paymentService = {
           orderId: data.orderId ? Number(data.orderId) : null,
           customerId,
           amount: amount.toDecimalPlaces(2),
+          pendingAmount: data.pendingAmount !== undefined && data.pendingAmount !== null
+            ? new Decimal(data.pendingAmount).toDecimalPlaces(2)
+            : new Decimal(0),
           method: data.method,
           status: data.status || 'PAID',
           reference: data.reference || null,

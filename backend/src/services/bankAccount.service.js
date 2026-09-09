@@ -67,6 +67,9 @@ const bankAccountService = {
       const diff = Number(data.openingBalance) - Number(existing.openingBalance)
       patch.balance = Number(existing.balance) + diff
     }
+    if (data.balance !== undefined) {
+      patch.balance = Number(data.balance)
+    }
 
     return prisma.bankAccount.update({ where: { id: existing.id }, data: patch })
   },

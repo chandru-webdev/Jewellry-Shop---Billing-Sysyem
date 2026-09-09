@@ -6,4 +6,5 @@ export const paymentsApi = {
   summary: () => apiClient.get('/payments/summary'),
   get: (id) => apiClient.get(`/payments/${id}`),
   create: (data) => apiClient.post('/payments', data),
+  update: (id, data) => apiClient.put(`/payments/${id}`, data),
 }

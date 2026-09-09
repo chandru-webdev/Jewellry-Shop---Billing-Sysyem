@@ -40,6 +40,9 @@ export default function BankAccounts() {
       setFormOpen(false)
       resetForm()
     },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to save bank account. Please try again.')
+    },
   })
 
   const updateMutation = useMutation({
@@ -50,6 +53,9 @@ export default function BankAccounts() {
       setFormOpen(false)
       resetForm()
     },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to update bank account. Please try again.')
+    },
   })
 
   const deleteMutation = useMutation({
@@ -57,6 +63,9 @@ export default function BankAccounts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['bank-accounts-summary'] })
+    },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to delete bank account. Please try again.')
     },
   })
 
@@ -76,6 +85,14 @@ export default function BankAccounts() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!formData.name || !formData.bank || !formData.accountNumber || !formData.ifsc || !formData.openingDate) {
+      alert('Please fill in all required fields')
+      return
+    }
+    if (formData.ifsc.length !== 11) {
+      alert('IFSC code must be exactly 11 characters')
+      return
+    }
     if (editing) {
       updateMutation.mutate({ id: editing.id, data: formData })
     } else {
@@ -249,7 +266,8 @@ export default function BankAccounts() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IFSC Code *</label>
-              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500 uppercase" required />
+              <p className="text-[11px] text-gray-400 mt-1">11 characters, e.g. HDFC0001234</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opening Balance</label>

@@ -403,6 +403,23 @@ async function ensureSchema() {
       END $$
     `)
     console.log('PurchaseInvoice model ensured.')
+
+    // Pending Amount support on Payment + Expense (added 2026-09-09).
+    // Guaranteed via schema-migration too, but kept here so any environment
+    // boots with the columns even if `prisma migrate deploy` is not run.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Payment" ADD COLUMN "pendingAmount" DECIMAL(12,2) NOT NULL DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD COLUMN "pendingAmount" DECIMAL(12,2) NOT NULL DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Payment.pendingAmount / Expense.pendingAmount columns ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

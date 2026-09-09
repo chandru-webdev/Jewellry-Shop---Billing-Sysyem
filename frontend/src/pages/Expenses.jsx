@@ -71,6 +71,7 @@ export default function Expenses() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!canManage) return
     createMutation.mutate(formData)
   }
 

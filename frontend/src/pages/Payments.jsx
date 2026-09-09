@@ -39,7 +39,10 @@ export default function Payments() {
     if (filterType && payDir(p) !== filterType) return false
     if (search) {
       const q = search.toLowerCase()
-      if (!p.customer?.toLowerCase().includes(q) && !p.invoice?.toLowerCase().includes(q) && !p.reference?.toLowerCase().includes(q)) return false
+      const cust = (p.customer?.name || p.customer || '').toLowerCase()
+      const inv = (p.invoice?.invoiceNumber || p.invoice || '').toLowerCase()
+      const ref = (p.reference || '').toLowerCase()
+      if (!cust.includes(q) && !inv.includes(q) && !ref.includes(q)) return false
     }
     return true
   })

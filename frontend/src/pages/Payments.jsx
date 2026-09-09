@@ -47,9 +47,9 @@ export default function Payments() {
     return true
   })
 
-  const totalReceived = payments.filter(p => payDir(p) === 'RECEIVED' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
-  const totalSent = payments.filter(p => payDir(p) === 'SENT' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
-  const pendingAmount = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0)
+  const totalReceived = payments.filter(p => payDir(p) === 'RECEIVED' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + Number(p.amount), 0)
+  const totalSent = payments.filter(p => payDir(p) === 'SENT' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + Number(p.amount), 0)
+  const pendingAmount = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + Number(p.amount), 0)
 
   return (
     <div>

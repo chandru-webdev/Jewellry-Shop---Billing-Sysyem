@@ -11,6 +11,8 @@ import { useAuth } from '../context/AuthContext'
 import { purchaseInvoicesApi } from '../api/purchaseInvoices'
 import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
+import { exportPurchaseInvoicesExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { PENDING: 'orange', PARTIALLY_PAID: 'blue', PAID: 'green', VOID: 'red' }
 const statusLabel = {
@@ -578,6 +580,12 @@ export default function PurchaseInvoices() {
 
   const displayInvoices = invoices?.invoices || []
 
+  const handleExport = async ({ from, to }) => {
+    const r = await purchaseInvoicesApi.list({ limit: 100000 })
+    const all = (r.data.data?.invoices || []).filter((inv) => inRange(inv.invoiceDate, from, to))
+    exportPurchaseInvoicesExcel(all)
+  }
+
   const filtered = displayInvoices.filter((inv) => {
     if (filterStatus && inv.status !== filterStatus) return false
     if (search) {
@@ -650,6 +658,7 @@ export default function PurchaseInvoices() {
               <option value="PAID">Paid</option>
               <option value="VOID">Void</option>
             </select>
+            <ExportControls onExport={handleExport} />
             {canEdit && (
               <Button size="sm" onClick={() => setCreateOpen(true)}>
                 <Plus size={14} /> New Purchase Invoice

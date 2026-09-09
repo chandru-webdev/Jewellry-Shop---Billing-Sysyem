@@ -11,6 +11,8 @@ import { suppliersApi } from '../api/suppliers'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
 import { productsApi } from '../api/products'
 import { useAuth } from '../context/AuthContext'
+import { exportPurchaseOrdersExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = {
   DRAFT: 'orange',
@@ -143,6 +145,12 @@ export default function PurchaseOrders() {
   const orders = apiData?.orders || []
   const suppliersList = apiSuppliers || []
   const productsList = apiProducts || []
+
+  const handleExport = async ({ from, to }) => {
+    const r = await purchaseOrdersApi.list({ limit: 100000 })
+    const all = (r.data.data?.orders || []).filter((o) => inRange(o.orderDate || o.createdAt, from, to))
+    exportPurchaseOrdersExcel(all)
+  }
 
   const filtered = orders.filter((o) => {
     if (filterStatus && o.status !== filterStatus) return false
@@ -304,6 +312,7 @@ export default function PurchaseOrders() {
               <option value="CANCELLED">Cancelled</option>
               <option value="RETURNED">Returned</option>
             </select>
+            <ExportControls onExport={handleExport} />
             <Button size="sm" onClick={openNewPO}>
               <Package size={14} /> New PO
             </Button>

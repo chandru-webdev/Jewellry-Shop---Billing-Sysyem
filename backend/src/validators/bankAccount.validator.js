@@ -12,6 +12,7 @@ const createBankAccountSchema = z.object({
 
 const updateBankAccountSchema = createBankAccountSchema.partial().extend({
   isActive: z.boolean().optional(),
+  balance: z.coerce.number().optional(),
 })
 
 module.exports = { createBankAccountSchema, updateBankAccountSchema }

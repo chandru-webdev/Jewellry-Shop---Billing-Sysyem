@@ -16,7 +16,8 @@ const EXPENSE_STATUSES = ['PAID', 'PENDING', 'CANCELLED']
 const createExpenseSchema = z.object({
   category: z.string().min(1, 'Category is required').max(60),
   description: z.string().min(1, 'Description is required').max(500),
-  amount: z.number().positive('Amount must be a positive number'),
+  amount: z.coerce.number().positive('Amount must be a positive number'),
+  pendingAmount: z.coerce.number().optional(),
   date: z.string().optional(),
   paymentMethod: z.string().max(40).optional(),
   reference: z.string().max(100).nullable().optional(),

@@ -11,6 +11,8 @@ import Modal from '../components/ui/Modal'
 import { useAuth } from '../context/AuthContext'
 import { metalRatesApi } from '../api/metalRates'
 import { formatINR, formatDateTime, formatDate } from '../utils/format'
+import { exportMetalRateHistoryExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -110,11 +112,18 @@ export default function MetalRates() {
     requestMutation.mutate(newRate)
   }
 
+  const handleExport = async ({ from, to }) => {
+    const r = await metalRatesApi.getHistory({ limit: 100000 })
+    const all = (r.data.data || []).filter((h) => inRange(h.changedAt, from, to))
+    exportMetalRateHistoryExcel(all)
+  }
+
   return (
     <div>
       <PageHeader
         title="Silver Rate Management"
         subtitle="Manage 92.5 Sterling Silver rates and sync prices to Shopify"
+        actions={<ExportControls onExport={handleExport} />}
       />
 
       {/* Role indicator */}

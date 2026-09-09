@@ -6,6 +6,8 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
 import { inventoryApi } from '../api/inventory'
+import { exportInventoryExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { 'In Stock': 'green', 'Low Stock': 'orange', 'Out of Stock': 'red' }
 
@@ -56,9 +58,19 @@ export default function Inventory() {
     return true
   })
 
+  const handleExport = async ({ from, to }) => {
+    const r = await inventoryApi.list()
+    const all = (r.data.data || []).filter((it) => inRange(it.updatedAt, from, to))
+    exportInventoryExcel(all)
+  }
+
   return (
     <div>
-      <PageHeader title="Stock Overview" subtitle="Monitor inventory levels, weight and value across all products" />
+      <PageHeader
+        title="Stock Overview"
+        subtitle="Monitor inventory levels, weight and value across all products"
+        actions={<ExportControls onExport={handleExport} />}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">

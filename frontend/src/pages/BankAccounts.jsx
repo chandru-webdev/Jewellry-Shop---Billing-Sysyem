@@ -20,7 +20,7 @@ export default function BankAccounts() {
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [formData, setFormData] = useState({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0] })
+  const [formData, setFormData] = useState({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0], balance: '' })
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['bank-accounts', search, filterType, filterStatus],
@@ -40,6 +40,9 @@ export default function BankAccounts() {
       setFormOpen(false)
       resetForm()
     },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to save bank account. Please try again.')
+    },
   })
 
   const updateMutation = useMutation({
@@ -50,6 +53,9 @@ export default function BankAccounts() {
       setFormOpen(false)
       resetForm()
     },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to update bank account. Please try again.')
+    },
   })
 
   const deleteMutation = useMutation({
@@ -57,6 +63,9 @@ export default function BankAccounts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['bank-accounts-summary'] })
+    },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to delete bank account. Please try again.')
     },
   })
 
@@ -76,10 +85,21 @@ export default function BankAccounts() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!formData.name || !formData.bank || !formData.accountNumber || !formData.ifsc || !formData.openingDate) {
+      alert('Please fill in all required fields')
+      return
+    }
+    if (formData.ifsc.length !== 11) {
+      alert('IFSC code must be exactly 11 characters')
+      return
+    }
     if (editing) {
-      updateMutation.mutate({ id: editing.id, data: formData })
+      const data = { ...formData }
+      if (data.balance === '') delete data.balance
+      updateMutation.mutate({ id: editing.id, data })
     } else {
-      createMutation.mutate(formData)
+      const { balance, ...data } = formData
+      createMutation.mutate(data)
     }
   }
 
@@ -93,6 +113,7 @@ export default function BankAccounts() {
       type: account.type,
       openingBalance: account.openingBalance.toString(),
       openingDate: account.openingDate?.split('T')[0] || '',
+      balance: account.balance.toString(),
     })
     setFormOpen(true)
   }
@@ -105,7 +126,7 @@ export default function BankAccounts() {
 
   const resetForm = () => {
     setEditing(null)
-    setFormData({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0] })
+    setFormData({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0], balance: '' })
   }
 
   return (
@@ -249,12 +270,20 @@ export default function BankAccounts() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IFSC Code *</label>
-              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+              <input type="text" value={formData.ifsc} onChange={(e) => setFormData({...formData, ifsc: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500 uppercase" required />
+              <p className="text-[11px] text-gray-400 mt-1">11 characters, e.g. HDFC0001234</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opening Balance</label>
               <input type="number" step="0.01" value={formData.openingBalance} onChange={(e) => setFormData({...formData, openingBalance: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" />
             </div>
+            {editing && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Balance</label>
+                <input type="number" step="0.01" value={formData.balance} onChange={(e) => setFormData({...formData, balance: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" />
+                <p className="text-[11px] text-gray-400 mt-1">Sets the account's current balance directly</p>
+              </div>
+            )}
           </div>
         </form>
       </Modal>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Eye } from 'lucide-react'
+import { Search, Plus, Eye, Edit } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -8,6 +8,8 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { expensesApi } from '../api/expenses'
 import { formatINR, formatDate } from '../utils/format'
+import { exportExpensesExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { PAID: 'green', PENDING: 'orange', CANCELLED: 'red' }
 const categoryTone = { Rent: 'blue', Salaries: 'purple', Utilities: 'emerald', Marketing: 'orange', Maintenance: 'red', 'Office Supplies': 'gray', Insurance: 'indigo' }
@@ -19,9 +21,15 @@ export default function Expenses() {
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
-  const [formData, setFormData] = useState({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
+  const [editing, setEditing] = useState(null)
+  const [formData, setFormData] = useState({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0], status: 'PAID', pendingAmount: '' })
 
   const queryClient = useQueryClient()
+
+  const resetForm = () => {
+    setEditing(null)
+    setFormData({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0], status: 'PAID', pendingAmount: '' })
+  }
 
   const { data: apiExpenses } = useQuery({
     queryKey: ['expenses'],
@@ -31,14 +39,50 @@ export default function Expenses() {
 
   const expenses = apiExpenses || []
 
+  const handleExport = async ({ from, to }) => {
+    const r = await expensesApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((e) => inRange(e.date, from, to))
+    exportExpensesExcel(all)
+  }
+
   const createMutation = useMutation({
     mutationFn: (data) => expensesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] })
       setFormOpen(false)
-      setFormData({ category: '', description: '', amount: '', paymentMethod: 'Bank Transfer', reference: '', date: new Date().toISOString().split('T')[0] })
+      resetForm()
+    },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to save expense. Please try again.')
     },
   })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => expensesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      setFormOpen(false)
+      resetForm()
+    },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to update expense. Please try again.')
+    },
+  })
+
+  const handleEdit = (e) => {
+    setEditing(e)
+    setFormData({
+      category: e.category,
+      description: e.description,
+      amount: e.amount.toString(),
+      paymentMethod: e.paymentMethod,
+      reference: e.reference || '',
+      date: e.date?.split('T')[0] || '',
+      status: e.status || 'PAID',
+      pendingAmount: e.pendingAmount ? e.pendingAmount.toString() : '',
+    })
+    setFormOpen(true)
+  }
 
   const filtered = expenses.filter((e) => {
     if (filterCategory && e.category !== filterCategory) return false
@@ -51,20 +95,36 @@ export default function Expenses() {
   })
 
   const categories = [...new Set(expenses.map(e => e.category))]
-  const totalExpenses = expenses.filter(e => e.status === 'PAID').reduce((s, e) => s + e.amount, 0)
-  const pendingExpenses = expenses.filter(e => e.status === 'PENDING').reduce((s, e) => s + e.amount, 0)
+  const totalExpenses = expenses.filter(e => e.status === 'PAID').reduce((s, e) => s + Number(e.amount), 0)
+  const pendingExpenses = expenses.filter(e => e.status === 'PENDING').reduce((s, e) => s + Number(e.pendingAmount || e.amount), 0)
   const now = new Date()
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const thisMonth = expenses.filter(e => e.date.startsWith(thisMonthKey)).reduce((s, e) => s + e.amount, 0)
+  const thisMonth = expenses.filter(e => e.date.startsWith(thisMonthKey)).reduce((s, e) => s + Number(e.amount), 0)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    createMutation.mutate(formData)
+    const amount = Number(formData.amount)
+    if (!formData.category || !formData.description || !formData.date || !(amount > 0)) {
+      alert('Please fill in all required fields with a valid amount')
+      return
+    }
+    const payload = { ...formData, amount }
+    if (payload.status === 'PENDING') {
+      const pa = Number(payload.pendingAmount)
+      payload.pendingAmount = pa > 0 ? pa : amount
+    } else {
+      payload.pendingAmount = 0
+    }
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data: payload })
+    } else {
+      createMutation.mutate(payload)
+    }
   }
 
   return (
     <div>
-      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<Button onClick={() => setFormOpen(true)}><Plus size={14} className="mr-1" /> Add Expense</Button>} />
+      <PageHeader title="Expenses" subtitle="Track and manage all business expenses" actions={<div className="flex gap-2"><ExportControls onExport={handleExport} /><Button onClick={() => { resetForm(); setFormOpen(true) }}><Plus size={14} className="mr-1" /> Add Expense</Button></div>} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
@@ -107,6 +167,7 @@ export default function Expenses() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Category</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Description</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Amount</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Pending</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Method</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Reference</th>
@@ -122,12 +183,14 @@ export default function Expenses() {
                   </td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-sm">{e.description}</td>
                   <td className="px-4 py-3 text-right font-bold text-red-600">{formatINR(e.amount)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-amber-600">{e.status === 'PENDING' ? formatINR(e.pendingAmount) : '—'}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{e.paymentMethod}</Badge></td>
                   <td className="px-4 py-3 text-center"><Badge tone={statusTone[e.status]}>{e.status}</Badge></td>
                   <td className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{e.reference}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(e); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => handleEdit(e)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -157,10 +220,10 @@ export default function Expenses() {
         )}
       </Modal>
 
-      <Modal open={formOpen} title="Add Expense" onClose={() => setFormOpen(false)} footer={
+      <Modal open={formOpen} title={editing ? 'Edit Expense' : 'Add Expense'} onClose={() => { setFormOpen(false); resetForm() }} footer={
         <>
-          <Button variant="ghost" onClick={() => setFormOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit}>Save Expense</Button>
+          <Button variant="ghost" onClick={() => { setFormOpen(false); resetForm() }}>Cancel</Button>
+          <Button onClick={handleSubmit}>{editing ? 'Update Expense' : 'Save Expense'}</Button>
         </>
       }>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -190,6 +253,20 @@ export default function Expenses() {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount *</label>
               <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+            </div>
+            {formData.status === 'PENDING' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pending Amount *</label>
+                <input type="number" step="0.01" value={formData.pendingAmount} onChange={(e) => setFormData({...formData, pendingAmount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Amount still to be paid" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>

@@ -1,6 +1,6 @@
 const express = require('express')
 const paymentController = require('../controllers/payment.controller')
-const { createPaymentSchema } = require('../validators/payment.validator')
+const { createPaymentSchema, updatePaymentSchema } = require('../validators/payment.validator')
 const validate = require('../middleware/validate')
 const { authenticate, authorize } = require('../middleware/auth')
 
@@ -15,5 +15,6 @@ router.get('/:id', paymentController.getById)
 
 // Recording a payment is a sales action — any staff member can do it.
 router.post('/', authorize('SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'), validate(createPaymentSchema), paymentController.create)
+router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER'), validate(updatePaymentSchema), paymentController.update)
 
 module.exports = router

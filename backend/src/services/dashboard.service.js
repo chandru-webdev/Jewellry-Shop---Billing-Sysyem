@@ -506,6 +506,12 @@ const dashboardService = {
 
     const inventoryValue = Number(inventoryValueAgg._sum.sellingPrice ?? 0)
 
+    // Actual expenses recorded today (from the Expenses page), reflected on dashboard
+    const todayExpensesAgg = await prisma.expense.aggregate({
+      where: { status: { not: 'CANCELLED' }, date: { gte: today, lte: endOfDay(now) } },
+      _sum: { amount: true },
+    })
+
     return {
       // Date range info
       dateRange: {
@@ -579,7 +585,7 @@ const dashboardService = {
       // Outstanding / pending
       outstanding: Number(outstandingAgg._sum.amount ?? 0),
       outstandingInvoices: outstandingAgg._count,
-      todayExpenses: Math.round(cogs * 100) / 100,
+      todayExpenses: Math.round(Number(todayExpensesAgg._sum.amount ?? 0) * 100) / 100,
 
       // Bottom analytics
       monthSales: monthRevenue,

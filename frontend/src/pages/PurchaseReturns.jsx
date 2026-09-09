@@ -11,6 +11,8 @@ import { purchaseReturnsApi } from '../api/purchaseReturns'
 import { suppliersApi } from '../api/suppliers'
 import { productsApi } from '../api/products'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
+import { exportPurchaseReturnsExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = {
   PENDING: 'orange',
@@ -94,6 +96,12 @@ export default function PurchaseReturns() {
   const returns = apiData?.returns || []
   const suppliersList = apiSuppliers || []
   const productsList = apiProducts || []
+
+  const handleExport = async ({ from, to }) => {
+    const r = await purchaseReturnsApi.list({ limit: 100000 })
+    const all = (r.data.data?.returns || []).filter((ret) => inRange(ret.createdAt, from, to))
+    exportPurchaseReturnsExcel(all)
+  }
 
   const filtered = returns.filter((r) => {
     if (filterStatus && r.status !== filterStatus) return false
@@ -226,6 +234,7 @@ export default function PurchaseReturns() {
               <option value="COMPLETED">Completed</option>
               <option value="REJECTED">Rejected</option>
             </select>
+            <ExportControls onExport={handleExport} />
             <Button size="sm" onClick={openNewReturn}>
               <RotateCw size={14} /> New Return
             </Button>

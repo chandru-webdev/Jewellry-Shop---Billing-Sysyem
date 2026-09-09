@@ -27,6 +27,11 @@ const paymentController = {
     const payment = await paymentService.create(req.body, req.user.id)
     success(res, 201, payment, 'Payment recorded')
   }),
+
+  update: asyncHandler(async (req, res) => {
+    const payment = await paymentService.update(req.params.id, req.body, req.user.id)
+    success(res, 200, payment, 'Payment updated')
+  }),
 }
 
 module.exports = paymentController

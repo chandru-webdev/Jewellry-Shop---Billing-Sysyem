@@ -20,6 +20,18 @@ const createInvoiceSchema = z.object({
 
 const updateInvoiceSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
+  customer: z
+    .object({
+      name: z.string().min(1).optional(),
+      phone: z.string().min(5).optional(),
+      email: z.email().optional(),
+      address: z.string().optional(),
+      gstin: z.string().optional(),
+    })
+    .optional(),
+  items: z.array(lineSchema).optional(),
+  discount: z.number().min(0).optional(),
+  paymentMethod: z.enum(['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'ONLINE', 'OTHER']).optional(),
   status: z.enum(['DRAFT', 'FINAL', 'PAID', 'VOID']).optional(),
 })
 

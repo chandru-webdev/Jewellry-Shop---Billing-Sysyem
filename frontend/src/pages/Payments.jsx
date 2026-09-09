@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Eye, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Search, Eye, Edit, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -8,6 +8,8 @@ import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { paymentsApi } from '../api/payments'
 import { formatINR, formatDate } from '../utils/format'
+import { exportPaymentsExcel, inRange } from '../utils/exportExcel'
+import ExportControls from '../components/ui/ExportControls'
 
 const statusTone = { PAID: 'green', COMPLETED: 'green', PENDING: 'orange', FAILED: 'red', REFUNDED: 'red' }
 const typeTone = { RECEIVED: 'green', SENT: 'red' }
@@ -18,6 +20,9 @@ export default function Payments() {
   const [filterType, setFilterType] = useState('')
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ amount: '', method: 'CASH', status: 'PAID', reference: '', pendingAmount: '' })
+  const queryClient = useQueryClient()
 
   const { data: apiPayments } = useQuery({
     queryKey: ['payments'],
@@ -27,22 +32,70 @@ export default function Payments() {
 
   const payments = apiPayments || []
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => paymentsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      setEditOpen(false)
+      setSelected(null)
+    },
+    onError: (err) => {
+      alert(err?.response?.data?.message || 'Failed to update payment. Please try again.')
+    },
+  })
+
+  const handleEdit = (p) => {
+    setSelected(p)
+    setEditForm({
+      amount: p.amount.toString(),
+      method: p.method,
+      status: p.status || 'PAID',
+      reference: p.reference || '',
+      pendingAmount: p.pendingAmount ? p.pendingAmount.toString() : '',
+    })
+    setEditOpen(true)
+  }
+
+  const handleUpdate = (e) => {
+    e.preventDefault()
+    const amount = Number(editForm.amount)
+    if (!(amount > 0)) {
+      alert('Payment amount must be greater than zero')
+      return
+    }
+    let pendingAmount = 0
+    if (editForm.status === 'PENDING') {
+      const pa = Number(editForm.pendingAmount)
+      pendingAmount = pa > 0 ? pa : amount
+    }
+    updateMutation.mutate({ id: selected.id, data: { ...editForm, amount, pendingAmount } })
+  }
+
+  const handleExport = async ({ from, to }) => {
+    const r = await paymentsApi.list({ limit: 100000 })
+    const all = (r.data.data || []).filter((p) => inRange(p.createdAt, from, to))
+    exportPaymentsExcel(all)
+  }
+
   const filtered = payments.filter((p) => {
     if (filterType && payDir(p) !== filterType) return false
     if (search) {
       const q = search.toLowerCase()
-      if (!p.customer?.toLowerCase().includes(q) && !p.invoice?.toLowerCase().includes(q) && !p.reference?.toLowerCase().includes(q)) return false
+      const cust = (p.customer?.name || p.customer || '').toLowerCase()
+      const inv = (p.invoice?.invoiceNumber || p.invoice || '').toLowerCase()
+      const ref = (p.reference || '').toLowerCase()
+      if (!cust.includes(q) && !inv.includes(q) && !ref.includes(q)) return false
     }
     return true
   })
 
-  const totalReceived = payments.filter(p => payDir(p) === 'RECEIVED' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
-  const totalSent = payments.filter(p => payDir(p) === 'SENT' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + p.amount, 0)
-  const pendingAmount = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0)
+  const totalReceived = payments.filter(p => payDir(p) === 'RECEIVED' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + Number(p.amount), 0)
+  const totalSent = payments.filter(p => payDir(p) === 'SENT' && ['PAID', 'COMPLETED'].includes(p.status)).reduce((s, p) => s + Number(p.amount), 0)
+  const pendingAmount = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + Number(p.pendingAmount || p.amount), 0)
 
   return (
     <div>
-      <PageHeader title="Payments" subtitle="Track all payment transactions — Razorpay, bank transfers and more" />
+      <PageHeader title="Payments" subtitle="Track all payment transactions — Razorpay, bank transfers and more" actions={<ExportControls onExport={handleExport} />} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08]/80 shadow-sm p-4">
@@ -79,6 +132,7 @@ export default function Payments() {
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer / Supplier</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Amount</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Pending</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Method</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Type</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
@@ -93,6 +147,7 @@ export default function Payments() {
                   <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{p.invoice?.invoiceNumber || p.invoice || '—'}</td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{p.customer?.name || p.customer || '—'}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-amber-600">{p.status === 'PENDING' ? formatINR(p.pendingAmount) : '—'}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{p.method}</Badge></td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone={typeTone[payDir(p)]}>
@@ -106,6 +161,7 @@ export default function Payments() {
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelected(p); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><Eye size={14} /></button>
+                      <button onClick={() => handleEdit(p)} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit"><Edit size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -132,6 +188,56 @@ export default function Payments() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={editOpen} title="Edit Payment" onClose={() => { setEditOpen(false); setSelected(null) }} footer={
+        <>
+          <Button variant="ghost" onClick={() => { setEditOpen(false); setSelected(null) }}>Cancel</Button>
+          <Button onClick={handleUpdate}>Update Payment</Button>
+        </>
+      }>
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer</label>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{selected?.customer?.name || selected?.customer || '—'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount *</label>
+              <input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({...editForm, amount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
+            </div>
+            {editForm.status === 'PENDING' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pending Amount *</label>
+                <input type="number" step="0.01" value={editForm.pendingAmount} onChange={(e) => setEditForm({...editForm, pendingAmount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Amount still to be received" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+              <select value={editForm.method} onChange={(e) => setEditForm({...editForm, method: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="CARD">Card</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="ONLINE">Online</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+              <select value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Pending</option>
+                <option value="FAILED">Failed</option>
+                <option value="REFUNDED">Refunded</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference</label>
+              <input type="text" value={editForm.reference} onChange={(e) => setEditForm({...editForm, reference: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Transaction reference" />
+            </div>
+          </div>
+        </form>
       </Modal>
     </div>
   )

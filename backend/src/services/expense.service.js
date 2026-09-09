@@ -32,7 +32,7 @@ const expenseService = {
     return prisma.expense.findMany({
       where,
       orderBy: { date: 'desc' },
-      take: Math.min(Number(limit) || 100, 500),
+      take: Math.min(Number(limit) || 100, 100000),
     })
   },
 
@@ -71,6 +71,7 @@ const expenseService = {
         category: data.category,
         description: data.description,
         amount: toNumber(data.amount),
+        pendingAmount: toNumber(data.pendingAmount) || 0,
         date: data.date ? new Date(data.date) : new Date(),
         paymentMethod: data.paymentMethod || 'Cash',
         reference: data.reference || null,
@@ -87,6 +88,7 @@ const expenseService = {
     if (data.category !== undefined) patch.category = data.category
     if (data.description !== undefined) patch.description = data.description
     if (data.amount !== undefined) patch.amount = toNumber(data.amount)
+    if (data.pendingAmount !== undefined) patch.pendingAmount = toNumber(data.pendingAmount) || 0
     if (data.date !== undefined) patch.date = new Date(data.date)
     if (data.paymentMethod !== undefined) patch.paymentMethod = data.paymentMethod
     if (data.reference !== undefined) patch.reference = data.reference

@@ -182,6 +182,7 @@ model Product {
   shopifyProductType     String?
   shopifyTags            String?
   shopifyImageUrl        String?
+  imageUrls              Json?
   trackInventory         Boolean                @default(true) // Shopify manages stock
   pushToShopify          Boolean                @default(true) // false = billing-software-only product
   inventory              Inventory?

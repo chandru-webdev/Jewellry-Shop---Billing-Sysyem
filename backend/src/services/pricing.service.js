@@ -100,6 +100,7 @@ async function recalculateAllProducts(newRate, { userId, reason } = {}) {
     return prisma.product.update({
       where: { id: p.id },
       data: {
+        silverRateUsed: new Decimal(newRate),
         baseAmount: price.baseAmount,
         gstAmount: price.gstAmount,
         sellingPrice: price.sellingPrice,

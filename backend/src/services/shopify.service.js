@@ -14,6 +14,7 @@ const prisma = require('../prisma/client')
 const { request, throttle, ShopifyApiError } = require('../integrations/shopify/client')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const { normalizeSKU } = require('../utils/sku')
+const env = require('../config/env')
 
 const shopifyService = {
 
@@ -474,7 +475,15 @@ const shopifyService = {
     }
 
     if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
-    if (product.shopifyImageUrl) shopifyProduct.images = [{ src: product.shopifyImageUrl }]
+
+    const imageUrls = Array.isArray(product.imageUrls) && product.imageUrls.length
+      ? product.imageUrls
+      : product.shopifyImageUrl
+        ? [product.shopifyImageUrl]
+        : []
+    if (imageUrls.length) {
+      shopifyProduct.images = imageUrls.map((src) => ({ src }))
+    }
 
     const res = await request('/products.json', {
       method: 'POST',
@@ -509,6 +518,15 @@ const shopifyService = {
     }
 
     if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
+
+    const imageUrls = Array.isArray(product.imageUrls) && product.imageUrls.length
+      ? product.imageUrls
+      : product.shopifyImageUrl
+        ? [product.shopifyImageUrl]
+        : []
+    if (imageUrls.length) {
+      shopifyProduct.images = imageUrls.map((src) => ({ src }))
+    }
 
     await request(`/products/${product.shopifyProductId}.json`, {
       method: 'PUT',
@@ -690,6 +708,7 @@ const shopifyService = {
     )
     const latest = {}
     types.forEach((type, i) => { latest[type.toLowerCase()] = logs[i] })
+    latest.shopDomain = env.shopify?.shopDomain || null
     return latest
   },
 

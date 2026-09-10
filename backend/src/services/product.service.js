@@ -20,6 +20,16 @@ function clampZero(d) {
   return d.gte(0) ? d : new Decimal(0)
 }
 
+function imageUrlListSupplied(v) {
+  return v !== undefined && v !== null
+}
+
+function normalizeImageUrls(v) {
+  if (!Array.isArray(v)) return null
+  const urls = v.map((u) => String(u).trim()).filter(Boolean)
+  return urls.length ? urls : null
+}
+
 const productService = {
   // GET /api/products  — optional filters: ?search=, ?categoryId=, ?isActive=
   async list(filters = {}) {
@@ -111,7 +121,8 @@ const productService = {
         shopifyVendor: data.shopifyVendor || null,
         shopifyProductType: data.shopifyProductType || null,
         shopifyTags: data.shopifyTags || null,
-        shopifyImageUrl: data.shopifyImageUrl || null,
+        shopifyImageUrl: data.shopifyImageUrl || (Array.isArray(data.imageUrls) ? data.imageUrls[0] : null) || null,
+        imageUrls: Array.isArray(data.imageUrls) && data.imageUrls.length ? data.imageUrls : null,
         inventory: { create: { quantity: data.initialStock || 0 } },
       },
       include: { category: true, inventory: true, collection: true, supplier: true },
@@ -185,6 +196,12 @@ const productService = {
     const hasOverride = supplied(data.sellingPrice)
     const { initialStock, updateStock, sellingPrice: givenSelling, ...restData } = data
 
+    if (imageUrlListSupplied(data.imageUrls)) {
+      const imgs = normalizeImageUrls(data.imageUrls)
+      restData.imageUrls = imgs
+      restData.shopifyImageUrl = imgs.length ? imgs[0] : null
+    }
+
     const product = await prisma.product.update({
       where: { id: existing.id },
       data: {
@@ -246,7 +263,8 @@ const productService = {
 
     // Push to Shopify if price-relevant fields changed OR status changed
     const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
-    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged)) {
+    const imageChanged = imageUrlListSupplied(data.imageUrls) || data.shopifyImageUrl !== undefined
+    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
       shopifyService.updateProductOnShopify(product).catch(() => {})
     }
 
@@ -296,6 +314,63 @@ const productService = {
 
     await prisma.auditLog.create({
       data: { userId, action: 'PRODUCT_DEACTIVATED', entity: 'Product', entityId: product.id },
+    })
+
+    return product
+  },
+
+  // POST /api/products/:id/duplicate — copy every field into a new product
+  // (new unique SKU, inventory copied, NOT pushed to Shopify automatically).
+  async duplicate(id, userId) {
+    const existing = await this.getById(id)
+
+    // Derive a new unique SKU like SLR-001 -> DUP-SLR-002, OL-RNG-001 -> DUP-OL-RNG-002
+    let candidate
+    const m = String(existing.sku).match(/^(.*?)-(\d+)$/)
+    const prefix = m ? m[1] : existing.sku
+    let seq = m ? parseInt(m[2], 10) : 1
+    do {
+      seq++
+      candidate = `DUP-${prefix}-${String(seq).padStart(3, '0')}`
+    } while (await prisma.product.findUnique({ where: { sku: candidate } }))
+
+    const product = await prisma.product.create({
+      data: {
+        sku: candidate,
+        name: `${existing.name} (copy)`,
+        description: existing.description,
+        categoryId: existing.categoryId,
+        collectionId: existing.collectionId,
+        supplierId: existing.supplierId,
+        purity: existing.purity ?? 92.5,
+        grossWeight: existing.grossWeight ?? 0,
+        stoneWeight: existing.stoneWeight ?? 0,
+        netWeight: existing.netWeight ?? 0,
+        weight: existing.weight ?? 0,
+        silverRateUsed: existing.silverRateUsed,
+        makingCharge: existing.makingCharge ?? 0,
+        gstPercent: existing.gstPercent ?? 3,
+        lowStockThreshold: existing.lowStockThreshold ?? 5,
+        baseAmount: existing.baseAmount ?? 0,
+        gstAmount: existing.gstAmount ?? 0,
+        sellingPrice: existing.sellingPrice ?? 0,
+        compareAtPrice: existing.compareAtPrice,
+        costPrice: existing.costPrice,
+        trackInventory: existing.trackInventory !== false,
+        pushToShopify: false,
+        isActive: false,
+        shopifyVendor: existing.shopifyVendor,
+        shopifyProductType: existing.shopifyProductType,
+        shopifyTags: existing.shopifyTags,
+        shopifyImageUrl: existing.shopifyImageUrl,
+        imageUrls: existing.imageUrls,
+        inventory: { create: { quantity: existing.inventory?.quantity ?? 0 } },
+      },
+      include: { category: true, inventory: true, collection: true, supplier: true },
+    })
+
+    await prisma.auditLog.create({
+      data: { userId, action: 'PRODUCT_DUPLICATED', metadata: { fromSku: existing.sku }, entity: 'Product', entityId: product.id },
     })
 
     return product

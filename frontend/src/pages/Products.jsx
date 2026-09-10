@@ -1,16 +1,19 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Power, Upload, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Power, Upload, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2, Eye, ImagePlus } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import ProductFormModal from '../components/products/ProductFormModal'
+import ProductViewModal from '../components/products/ProductViewModal'
+import ProductImageModal from '../components/products/ProductImageModal'
 import { productsApi } from '../api/products'
 import { categoriesApi } from '../api/categories'
 import { collectionsApi } from '../api/collections'
 import { suppliersApi } from '../api/suppliers'
 import { metalRatesApi } from '../api/metalRates'
+import { shopifyApi } from '../api/shopify'
 import { formatINR, formatWeight } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
 import { exportProductsExcel } from '../utils/exportExcel'
@@ -23,6 +26,8 @@ export default function Products() {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalKey, setModalKey] = useState(0)
   const [editing, setEditing] = useState(null)
+  const [viewing, setViewing] = useState(null)
+  const [imageProduct, setImageProduct] = useState(null)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -61,6 +66,23 @@ export default function Products() {
     retry: false,
   })
 
+  const { data: shopifyStatus } = useQuery({
+    queryKey: ['shopify-status'],
+    queryFn: () => shopifyApi.getSyncStatus().then((r) => r.data.data),
+    retry: false,
+  })
+  const shopDomain = shopifyStatus?.shopDomain || null
+
+  const duplicateMutation = useMutation({
+    mutationFn: (id) => productsApi.duplicate(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      setViewing(null)
+      showToast(`Duplicated as ${res.data?.data?.sku}`)
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to duplicate product'),
+  })
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => productsApi.update(id, data),
     onSuccess: () => {
@@ -94,6 +116,16 @@ export default function Products() {
     mutationFn: (product) =>
       product.isActive ? productsApi.remove(product.id) : productsApi.update(product.id, { isActive: true }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+  })
+
+  const imageMutation = useMutation({
+    mutationFn: ({ id, data }) => productsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      setImageProduct(null)
+      showToast('Product image updated')
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to save image'),
   })
 
   const startInlineEdit = (productId, field, currentValue) => {
@@ -162,6 +194,7 @@ export default function Products() {
       <PageHeader
         title="Products"
         subtitle="Manage jewellery products, pricing, inventory and Shopify synchronization"
+        badge={<Badge tone="purple">{isLoading ? '…' : (products || []).filter((p) => p.isActive).length} Available</Badge>}
         actions={
           canEdit && (
             <div className="flex gap-2">
@@ -266,7 +299,10 @@ export default function Products() {
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3">
-                    <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
+                    <div className="flex items-center gap-3">
+                      {p.shopifyImageUrl && <img src={p.shopifyImageUrl} alt={p.name} className="w-9 h-9 rounded-lg object-cover border border-gray-200 dark:border-white/10" />}
+                      <span className="font-medium text-royal-950 dark:text-white">{p.name}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{p.sku}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{p.purity || '92.5'}</td>
@@ -351,6 +387,12 @@ export default function Products() {
                   {canEdit && (
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        <button onClick={() => setViewing(p)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-white/10 rounded-lg cursor-pointer" title="View">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => setImageProduct(p)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-white/10 rounded-lg cursor-pointer" title="Add image">
+                          <ImagePlus size={14} />
+                        </button>
                         <button onClick={() => { setEditing(p); setModalKey((k) => k + 1); setModalOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit">
                           <Pencil size={14} />
                         </button>
@@ -380,6 +422,26 @@ export default function Products() {
         submitError={saveMutation.isError ? saveMutation.error?.response?.data?.message || saveMutation.error?.message || 'Failed to save product' : ''}
         onSubmit={(payload) => saveMutation.mutate(payload)}
         submitting={saveMutation.isPending}
+      />
+
+      <ProductViewModal
+        open={Boolean(viewing)}
+        onClose={() => setViewing(null)}
+        product={viewing}
+        shopDomain={shopDomain}
+        onEdit={(p) => { setViewing(null); setEditing(p); setModalKey((k) => k + 1); setModalOpen(true) }}
+        onDuplicate={(p) => duplicateMutation.mutate(p.id)}
+        onDeactivate={(p) => { setViewing(null); toggleMutation.mutate(p) }}
+        onAdjustStock={(p, qty) => updateMutation.mutate({ id: p.id, data: { initialStock: qty, updateStock: true } })}
+        submitting={duplicateMutation.isPending ? 'duplicate' : toggleMutation.isPending ? 'deactivate' : null}
+      />
+      <ProductImageModal
+        key={imageProduct?.id}
+        open={Boolean(imageProduct)}
+        onClose={() => setImageProduct(null)}
+        product={imageProduct}
+        onSave={(urls) => imageMutation.mutate({ id: imageProduct.id, data: { imageUrls: urls } })}
+        submitting={imageMutation.isPending}
       />
     </div>
   )

@@ -27,6 +27,11 @@ const productController = {
     const product = await productService.remove(req.params.id, req.user.id)
     success(res, 200, product, 'Product deactivated')
   }),
+
+  duplicate: asyncHandler(async (req, res) => {
+    const product = await productService.duplicate(req.params.id, req.user.id)
+    success(res, 201, product, 'Product duplicated')
+  }),
 }
 
 module.exports = productController

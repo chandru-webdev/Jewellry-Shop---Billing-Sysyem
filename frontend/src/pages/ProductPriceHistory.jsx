@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, RefreshCw, Download, Plus, TrendingUp, TrendingDown,
@@ -359,12 +360,16 @@ function useIsDark() {
 export default function ProductPriceHistory() {
   const queryClient = useQueryClient()
   const isDark = useIsDark()
+  const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [priceType, setPriceType] = useState('ALL')
   const [dateRange, setDateRange] = useState('30d')
   const [chartRange, setChartRange] = useState('30d')
-  const [selectedProductId, setSelectedProductId] = useState(null)
-  const [productSearch, setProductSearch] = useState('')
+  const [selectedProductId, setSelectedProductId] = useState(() => {
+    const fromParam = searchParams.get('product')
+    return fromParam ? Number(fromParam) : null
+  })
+  const [productSearch, setProductSearch] = useState(() => searchParams.get('name') || '')
   const [showAddModal, setShowAddModal] = useState(false)
   const [detailRecord, setDetailRecord] = useState(null)
 

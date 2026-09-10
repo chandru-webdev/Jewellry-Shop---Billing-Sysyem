@@ -94,6 +94,7 @@ async function ensureSchema() {
       ['shopifyProductType', 'TEXT'],
       ['shopifyTags', 'TEXT'],
       ['shopifyImageUrl', 'TEXT'],
+      ['imageUrls', 'JSONB'],
       ['trackInventory', 'BOOLEAN'],
       ['pushToShopify', 'BOOLEAN'],
     ]
@@ -105,6 +106,17 @@ async function ensureSchema() {
         END $$
       `)
     }
+
+    // Backfill silverRateUsed for legacy products. The stored selling price was
+    // computed as baseAmount = (silverRate + makingCharge) * netWeight, so the
+    // rate used at pricing time can be recovered exactly. Only fills NULL/0 rows.
+    await prisma.$executeRawUnsafe(`
+      UPDATE "Product" SET "silverRateUsed" = ROUND(
+        (("baseAmount" / NULLIF("netWeight", 0)) - "makingCharge")::numeric, 2
+      )
+      WHERE ("silverRateUsed" IS NULL OR "silverRateUsed" = 0)
+        AND "netWeight" > 0 AND "makingCharge" > 0 AND "baseAmount" > 0
+    `)
 
     // Column-level defaults for new inserts only (avoid backfilling existing rows).
     await prisma.$executeRawUnsafe(`ALTER TABLE "Product" ALTER COLUMN "purity" SET DEFAULT 92.5`)

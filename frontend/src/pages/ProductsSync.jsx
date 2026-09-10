@@ -15,7 +15,7 @@ const statusColor = { active: 'green', draft: 'gray', archived: 'gray' }
 // Demo/test entries (empty SKU like the store's Gift Card, numeric or
 // lowercase test SKUs like 00001 / slr-002) are excluded automatically —
 // no list to maintain.
-const REAL_SKU_PATTERN = /^[A-Z]{2,}-\d{3,4}$/
+const REAL_SKU_PATTERN = /^[A-Z]{2,}(?:-[A-Z0-9]+)*-\d{3,4}$/
 const isRealSku = (sku) => REAL_SKU_PATTERN.test(String(sku || '').trim().toUpperCase())
 
 export default function ProductsSync() {
@@ -60,10 +60,29 @@ export default function ProductsSync() {
       const erp = erpBySku.get(String(p.sku || '').trim().toLowerCase())
       return { ...p, erpId: erp?.id || null, erpMapped: Boolean(erp) }
     })
-    return all.filter((p) => isRealSku(p.sku))
-  }, [previewQuery.data, erpBySku])
+    const fromShopify = all.filter((p) => isRealSku(p.sku))
+    const shopifySkus = new Set(fromShopify.map((p) => String(p.sku || '').trim().toLowerCase()))
+    const erpOnly = (erpQuery.data || [])
+      .filter((p) => p.isActive && isRealSku(p.sku))
+      .filter((p) => !shopifySkus.has(String(p.sku || '').trim().toLowerCase()))
+      .map((p) => ({
+        shopifyId: null,
+        title: p.name,
+        sku: p.sku,
+        price: Number(p.sellingPrice) || 0,
+        weight: p.weight,
+        weightUnit: 'g',
+        inventoryQuantity: p.inventory?.quantity ?? 0,
+        status: 'ERP only',
+        updatedAt: p.updatedAt,
+        erpId: p.id,
+        erpMapped: true,
+      }))
+    return [...fromShopify, ...erpOnly]
+  }, [previewQuery.data, erpQuery.data, erpBySku])
 
-  const hiddenCount = (previewQuery.data || []).length - products.length
+  const hiddenCount = (previewQuery.data || []).filter((p) => !isRealSku(p.sku)).length
+  const erpOnlyCount = products.filter((p) => !p.shopifyId).length
 
   const refreshAll = () => {
     previewQuery.refetch()
@@ -85,7 +104,7 @@ export default function ProductsSync() {
     mutationFn: () => shopifyApi.syncAllProducts(),
     onSuccess: (res) => {
       const r = res.data.data
-      showToast(`Pushed ${r.ok ?? 0} products to Shopify${r.failed ? `, failed ${r.failed}` : ''}`)
+      showToast(`Synced ${r.ok ?? 0} products to Shopify${r.failed ? `, failed ${r.failed}` : ''}`)
       refreshAll()
     },
     onError: (err) => showToast(err.response?.data?.message || err.message || 'Push failed', 'error'),
@@ -111,11 +130,12 @@ export default function ProductsSync() {
     return (
       p.title.toLowerCase().includes(q) ||
       p.sku.toLowerCase().includes(q) ||
-      String(p.shopifyId).includes(q)
+      String(p.shopifyId || '').includes(q)
     )
   })
 
   const total = products.length
+  const onShopify = products.filter((p) => p.shopifyId).length
   const active = products.filter((p) => p.status === 'active').length
   const mapped = products.filter((p) => p.erpMapped).length
   const unmapped = total - mapped
@@ -123,13 +143,13 @@ export default function ProductsSync() {
 
   return (
     <div>
-      <PageHeader title="Products Sync" subtitle="Manage Shopify product sync with ERP inventory" actions={
+      <PageHeader title="Products Sync" subtitle="Manage Shopify product sync with ERP inventory" badge={<Badge tone="purple">{erpQuery.isLoading ? '…' : (erpQuery.data || []).filter((p) => p.isActive).length} Available</Badge>} actions={
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} disabled={busy}>
-            {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><Download size={14} /> Pull from Shopify</>}
+          <Button variant="primary" size="sm" onClick={() => pushMutation.mutate()} disabled={busy}>
+            {pushMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><Upload size={14} /> Sync All</>}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => pushMutation.mutate()} disabled={busy}>
-            {pushMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pushing...</> : <><Upload size={14} /> Push to Shopify</>}
+          <Button variant="outline" size="sm" onClick={() => pullMutation.mutate()} disabled={busy}>
+            {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><Download size={14} /> Pull from Shopify</>}
           </Button>
           <Button variant="secondary" size="sm" onClick={refreshAll} disabled={busy}>
             {previewQuery.isFetching || erpQuery.isFetching ? <Loader2 size={14} className="animate-spin" /> : <><RefreshCw size={14} /> Refresh</>}
@@ -151,10 +171,14 @@ export default function ProductsSync() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Total on Shopify</p>
-          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{total}</p>
+          <p className="text-xl font-bold text-royal-600 dark:text-gray-300 mt-0.5">{onShopify}</p>
+        </div>
+        <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-sm p-4">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">ERP only</p>
+          <p className="text-xl font-bold text-orange-600 mt-0.5">{erpOnlyCount}</p>
         </div>
         <div className="bg-white dark:bg-[#1a1025] rounded-xl border border-gray-200 dark:border-white/[0.08] shadow-sm p-4">
           <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">Active</p>
@@ -206,16 +230,16 @@ export default function ProductsSync() {
                 <tr><td colSpan="9" className="px-4 py-10 text-center text-sm text-gray-400"><Loader2 size={16} className="inline animate-spin mr-2" />Loading products from Shopify...</td></tr>
               )}
               {!previewQuery.isLoading && filtered.map((p, i) => (
-                <tr key={p.shopifyId} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
+                <tr key={p.shopifyId || `erp-${p.erpId}`} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                   <td className="px-4 py-2.5">
                     <p className="font-medium text-royal-950 dark:text-white">{p.title}</p>
-                    <p className="text-[11px] text-gray-400 font-mono">#{p.shopifyId}</p>
+                    <p className="text-[11px] text-gray-400 font-mono">{p.shopifyId ? `#${p.shopifyId}` : 'ERP only'}</p>
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-400">{p.sku || '—'}</td>
                   <td className="px-4 py-2.5 text-right font-mono font-semibold text-royal-800 dark:text-gray-200">{formatINR(p.price)}</td>
                   <td className="px-4 py-2.5 text-center text-gray-600 dark:text-gray-400">{p.weight ? `${p.weight} ${p.weightUnit || 'g'}` : '—'}</td>
                   <td className="px-4 py-2.5 text-center font-mono text-gray-600 dark:text-gray-400">{p.inventoryQuantity ?? '—'}</td>
-                  <td className="px-4 py-2.5"><Badge tone={statusColor[p.status] || 'gray'}>{p.status}</Badge></td>
+                  <td className="px-4 py-2.5">{p.shopifyId ? <Badge tone={statusColor[p.status] || 'gray'}>{p.status}</Badge> : <Badge tone="orange">Not on Shopify</Badge>}</td>
                   <td className="px-4 py-2.5">
                     {p.erpMapped ? (
                       <span className="text-emerald-600 text-xs font-semibold">Mapped</span>

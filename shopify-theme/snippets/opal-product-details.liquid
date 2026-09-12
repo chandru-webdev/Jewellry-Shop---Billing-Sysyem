@@ -22,7 +22,7 @@
 {% assign st_type     = product.metafields.stone.type.value | default: '' %}
 {% assign st_weight   = product.metafields.stone.weight.value | plus: 0 %}
 {% assign st_pieces   = product.metafields.stone.pieces.value | plus: 0 %}
-{% assign st_value    = product.metafields.stone.value.value | plus: 0 %}
+{% assign st_value    = product.metafields.stone['value'].value | plus: 0 %}
 {% assign pc_making   = product.metafields.pricing.making_charge.value | plus: 0 %}
 {% assign pc_gst      = product.metafields.pricing.gst_amount.value | plus: 0 %}
 {% assign pc_total    = product.metafields.pricing.grand_total.value | plus: 0 %}

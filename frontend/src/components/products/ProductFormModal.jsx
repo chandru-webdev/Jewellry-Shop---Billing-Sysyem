@@ -44,6 +44,9 @@ const emptyForm = {
   grossWeight: '',
   stoneWeight: '',
   netWeight: '',
+  stoneType: '',
+  stonePieces: '',
+  stoneValue: '',
   silverRateUsed: '',
   makingCharge: '20',
   gstPercent: '3',
@@ -75,6 +78,9 @@ function buildForm(product, silverRate) {
     grossWeight: product.grossWeight != null ? String(product.grossWeight) : String(weight),
     stoneWeight: product.stoneWeight != null ? String(product.stoneWeight) : '0',
     netWeight: weight ? String(weight) : '',
+    stoneType: product.stoneType || '',
+    stonePieces: product.stonePieces != null ? String(product.stonePieces) : '',
+    stoneValue: product.stoneValue != null ? String(product.stoneValue) : '',
     silverRateUsed: product.silverRateUsed != null ? String(product.silverRateUsed) : '',
     makingCharge: String(product.makingCharge ?? 20),
     gstPercent: String(product.gstPercent ?? 3),
@@ -153,8 +159,9 @@ export default function ProductFormModal({
   const ratePreview = toNum(form.silverRateUsed)
   const mcPreview = toNum(form.makingCharge)
   const gstPreview = toNum(form.gstPercent)
+  const stoneValuePreview = toNum(form.stoneValue)
   const canPreview = ![netWeightPreview, ratePreview, mcPreview].some(Number.isNaN)
-  const basePreview = canPreview ? netWeightPreview * (ratePreview + mcPreview) : NaN
+  const basePreview = canPreview ? netWeightPreview * (ratePreview + mcPreview) + (Number.isNaN(stoneValuePreview) ? 0 : stoneValuePreview) : NaN
   const sellingPreview = canPreview && !Number.isNaN(gstPreview) ? basePreview + (basePreview * gstPreview) / 100 : NaN
 
   const enableOverride = () => {
@@ -197,6 +204,9 @@ export default function ProductFormModal({
       grossWeight: numOr(form.grossWeight, 0),
       stoneWeight: numOr(form.stoneWeight, 0),
       netWeight,
+      stoneType: form.stoneType.trim() || null,
+      stonePieces: form.stonePieces.trim() !== '' ? Number(form.stonePieces) : null,
+      stoneValue: form.stoneValue.trim() !== '' ? numOr(form.stoneValue, 0) : 0,
       silverRateUsed: numOr(form.silverRateUsed, 0),
       makingCharge: numOr(form.makingCharge, 20),
       gstPercent: numOr(form.gstPercent, 3),
@@ -308,6 +318,18 @@ export default function ProductFormModal({
               <Input id="stoneWeight" type="number" step="0.001" min="0" value={form.stoneWeight} onChange={onStoneChange} />
             </div>
             <div>
+              <Label htmlFor="stoneType">Stone type</Label>
+              <Input id="stoneType" value={form.stoneType} onChange={set('stoneType')} placeholder="e.g. CZ, Ruby (blank = no stone)" />
+            </div>
+            <div>
+              <Label htmlFor="stonePieces">No. of pieces</Label>
+              <Input id="stonePieces" type="number" step="1" min="0" value={form.stonePieces} onChange={set('stonePieces')} placeholder="e.g. 3" />
+            </div>
+            <div>
+              <Label htmlFor="stoneValue">Stone value (₹)</Label>
+              <Input id="stoneValue" type="number" step="0.01" min="0" value={form.stoneValue} onChange={set('stoneValue')} placeholder="0 = not priced" />
+            </div>
+            <div>
               <Label htmlFor="netWeight">Net weight (g)</Label>
               <Input id="netWeight" type="number" step="0.001" min="0" value={form.netWeight} onChange={onNetChange} placeholder={autoNet()} />
               <p className="text-[11px] text-gray-400 mt-1">{netManual ? 'Manual override' : 'Auto: Gross − Stone'}</p>
@@ -346,7 +368,7 @@ export default function ProductFormModal({
             </div>
             <div className="col-span-2">
               <p className="text-xs text-gray-500 bg-royal-50 dark:bg-white/5 rounded-lg px-3 py-2">
-                Enter net weight and silver rate to auto-calculate the selling price. Base = net weight × (silver rate + making charge), then + GST%.
+                Enter net weight and silver rate to auto-calculate the selling price. Base = net weight × (silver rate + making charge) + stone value, then + GST%.
               </p>
             </div>
             <div>

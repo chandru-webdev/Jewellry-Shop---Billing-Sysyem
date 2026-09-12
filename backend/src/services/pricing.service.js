@@ -7,7 +7,8 @@ const Decimal = Prisma.Decimal
 // =============================================================
 // THE OPAL LINE PRICING FORMULA (backend only — never in React)
 //
-// baseAmount   = (silverRate + makingChargePerGram) * weight
+// baseAmount   = (silverRate + makingChargePerGram) * netWeight
+//              + stoneValue                  (optional, only when > 0)
 // gstAmount    = baseAmount * gstPercent / 100
 // sellingPrice = baseAmount + gstAmount
 //
@@ -16,9 +17,9 @@ const Decimal = Prisma.Decimal
 //   gst  = 1525 * 0.03     = 45.75
 //   price= 1525 + 45.75    = 1570.75
 // =============================================================
-function calculatePrice({ silverRate, weight, makingCharge, gstPercent }) {
+function calculatePrice({ silverRate, weight, makingCharge, gstPercent, stoneValue }) {
   const perGram = new Decimal(silverRate).plus(makingCharge)
-  const baseAmount = perGram.mul(weight)
+  const baseAmount = perGram.mul(weight).plus(new Decimal(stoneValue || 0))
   const gstAmount = baseAmount.mul(gstPercent).div(100)
   const sellingPrice = baseAmount.plus(gstAmount)
 
@@ -52,6 +53,7 @@ async function previewRecalculation(newRate) {
       weight: p.weight,
       makingCharge: p.makingCharge,
       gstPercent: p.gstPercent,
+      stoneValue: p.stoneValue,
     })
     return {
       sku: p.sku,
@@ -80,6 +82,7 @@ async function recalculateAllProducts(newRate, { userId, reason } = {}) {
       weight: p.weight,
       makingCharge: p.makingCharge,
       gstPercent: p.gstPercent,
+      stoneValue: p.stoneValue,
     })
 
     const oldSelling = new Decimal(p.sellingPrice)

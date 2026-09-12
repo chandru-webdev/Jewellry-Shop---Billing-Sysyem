@@ -53,9 +53,43 @@ async function request(path, { method = 'GET', body } = {}) {
   return res.json()
 }
 
+// POST to the Admin GraphQL endpoint (/admin/api/2025-01/graphql.json).
+// Returns { data, errors } — `errors` here is the transport-level GraphQL
+// errors array; field-level failures come back as userErrors in `data`.
+async function graphql(query, variables = {}) {
+  const { shopDomain, accessToken } = env.shopify
+
+  if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) {
+    throw new ShopifyApiError(503, 'Shopify credentials are not configured. Add them to backend/.env')
+  }
+
+  const url = `https://${shopDomain}/admin/api/${API_VERSION}/graphql.json`
+
+  let res
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken,
+      },
+      body: JSON.stringify({ query, variables }),
+    })
+  } catch (err) {
+    throw new ShopifyApiError(0, `Could not reach Shopify GraphQL: ${err.message}`)
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new ShopifyApiError(res.status, `Shopify GraphQL ${res.status}: ${text.slice(0, 300)}`)
+  }
+
+  return res.json()
+}
+
 // Small helper for the 600ms delay between Shopify calls in bulk syncs
 function throttle() {
   return new Promise((resolve) => setTimeout(resolve, 600))
 }
 
-module.exports = { request, throttle, ShopifyApiError }
+module.exports = { request, graphql, throttle, ShopifyApiError }

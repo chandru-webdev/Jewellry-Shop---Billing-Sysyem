@@ -11,7 +11,7 @@
 // so the dashboard can show the last sync status.
 // =============================================================
 const prisma = require('../prisma/client')
-const { request, throttle, ShopifyApiError } = require('../integrations/shopify/client')
+const { request, graphql, throttle, ShopifyApiError } = require('../integrations/shopify/client')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const { normalizeSKU } = require('../utils/sku')
 const env = require('../config/env')
@@ -499,6 +499,9 @@ const shopifyService = {
       await this.setInventoryLevel(createdVariant.inventory_item_id, invQty)
     }
 
+    // Push the product-details / price-breakup metafields (storefront section).
+    await this.pushProductMetafields({ ...product, shopifyProductId: p.id })
+
     return {
       shopifyProductId: p.id,
       shopifyVariantId: createdVariant.id,
@@ -552,6 +555,53 @@ const shopifyService = {
 
     if (product.shopifyInventoryItemId && product.trackInventory !== false) {
       await this.setInventoryLevel(Number(product.shopifyInventoryItemId), product.inventory?.quantity ?? 0)
+    }
+
+    // Refresh the storefront product-details / price-breakup metafields.
+    await this.pushProductMetafields(product)
+  },
+
+  // Push the product-details + price-breakup metafields (silver / stone /
+  // pricing namespaces) that the shopify storefront section reads.
+  // Stone ns is only written when the product has a stone (stoneWeight > 0).
+  async pushProductMetafields(product) {
+    const hasStone = product.stoneWeight != null && Number(product.stoneWeight) > 0
+    const netWeight = Number(product.netWeight ?? product.weight ?? 0)
+    const purity = Number(product.purity ?? 92.5)
+    const stoneCarats = hasStone ? (Number(product.stoneWeight) * 5).toFixed(3) : null
+
+    const metafields = [
+      { namespace: 'silver', key: 'purity', value: String(purity), type: 'single_line_text_field' },
+      { namespace: 'silver', key: 'weight', value: String(netWeight), type: 'number_decimal' },
+      { namespace: 'silver', key: 'rate', value: String(product.silverRateUsed ?? 0), type: 'number_decimal' },
+      { namespace: 'silver', key: 'gross_weight', value: String(Number(product.grossWeight ?? netWeight)), type: 'number_decimal' },
+      { namespace: 'pricing', key: 'making_charge', value: String(Number(product.makingCharge ?? 0)), type: 'number_decimal' },
+      { namespace: 'pricing', key: 'gst_amount', value: String(Number(product.gstAmount ?? 0)), type: 'number_decimal' },
+      { namespace: 'pricing', key: 'grand_total', value: String(Number(product.sellingPrice ?? 0)), type: 'number_decimal' },
+    ]
+
+    if (hasStone) {
+      metafields.push(
+        { namespace: 'stone', key: 'type', value: String(product.stoneType || 'Stone'), type: 'single_line_text_field' },
+        { namespace: 'stone', key: 'weight', value: stoneCarats, type: 'number_decimal' },
+        { namespace: 'stone', key: 'pieces', value: String(Number(product.stonePieces) || 1), type: 'number_integer' },
+        { namespace: 'stone', key: 'value', value: String(Number(product.stoneValue ?? 0)), type: 'number_decimal' },
+      )
+    }
+
+    const ownerId = `gid://shopify/Product/${product.shopifyProductId}`
+    const res = await graphql(
+      `mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          userErrors { field message }
+        }
+      }`,
+      { metafields: metafields.map((m) => ({ ...m, ownerId })) }
+    )
+
+    const userErrors = res?.data?.metafieldsSet?.userErrors || []
+    if (userErrors.length) {
+      throw new ShopifyApiError(422, `Shopify metafields: ${userErrors.map((e) => e.message).join('; ')}`)
     }
   },
 
@@ -649,6 +699,7 @@ const shopifyService = {
             },
           },
         })
+        await this.pushProductMetafields(product)
         ok++
       } catch (err) {
         failed++

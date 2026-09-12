@@ -85,13 +85,14 @@ const productService = {
 
     const makingCharge = makeDecimal(data.makingCharge, 20)
     const gstPercent = makeDecimal(data.gstPercent, 3)
+    const stoneValue = makeDecimal(data.stoneValue, 0)
     const hasOverride = data.sellingPrice !== undefined && data.sellingPrice !== null && data.sellingPrice !== ''
 
     const silverRate = data.silverRateUsed !== undefined && data.silverRateUsed !== null && data.silverRateUsed !== ''
       ? new Decimal(data.silverRateUsed)
       : new Decimal(await getSilverRate())
 
-    const price = calculatePrice({ silverRate, weight: netWeight, makingCharge, gstPercent })
+    const price = calculatePrice({ silverRate, weight: netWeight, makingCharge, gstPercent, stoneValue })
 
     const product = await prisma.product.create({
       data: {
@@ -107,6 +108,9 @@ const productService = {
         stoneWeight,
         netWeight,
         weight: netWeight,
+        stoneType: data.stoneType || null,
+        stonePieces: data.stonePieces ? Number(data.stonePieces) : null,
+        stoneValue,
         silverRateUsed: silverRate,
         makingCharge,
         gstPercent,
@@ -184,6 +188,7 @@ const productService = {
 
     const makingCharge = supplied(data.makingCharge) ? makeDecimal(data.makingCharge, 0) : new Decimal(existing.makingCharge)
     const gstPercent = supplied(data.gstPercent) ? makeDecimal(data.gstPercent, 0) : new Decimal(existing.gstPercent)
+    const stoneValue = supplied(data.stoneValue) ? makeDecimal(data.stoneValue, 0) : existing.stoneValue ? new Decimal(existing.stoneValue) : new Decimal(0)
 
     const silverRate = supplied(data.silverRateUsed)
       ? new Decimal(data.silverRateUsed)
@@ -191,7 +196,7 @@ const productService = {
         ? new Decimal(existing.silverRateUsed)
         : new Decimal(await getSilverRate())
 
-    const price = calculatePrice({ silverRate, weight: netWeight, makingCharge, gstPercent })
+    const price = calculatePrice({ silverRate, weight: netWeight, makingCharge, gstPercent, stoneValue })
 
     const hasOverride = supplied(data.sellingPrice)
     const { initialStock, updateStock, sellingPrice: givenSelling, ...restData } = data
@@ -213,6 +218,9 @@ const productService = {
         stoneWeight,
         netWeight,
         weight: netWeight,
+        stoneType: data.stoneType !== undefined ? (data.stoneType || null) : existing.stoneType,
+        stonePieces: data.stonePieces !== undefined ? (data.stonePieces === null || data.stonePieces === '' ? null : Number(data.stonePieces)) : existing.stonePieces,
+        stoneValue,
         silverRateUsed: silverRate,
         makingCharge,
         gstPercent,
@@ -264,7 +272,7 @@ const productService = {
     // Push to Shopify if price-relevant fields changed OR status changed
     const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
     const imageChanged = imageUrlListSupplied(data.imageUrls) || data.shopifyImageUrl !== undefined
-    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
+    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
       shopifyService.updateProductOnShopify(product).catch(() => {})
     }
 
@@ -347,6 +355,9 @@ const productService = {
         stoneWeight: existing.stoneWeight ?? 0,
         netWeight: existing.netWeight ?? 0,
         weight: existing.weight ?? 0,
+        stoneType: existing.stoneType,
+        stonePieces: existing.stonePieces,
+        stoneValue: existing.stoneValue,
         silverRateUsed: existing.silverRateUsed,
         makingCharge: existing.makingCharge ?? 0,
         gstPercent: existing.gstPercent ?? 3,

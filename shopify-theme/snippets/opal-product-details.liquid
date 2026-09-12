@@ -1,0 +1,176 @@
+{% comment %}
+  OPAL LINE — Product Details / Price Breakup (two-tab component)
+  ==============================================================
+  Renders the two-tab product-details + price-breakup UI from product
+  metafields pushed by the ERP ProductsSync:
+    silver.purity, silver.weight, silver.rate, silver.gross_weight
+    stone.type, stone.weight, stone.pieces, stone.value   (only when the product has a stone)
+    pricing.making_charge, pricing.gst_amount, pricing.grand_total
+  Requires the metafield DEFINITIONS (storefront PUBLIC_READ) created by
+  backend/scripts/create-metafield-definitions.js.
+
+  Used in two ways:
+    1. By sections/opal-product-details.liquid        (standalone section)
+    2. By a block of type "opal_details" rendered inside sections/main-product.liquid
+       {% when 'opal_details' %}{% render 'opal-product-details' %}{% endwhen %}
+{% endcomment %}
+
+{% assign sf_purity   = product.metafields.silver.purity.value | default: '' %}
+{% assign sf_weight   = product.metafields.silver.weight.value | plus: 0 %}
+{% assign sf_rate     = product.metafields.silver.rate.value | plus: 0 %}
+{% assign sf_gross    = product.metafields.silver.gross_weight.value | plus: 0 %}
+{% assign st_type     = product.metafields.stone.type.value | default: '' %}
+{% assign st_weight   = product.metafields.stone.weight.value | plus: 0 %}
+{% assign st_pieces   = product.metafields.stone.pieces.value | plus: 0 %}
+{% assign st_value    = product.metafields.stone['value'].value | plus: 0 %}
+{% assign pc_making   = product.metafields.pricing.making_charge.value | plus: 0 %}
+{% assign pc_gst      = product.metafields.pricing.gst_amount.value | plus: 0 %}
+{% assign pc_total    = product.metafields.pricing.grand_total.value | plus: 0 %}
+{% assign has_stone   = false %}
+{% if st_type != blank or st_weight > 0 %}
+  {% assign has_stone = true %}
+{% endif %}
+
+{% assign silver_value   = sf_weight | times: sf_rate %}
+{% assign making_value   = sf_weight | times: pc_making %}
+{% assign stone_value    = 0 %}
+{% if has_stone and st_value > 0 %}
+  {% assign stone_value = st_value %}
+{% endif %}
+{% assign subtotal       = silver_value | plus: making_value | plus: stone_value %}
+
+<div class="opal-pd">
+  <input type="radio" name="opal-pd-tab" id="pd-details" checked>
+  <input type="radio" name="opal-pd-tab" id="pd-breakup">
+
+  <div class="opal-pd__tabs">
+    <label class="opal-pd__tab" for="pd-details">Product Details</label>
+    <label class="opal-pd__tab" for="pd-breakup">Price Breakup</label>
+  </div>
+
+  {% if sf_purity == blank and sf_weight == 0 and has_stone == false %}
+    <p style="text-align:center; color:#6b7280; font-size:14px;">
+      Product details are not available yet.
+    </p>
+  {% else %}
+
+  <div class="opal-pd__panel opal-pd__panel--details">
+
+    <div class="opal-pd__card">
+      <h3 class="opal-pd__card-title">Silver</h3>
+      <dl>
+        {% if sf_purity != blank %}
+        <div class="opal-pd__row"><dt>Purity</dt><dd>{{ sf_purity }}%</dd></div>
+        {% endif %}
+        {% if sf_weight > 0 %}
+        <div class="opal-pd__row"><dt>Weight</dt><dd>{{ sf_weight | round: 3 }} g</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+
+    {% if has_stone %}
+    <div class="opal-pd__card">
+      <h3 class="opal-pd__card-title">Stone</h3>
+      <dl>
+        {% if st_type != blank %}
+        <div class="opal-pd__row"><dt>Stone Type</dt><dd>{{ st_type }}</dd></div>
+        {% endif %}
+        {% if st_weight > 0 %}
+        <div class="opal-pd__row"><dt>Stone Weight</dt><dd>{{ st_weight | round: 3 }} ct</dd></div>
+        {% endif %}
+        {% if st_pieces > 0 %}
+        <div class="opal-pd__row"><dt>No. of Pieces</dt><dd>{{ st_pieces | round: 0 }}</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+    {% endif %}
+
+    <div class="opal-pd__card">
+      <h3 class="opal-pd__card-title">Dimensions</h3>
+      <dl>
+        {% if sf_gross > 0 %}
+        <div class="opal-pd__row"><dt>Gross Weight</dt><dd>{{ sf_gross | round: 3 }} g</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+
+  </div>
+
+  <div class="opal-pd__panel opal-pd__panel--breakup">
+
+    <div class="opal-pd__card">
+      <h3 class="opal-pd__card-title">Price Breakup</h3>
+      <dl>
+
+        <div class="opal-pd__row">
+          <dt>
+            {{ sf_purity | default: '92.5' }}% Silver
+            <span class="opal-pd__badge">₹{{ sf_rate | round: 2 }}/g</span>
+          </dt>
+          <dd>
+            <span class="opal-pd__money">{{ silver_value | round: 2 | money }}</span>
+            {% if product.compare_at_price > product.price %}
+            <span class="opal-pd__compare opal-pd__money">{{ product.compare_at_price | money }}</span>
+            {% endif %}
+          </dd>
+        </div>
+
+        {% if has_stone and stone_value > 0 %}
+        <div class="opal-pd__row">
+          <dt>Stone value{% if st_type != blank %} ({{ st_type }}){% endif %}</dt>
+          <dd class="opal-pd__money">{{ stone_value | round: 2 | money }}</dd>
+        </div>
+        {% endif %}
+
+        <div class="opal-pd__row">
+          <dt>Making Charges{% if sf_weight > 0 %} ({{ making_value | round: 2 | money }}){% endif %}</dt>
+          <dd class="opal-pd__money">{{ making_value | round: 2 | money }}</dd>
+        </div>
+
+        <div class="opal-pd__row">
+          <dt>Sub Total</dt>
+          <dd class="opal-pd__money">{{ subtotal | round: 2 | money }}</dd>
+        </div>
+
+        <div class="opal-pd__row">
+          <dt>Tax (GST)</dt>
+          <dd class="opal-pd__money">{{ pc_gst | round: 2 | money }}</dd>
+        </div>
+
+        <div class="opal-pd__row opal-pd__row--total">
+          <dt>Grand Total</dt>
+          <dd class="opal-pd__money">{{ pc_total | round: 2 | money }}</dd>
+        </div>
+
+      </dl>
+    </div>
+
+  </div>
+
+  {% endif %}
+</div>
+
+<style>
+  .opal-pd { max-width: 720px; margin: 20px auto 0; padding: 0 0 20px; font-family: inherit; color: #1f2937; }
+  .opal-pd__tabs { display: flex; gap: 8px; border-bottom: 2px solid #e5e7eb; margin-bottom: 16px; }
+  .opal-pd__tab { flex: 1; text-align: center; padding: 10px 12px; font-size: 14px; font-weight: 600; color: #6b7280; cursor: pointer; margin: 0; border: none; background: transparent; position: relative; }
+  .opal-pd input[type="radio"] { display: none; }
+  .opal-pd input#pd-details:checked ~ .opal-pd__tabs label[for="pd-details"],
+  .opal-pd input#pd-breakup:checked ~ .opal-pd__tabs label[for="pd-breakup"] { color: #111827; }
+  .opal-pd input#pd-details:checked ~ .opal-pd__tabs label[for="pd-details"]::after,
+  .opal-pd input#pd-breakup:checked ~ .opal-pd__tabs label[for="pd-breakup"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: #9d6b2d; }
+  .opal-pd__panel { display: none; }
+  .opal-pd input#pd-details:checked ~ .opal-pd__panel--details,
+  .opal-pd input#pd-breakup:checked ~ .opal-pd__panel--breakup { display: block; }
+  .opal-pd__card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .opal-pd__card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9d6b2d; margin: 0 0 10px; }
+  .opal-pd__row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed #eef0f2; font-size: 14px; }
+  .opal-pd__row:last-child { border-bottom: none; }
+  .opal-pd__row dt { color: #6b7280; }
+  .opal-pd__row dd { margin: 0; font-weight: 600; color: #111827; white-space: nowrap; }
+  .opal-pd__row--total { border-top: 2px solid #111827; border-bottom: none; margin-top: 6px; padding-top: 12px; }
+  .opal-pd__row--total dt, .opal-pd__row--total dd { font-size: 17px; font-weight: 800; }
+  .opal-pd__compare { text-decoration: line-through; color: #9ca3af; font-weight: 400 !important; margin-left: 6px; }
+  .opal-pd__money { white-space: nowrap; }
+  .opal-pd__badge { display: inline-block; background: #f3f4f6; color: #374151; border-radius: 4px; padding: 1px 6px; font-size: 12px; margin-left: 6px; }
+</style>

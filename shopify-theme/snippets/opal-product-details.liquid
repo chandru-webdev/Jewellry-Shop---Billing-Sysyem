@@ -27,6 +27,11 @@
 {% assign st_weight   = product.metafields.stone.weight.value | plus: 0 %}
 {% assign st_pieces   = product.metafields.stone.pieces.value | plus: 0 %}
 {% assign st_value    = product.metafields.stone['value'].value | plus: 0 %}
+{% assign st_grams    = st_weight | times: 0.2 %}
+{% assign st_rate     = st_value %}
+{% if st_grams > 0 %}
+  {% assign st_rate = st_value | divided_by: st_grams %}
+{% endif %}
 {% assign pc_making   = product.metafields.pricing.making_charge.value | plus: 0 %}
 {% assign pc_gst      = product.metafields.pricing.gst_amount.value | plus: 0 %}
 {% assign pc_total    = product.metafields.pricing.grand_total.value | plus: 0 %}
@@ -136,7 +141,12 @@
 
         {% if has_stone and stone_value > 0 %}
         <div class="opal-pd__row">
-          <dt>Stone value{% if st_type != blank %} ({{ st_type }}){% endif %}</dt>
+          <dt>
+            Stone{% if st_type != blank %} ({{ st_type }}){% endif %}
+            {% if st_grams > 0 %}
+            <span class="opal-pd__badge">{{ st_grams | round: 3 }} g × ₹{{ st_rate | round: 2 }}/g</span>
+            {% endif %}
+          </dt>
           <dd class="opal-pd__money">{{ stone_value | round: 2 | money }}</dd>
         </div>
         {% endif %}

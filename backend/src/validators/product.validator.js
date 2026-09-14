@@ -19,6 +19,7 @@ const createProductSchema = z.object({
   stoneType: z.string().nullable().optional(),
   stonePieces: z.number().int().nonnegative().nullable().optional(),
   stoneValue: z.number().nonnegative().optional(),
+  colour: z.string().nullable().optional(),
   costPrice: z.number().nonnegative().nullable().optional(),
   silverRateUsed: z.number().positive().optional(),
   makingCharge: z.number().nonnegative().optional(),

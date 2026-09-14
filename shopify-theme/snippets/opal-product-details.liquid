@@ -3,7 +3,7 @@
   ==============================================================
   Renders the two-tab product-details + price-breakup UI from product
   metafields pushed by the ERP ProductsSync:
-    silver.purity, silver.weight, silver.rate, silver.gross_weight
+    silver.purity, silver.colour, silver.weight, silver.rate, silver.gross_weight
     stone.type, stone.weight, stone.pieces, stone.value   (only when the product has a stone)
     pricing.making_charge, pricing.gst_amount, pricing.grand_total
   Requires the metafield DEFINITIONS (storefront PUBLIC_READ) created by
@@ -16,9 +16,11 @@
 {% endcomment %}
 
 {% assign sf_purity   = product.metafields.silver.purity.value | default: '' %}
+{% assign sf_colour   = product.metafields.silver.colour.value | default: '' %}
 {% assign sf_weight   = product.metafields.silver.weight.value | plus: 0 %}
 {% assign sf_rate     = product.metafields.silver.rate.value | plus: 0 %}
 {% assign sf_gross    = product.metafields.silver.gross_weight.value | plus: 0 %}
+{% assign pr_type     = product.type | default: '' %}
 {% assign st_type     = product.metafields.stone.type.value | default: '' %}
 {% assign st_weight   = product.metafields.stone.weight.value | plus: 0 %}
 {% assign st_pieces   = product.metafields.stone.pieces.value | plus: 0 %}
@@ -59,8 +61,14 @@
     <div class="opal-pd__card">
       <h3 class="opal-pd__card-title">Silver</h3>
       <dl>
+        {% if pr_type != blank %}
+        <div class="opal-pd__row"><dt>Type</dt><dd>{{ pr_type }}</dd></div>
+        {% endif %}
         {% if sf_purity != blank %}
         <div class="opal-pd__row"><dt>Purity</dt><dd>{{ sf_purity }}%</dd></div>
+        {% endif %}
+        {% if sf_colour != blank %}
+        <div class="opal-pd__row"><dt>Colour</dt><dd>{{ sf_colour }}</dd></div>
         {% endif %}
         {% if sf_weight > 0 %}
         <div class="opal-pd__row"><dt>Weight</dt><dd>{{ sf_weight | round: 3 }} g</dd></div>

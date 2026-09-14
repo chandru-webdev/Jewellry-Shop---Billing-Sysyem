@@ -110,6 +110,7 @@ const productService = {
         weight: netWeight,
         stoneType: data.stoneType || null,
         stonePieces: data.stonePieces ? Number(data.stonePieces) : null,
+        colour: data.colour || null,
         stoneValue,
         silverRateUsed: silverRate,
         makingCharge,
@@ -221,6 +222,7 @@ const productService = {
         stoneType: data.stoneType !== undefined ? (data.stoneType || null) : existing.stoneType,
         stonePieces: data.stonePieces !== undefined ? (data.stonePieces === null || data.stonePieces === '' ? null : Number(data.stonePieces)) : existing.stonePieces,
         stoneValue,
+        colour: data.colour !== undefined ? (data.colour || null) : existing.colour,
         silverRateUsed: silverRate,
         makingCharge,
         gstPercent,
@@ -272,7 +274,7 @@ const productService = {
     // Push to Shopify if price-relevant fields changed OR status changed
     const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
     const imageChanged = imageUrlListSupplied(data.imageUrls) || data.shopifyImageUrl !== undefined
-    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
+    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.colour !== undefined || data.purity !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
       shopifyService.updateProductOnShopify(product).catch(() => {})
     }
 
@@ -358,6 +360,7 @@ const productService = {
         stoneType: existing.stoneType,
         stonePieces: existing.stonePieces,
         stoneValue: existing.stoneValue,
+        colour: existing.colour,
         silverRateUsed: existing.silverRateUsed,
         makingCharge: existing.makingCharge ?? 0,
         gstPercent: existing.gstPercent ?? 3,

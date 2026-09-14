@@ -40,6 +40,7 @@ const emptyForm = {
   supplierId: '',
   barcode: '',
   purity: '92.5',
+  colour: '',
   description: '',
   grossWeight: '',
   stoneWeight: '',
@@ -74,6 +75,7 @@ function buildForm(product, silverRate) {
     supplierId: product.supplierId ? String(product.supplierId) : '',
     barcode: product.barcode || '',
     purity: String(product.purity ?? 92.5),
+    colour: product.colour || '',
     description: product.description || '',
     grossWeight: product.grossWeight != null ? String(product.grossWeight) : String(weight),
     stoneWeight: product.stoneWeight != null ? String(product.stoneWeight) : '0',
@@ -200,6 +202,7 @@ export default function ProductFormModal({
       supplierId: form.supplierId ? Number(form.supplierId) : null,
       barcode: form.barcode.trim() || null,
       purity: numOr(form.purity, 92.5),
+      colour: form.colour.trim() || null,
       description: form.description.trim() || undefined,
       grossWeight: numOr(form.grossWeight, 0),
       stoneWeight: numOr(form.stoneWeight, 0),
@@ -288,6 +291,10 @@ export default function ProductFormModal({
             <div>
               <Label htmlFor="purity">Purity %</Label>
               <Input id="purity" type="number" step="0.01" min="0" max="100" value={form.purity} onChange={set('purity')} />
+            </div>
+            <div>
+              <Label htmlFor="colour">Colour</Label>
+              <Input id="colour" value={form.colour} onChange={set('colour')} placeholder="e.g. White, Antique, Oxidised" />
             </div>
             <div>
               <Label htmlFor="supplier">Supplier</Label>

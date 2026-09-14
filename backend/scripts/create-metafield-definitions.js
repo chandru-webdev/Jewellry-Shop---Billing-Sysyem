@@ -17,6 +17,7 @@ const { graphql } = require('../src/integrations/shopify/client')
 
 const DEFINITIONS = [
   { namespace: 'silver',   key: 'purity',       type: 'single_line_text_field', name: 'Purity' },
+  { namespace: 'silver',   key: 'colour',       type: 'single_line_text_field', name: 'Colour' },
   { namespace: 'silver',   key: 'weight',       type: 'number_decimal',         name: 'Net weight (g)' },
   { namespace: 'silver',   key: 'rate',         type: 'number_decimal',         name: 'Silver rate (₹/g)' },
   { namespace: 'silver',   key: 'gross_weight', type: 'number_decimal',         name: 'Gross weight (g)' },

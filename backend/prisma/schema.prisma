@@ -159,6 +159,7 @@ model Product {
   supplierId             Int?
   supplier               Supplier?              @relation(fields: [supplierId], references: [id])
   purity                 Decimal                @default(92.5) @db.Decimal(5, 2)
+  colour                 String?                // e.g. "White", "Antique", "Oxidised"
   grossWeight            Decimal                @default(0) @db.Decimal(10, 3)
   stoneWeight            Decimal                @default(0) @db.Decimal(10, 3) // in GRAMS (gross - stone = net)
   netWeight              Decimal                @default(0) @db.Decimal(10, 3)

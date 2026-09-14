@@ -85,6 +85,7 @@ async function ensureSchema() {
       ['collectionId', 'INTEGER'],
       ['supplierId', 'INTEGER'],
       ['purity', 'DECIMAL(5,2)'],
+      ['colour', 'TEXT'],
       ['grossWeight', 'DECIMAL(10,3)'],
       ['stoneWeight', 'DECIMAL(10,3)'],
       ['netWeight', 'DECIMAL(10,3)'],

@@ -21,6 +21,8 @@
 {% assign sf_rate     = product.metafields.silver.rate.value | plus: 0 %}
 {% assign sf_gross    = product.metafields.silver.gross_weight.value | plus: 0 %}
 {% assign pr_type     = product.type | default: '' %}
+{% assign pr_vendor   = product.vendor | default: '' %}
+{% assign pr_tags     = product.tags | default: '' %}
 {% assign st_type     = product.metafields.stone.type.value | default: '' %}
 {% assign st_weight   = product.metafields.stone.weight.value | plus: 0 %}
 {% assign st_pieces   = product.metafields.stone.pieces.value | plus: 0 %}
@@ -59,11 +61,23 @@
   <div class="opal-pd__panel opal-pd__panel--details">
 
     <div class="opal-pd__card">
-      <h3 class="opal-pd__card-title">Silver</h3>
+      <h3 class="opal-pd__card-title">Product</h3>
       <dl>
         {% if pr_type != blank %}
         <div class="opal-pd__row"><dt>Type</dt><dd>{{ pr_type }}</dd></div>
         {% endif %}
+        {% if pr_vendor != blank %}
+        <div class="opal-pd__row"><dt>Vendor</dt><dd>{{ pr_vendor }}</dd></div>
+        {% endif %}
+        {% if pr_tags != blank %}
+        <div class="opal-pd__row"><dt>Tags</dt><dd>{{ pr_tags }}</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div class="opal-pd__card">
+      <h3 class="opal-pd__card-title">Silver</h3>
+      <dl>
         {% if sf_purity != blank %}
         <div class="opal-pd__row"><dt>Purity</dt><dd>{{ sf_purity }}%</dd></div>
         {% endif %}
@@ -71,7 +85,13 @@
         <div class="opal-pd__row"><dt>Colour</dt><dd>{{ sf_colour }}</dd></div>
         {% endif %}
         {% if sf_weight > 0 %}
-        <div class="opal-pd__row"><dt>Weight</dt><dd>{{ sf_weight | round: 3 }} g</dd></div>
+        <div class="opal-pd__row"><dt>Net Weight</dt><dd>{{ sf_weight | round: 3 }} g</dd></div>
+        {% endif %}
+        {% if sf_gross > 0 %}
+        <div class="opal-pd__row"><dt>Gross Weight</dt><dd>{{ sf_gross | round: 3 }} g</dd></div>
+        {% endif %}
+        {% if pc_making > 0 %}
+        <div class="opal-pd__row"><dt>Making Charge</dt><dd>₹{{ pc_making | round: 2 }}/g</dd></div>
         {% endif %}
       </dl>
     </div>
@@ -84,7 +104,7 @@
         <div class="opal-pd__row"><dt>Stone Type</dt><dd>{{ st_type }}</dd></div>
         {% endif %}
         {% if st_weight > 0 %}
-        <div class="opal-pd__row"><dt>Stone Weight</dt><dd>{{ st_weight | round: 3 }} ct</dd></div>
+        <div class="opal-pd__row"><dt>Stone Weight</dt><dd>{{ st_weight | times: 0.2 | round: 3 }} g</dd></div>
         {% endif %}
         {% if st_pieces > 0 %}
         <div class="opal-pd__row"><dt>No. of Pieces</dt><dd>{{ st_pieces | round: 0 }}</dd></div>
@@ -92,15 +112,6 @@
       </dl>
     </div>
     {% endif %}
-
-    <div class="opal-pd__card">
-      <h3 class="opal-pd__card-title">Dimensions</h3>
-      <dl>
-        {% if sf_gross > 0 %}
-        <div class="opal-pd__row"><dt>Gross Weight</dt><dd>{{ sf_gross | round: 3 }} g</dd></div>
-        {% endif %}
-      </dl>
-    </div>
 
   </div>
 

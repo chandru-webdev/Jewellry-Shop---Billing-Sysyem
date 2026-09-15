@@ -8,8 +8,7 @@ import { formatINR } from '../utils/format'
 import { inventoryApi } from '../api/inventory'
 import { exportInventoryExcel, inRange } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
-
-const statusTone = { 'In Stock': 'green', 'Low Stock': 'orange', 'Out of Stock': 'red' }
+import { stockStatus, stockStatusTone } from '../utils/stock'
 
 export default function Inventory() {
   const [search, setSearch] = useState('')
@@ -26,7 +25,7 @@ export default function Inventory() {
     const costValue = Number(item.costValue ?? item.product?.costPrice ?? 0) * qty
     const sellingValue = Number(item.sellingValue ?? item.product?.sellingPrice ?? 0) * qty
     const reorderLevel = item.reorderLevel ?? item.product?.lowStockThreshold ?? 5
-    const status = qty === 0 ? 'Out of Stock' : qty <= reorderLevel ? 'Low Stock' : 'In Stock'
+    const status = stockStatus(qty, reorderLevel)
     return {
       name: item.product?.name || item.name || 'Unknown',
       sku: item.product?.sku || item.sku || '',
@@ -132,7 +131,7 @@ export default function Inventory() {
                   <td className="px-4 py-3 text-right font-semibold text-royal-800 dark:text-gray-200">{formatINR(item.sellingValue)}</td>
                   <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 dark:text-gray-500">{item.reorderLevel}</td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={statusTone[item.status]}>{item.status}</Badge>
+                    <Badge tone={stockStatusTone[item.status]}>{item.status}</Badge>
                   </td>
                 </tr>
               ))}

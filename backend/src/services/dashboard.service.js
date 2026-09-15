@@ -1,6 +1,7 @@
 const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const shopifyService = require('./shopify.service')
+const { stockStatus } = require('../utils/stockStatus')
 
 const Decimal = Prisma.Decimal
 
@@ -254,7 +255,7 @@ const dashboardService = {
     const activeProducts = productCounts.find((row) => row.isActive)?._count?._all ?? 0
 
     const lowStock = lowStockProducts.filter(
-      (p) => (p.inventory?.quantity ?? 0) <= p.lowStockThreshold
+      (p) => stockStatus(p.inventory?.quantity ?? 0, p.lowStockThreshold) !== 'IN_STOCK'
     )
 
     // Orders within the period — used for the daily sales chart so the chart

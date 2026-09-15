@@ -15,5 +15,6 @@ router.get('/transactions', inventoryController.transactions)
 router.post('/stock-in', authorize('SUPER_ADMIN', 'MANAGER'), validate(stockInSchema), inventoryController.stockIn)
 router.post('/stock-out', authorize('SUPER_ADMIN', 'MANAGER'), validate(stockOutSchema), inventoryController.stockOut)
 router.post('/stock-transfer', authorize('SUPER_ADMIN', 'MANAGER'), validate(stockTransferSchema), inventoryController.stockTransfer)
+router.post('/retry-sync', authorize('SUPER_ADMIN', 'MANAGER'), inventoryController.retrySync)
 
 module.exports = router

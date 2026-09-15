@@ -1,18 +1,9 @@
 {% comment %}
-  OPAL LINE — Product Details / Price Breakup (two-tab component)
-  ==============================================================
-  Renders the two-tab product-details + price-breakup UI from product
-  metafields pushed by the ERP ProductsSync:
-    silver.purity, silver.colour, silver.weight, silver.rate, silver.gross_weight
-    stone.type, stone.weight, stone.pieces, stone.value   (only when the product has a stone)
-    pricing.making_charge, pricing.gst_amount, pricing.grand_total
-  Requires the metafield DEFINITIONS (storefront PUBLIC_READ) created by
-  backend/scripts/create-metafield-definitions.js.
-
-  Used in two ways:
-    1. By sections/opal-product-details.liquid        (standalone section)
-    2. By a block of type "opal_details" rendered inside sections/main-product.liquid
-       {% when 'opal_details' %}{% render 'opal-product-details' %}{% endwhen %}
+  OPAL LINE - Product Details / Price Breakup (two-tab component)
+  Renders the two-tab details + price-breakup UI from ERP-pushed
+  metafields: silver.purity/colour/weight/rate/gross_weight,
+  stone.type/weight/pieces/value, pricing.making_charge/gst_amount/grand_total.
+  Stock badge is driven by Shopify's native inventory (kept in sync with ERP).
 {% endcomment %}
 
 {% assign sf_purity   = product.metafields.silver.purity.value | default: '' %}
@@ -38,6 +29,16 @@
 {% assign has_stone   = false %}
 {% if st_type != blank or st_weight > 0 %}
   {% assign has_stone = true %}
+{% endif %}
+
+{% assign sf_variant  = product.selected_or_first_available_variant %}
+{% assign sf_qty      = 0 %}
+{% if sf_variant %}
+  {% assign sf_qty = sf_variant.inventory_quantity | default: 0 %}
+{% endif %}
+{% assign sf_thr      = 5 %}
+{% if product.metafields.silver.low_stock_threshold.value != blank %}
+  {% assign sf_thr = product.metafields.silver.low_stock_threshold.value | plus: 0 %}
 {% endif %}
 
 {% assign silver_value   = sf_weight | times: sf_rate %}
@@ -68,6 +69,18 @@
     <div class="opal-pd__card">
       <h3 class="opal-pd__card-title">Product</h3>
       <dl>
+        <div class="opal-pd__row">
+          <dt>Stock</dt>
+          <dd>
+            {% if sf_qty > 0 and sf_qty <= sf_thr %}
+            <span class="opal-pd__badge opal-pd__badge--low">Only {{ sf_qty }} left</span>
+            {% elsif sf_qty == 0 %}
+            <span class="opal-pd__badge opal-pd__badge--out">Sold out</span>
+            {% else %}
+            <span class="opal-pd__stock-in">In stock</span>
+            {% endif %}
+          </dd>
+        </div>
         {% if pr_type != blank %}
         <div class="opal-pd__row"><dt>Type</dt><dd>{{ pr_type }}</dd></div>
         {% endif %}
@@ -96,7 +109,7 @@
         <div class="opal-pd__row"><dt>Gross Weight</dt><dd>{{ sf_gross | round: 3 }} g</dd></div>
         {% endif %}
         {% if pc_making > 0 %}
-        <div class="opal-pd__row"><dt>Making Charge</dt><dd>₹{{ pc_making | round: 2 }}/g</dd></div>
+        <div class="opal-pd__row"><dt>Making Charge</dt><dd>Rs. {{ pc_making | round: 2 }}/g</dd></div>
         {% endif %}
       </dl>
     </div>
@@ -129,10 +142,10 @@
         <div class="opal-pd__row">
           <dt>
             {{ sf_purity | default: '92.5' }}% Silver
-            <span class="opal-pd__badge">₹{{ sf_rate | round: 2 }}/g</span>
+            <span class="opal-pd__badge">Rs. {{ sf_rate | round: 2 }}/g</span>
           </dt>
           <dd>
-            <span class="opal-pd__money">{{ silver_value | round: 2 | money }}</span>
+            <span class="opal-pd__money">{{ silver_value | round: 2 }}</span>
             {% if product.compare_at_price > product.price %}
             <span class="opal-pd__compare opal-pd__money">{{ product.compare_at_price | money }}</span>
             {% endif %}
@@ -144,31 +157,31 @@
           <dt>
             Stone{% if st_type != blank %} ({{ st_type }}){% endif %}
             {% if st_grams > 0 %}
-            <span class="opal-pd__badge">{{ st_grams | round: 3 }} g × ₹{{ st_rate | round: 2 }}/g</span>
+            <span class="opal-pd__badge">{{ st_grams | round: 3 }} g</span>
             {% endif %}
           </dt>
-          <dd class="opal-pd__money">{{ stone_value | round: 2 | money }}</dd>
+          <dd class="opal-pd__money">{{ stone_value | round: 2 }}</dd>
         </div>
         {% endif %}
 
         <div class="opal-pd__row">
-          <dt>Making Charges{% if sf_weight > 0 %} ({{ making_value | round: 2 | money }}){% endif %}</dt>
-          <dd class="opal-pd__money">{{ making_value | round: 2 | money }}</dd>
+          <dt>Making Charges{% if sf_weight > 0 %} ({{ making_value | round: 2 }}){% endif %}</dt>
+          <dd class="opal-pd__money">{{ making_value | round: 2 }}</dd>
         </div>
 
         <div class="opal-pd__row">
           <dt>Sub Total</dt>
-          <dd class="opal-pd__money">{{ subtotal | round: 2 | money }}</dd>
+          <dd class="opal-pd__money">{{ subtotal | round: 2 }}</dd>
         </div>
 
         <div class="opal-pd__row">
           <dt>Tax (GST)</dt>
-          <dd class="opal-pd__money">{{ pc_gst | round: 2 | money }}</dd>
+          <dd class="opal-pd__money">{{ pc_gst | round: 2 }}</dd>
         </div>
 
         <div class="opal-pd__row opal-pd__row--total">
           <dt>Grand Total</dt>
-          <dd class="opal-pd__money">{{ pc_total | round: 2 | money }}</dd>
+          <dd class="opal-pd__money">{{ pc_total | round: 2 }}</dd>
         </div>
 
       </dl>
@@ -202,4 +215,7 @@
   .opal-pd__compare { text-decoration: line-through; color: #9ca3af; font-weight: 400 !important; margin-left: 6px; }
   .opal-pd__money { white-space: nowrap; }
   .opal-pd__badge { display: inline-block; background: #f3f4f6; color: #374151; border-radius: 4px; padding: 1px 6px; font-size: 12px; margin-left: 6px; }
+  .opal-pd__badge--low { background: #fef3c7; color: #92400e; }
+  .opal-pd__badge--out { background: #fee2e2; color: #991b1b; }
+  .opal-pd__stock-in { color: #15803d; font-weight: 600; font-size: 13px; }
 </style>

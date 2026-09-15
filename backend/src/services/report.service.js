@@ -8,6 +8,7 @@
 const { Prisma } = require('@prisma/client')
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { stockStatus } = require('../utils/stockStatus')
 
 const Decimal = Prisma.Decimal
 
@@ -300,6 +301,7 @@ const reportService = {
   // Stock levels, stock value at current selling price, and low stock.
   async inventory() {
     const products = await prisma.product.findMany({
+      where: { isActive: true },
       include: {
         inventory: true,
         category: { select: { name: true } },
@@ -313,18 +315,24 @@ const reportService = {
 
     for (const p of products) {
       const qty = p.inventory?.quantity ?? 0
+      const threshold = Number(p.lowStockThreshold ?? 5)
       totalUnits += qty
       totalValue = totalValue.plus(new Decimal(p.sellingPrice).mul(qty))
 
-      if (qty <= p.lowStockThreshold) {
+      // Three-tier status: OUT_OF_STOCK, LOW_STOCK, IN_STOCK.
+      // qty===0 is reported (never hidden) so the UI can show "out of stock",
+      // and qty===threshold stays LOW_STOCK (the report warns, does not hide).
+      const status = stockStatus(qty, threshold)
+      if (status !== 'IN_STOCK') {
         lowStock.push({
           id: p.id,
           sku: p.sku,
           name: p.name,
           category: p.category?.name ?? null,
           quantity: qty,
-          threshold: p.lowStockThreshold,
+          threshold,
           sellingPrice: p.sellingPrice,
+          status,
         })
       }
     }

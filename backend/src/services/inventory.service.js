@@ -90,24 +90,87 @@ const inventoryService = {
       { timeout: 60000 }
     )
 
-    // Push stock to Shopify after successful DB update
-    this.syncToShopify(productId, result.quantity).catch(() => {})
+    // Push stock to Shopify after successful DB update (non-blocking).
+    // Failures are recorded so they can be retried — never silently swallowed.
+    this.syncToShopify(productId, result.quantity)
 
     return result
   },
 
-  // Push stock level to Shopify (best-effort, non-blocking)
+  // Push stock level to Shopify (best-effort). Never throws — on failure the
+  // error is recorded in ShopifySyncLog so the stale storefront stock is
+  // visible and can be re-pushed with retryFailedSyncs().
   async syncToShopify(productId, newQuantity) {
     try {
       const product = await prisma.product.findUnique({ where: { id: productId } })
-      if (!product?.shopifyInventoryItemId) return
+      if (!product?.shopifyInventoryItemId) {
+        await this.recordSyncFailure(productId, newQuantity, 'Product has no Shopify inventory item id')
+        return { ok: false, error: 'NO_INVENTORY_ITEM_ID' }
+      }
 
       await shopifyService.setInventoryLevel(
         Number(product.shopifyInventoryItemId),
         newQuantity
       )
-    } catch {
-      // Shopify sync is best-effort — don't fail the stock update
+      return { ok: true }
+    } catch (err) {
+      await this.recordSyncFailure(productId, newQuantity, err.message || 'Unknown sync error')
+      return { ok: false, error: err.message }
+    }
+  },
+
+  // Record a failed stock push so it can be surfaced and retried.
+  async recordSyncFailure(productId, newQuantity, error) {
+    try {
+      await prisma.shopifySyncLog.create({
+        data: {
+          type: 'INVENTORY',
+          status: 'FAILED',
+          itemsProcessed: 0,
+          message: `Stock sync to Shopify failed (product ${productId}, qty ${newQuantity}): ${error}`,
+          payload: { productId, quantity: newQuantity, error },
+        },
+      })
+    } catch (err) {
+      // Logging must never break a stock update.
+    }
+  },
+
+  // Re-push the CURRENT ERP quantity to Shopify for every product whose last
+  // stock sync failed. Returns a summary of the retried pushes.
+  async retryFailedSyncs({ limit = 50 } = {}) {
+    const failed = await prisma.shopifySyncLog.findMany({
+      where: { type: 'INVENTORY', status: 'FAILED' },
+      orderBy: { id: 'desc' },
+      take: limit,
+    })
+
+    const uniqueIds = []
+    const seen = new Set()
+    for (const log of failed) {
+      const productId = log.payload?.productId
+      if (!productId || seen.has(productId)) continue
+      seen.add(productId)
+      uniqueIds.push(productId)
+    }
+
+    const results = []
+    for (const productId of uniqueIds) {
+      const product = await prisma.product.findUnique({
+        where: { id: Number(productId) },
+        include: { inventory: true },
+      })
+      if (!product) continue
+      const qty = product.inventory?.quantity ?? 0
+      const res = await this.syncToShopify(product.id, qty)
+      results.push({ productId: product.id, sku: product.sku, ok: res.ok })
+    }
+
+    return {
+      total: results.length,
+      ok: results.filter((r) => r.ok).length,
+      failed: results.filter((r) => !r.ok).length,
+      results,
     }
   },
 

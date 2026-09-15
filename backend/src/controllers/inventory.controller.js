@@ -44,6 +44,14 @@ const inventoryController = {
     })
     success(res, 200, result, 'Stock transferred')
   }),
+
+  // Re-push current ERP quantities to Shopify for every product whose last
+  // stock sync failed (recorded in ShopifySyncLog). Lets an admin repair
+  // storefront stock that would otherwise show a stale / wrong quantity.
+  retrySync: asyncHandler(async (req, res) => {
+    const result = await inventoryService.retryFailedSyncs({ limit: Number(req.query.limit) || 50 })
+    success(res, 200, result, 'Failed stock syncs retried')
+  }),
 }
 
 module.exports = inventoryController

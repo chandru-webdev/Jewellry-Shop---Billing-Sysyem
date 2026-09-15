@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
+const inventoryService = require('./inventory.service')
 const { escapeLike } = require('../utils/sanitizeSearch')
 const { normalizeSKU } = require('../utils/sku')
 
@@ -291,9 +292,9 @@ const productService = {
           data: { productId: product.id, quantity: newQty },
         })
       }
-      // Push to Shopify
+      // Push to Shopify (failures recorded for retry, not silently swallowed)
       if (product.shopifyInventoryItemId && product.trackInventory !== false) {
-        shopifyService.setInventoryLevel(Number(product.shopifyInventoryItemId), newQty).catch(() => {})
+        inventoryService.syncToShopify(product.id, newQty)
       }
     }
 

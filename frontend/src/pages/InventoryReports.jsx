@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import { formatINR, formatDate } from '../utils/format'
 import { reportsApi } from '../api/reports'
 import { inventoryApi } from '../api/inventory'
+import { stockStatus, stockStatusTone } from '../utils/stock'
 
 const tabs = [
   { key: 'summary', label: 'Stock Summary', icon: Warehouse },
@@ -15,15 +16,6 @@ const tabs = [
   { key: 'valuation', label: 'Valuation', icon: Package },
   { key: 'lowStock', label: 'Low Stock', icon: AlertTriangle },
 ]
-
-const statusColor = { 'In Stock': 'green', 'Low Stock': 'orange', 'Critical': 'red', 'Out of Stock': 'red' }
-
-function stockStatus(qty, threshold) {
-  if (qty === 0) return 'Out of Stock'
-  if (qty <= threshold * 0.3) return 'Critical'
-  if (qty <= threshold) return 'Low Stock'
-  return 'In Stock'
-}
 
 export default function InventoryReports() {
   const [activeTab, setActiveTab] = useState('summary')
@@ -152,7 +144,7 @@ export default function InventoryReports() {
                         <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{p.category}</td>
                         <td className="px-4 py-2.5 text-right font-mono font-semibold">{p.quantity}</td>
                         <td className="px-4 py-2.5 text-right font-mono text-gray-500 dark:text-gray-400">{p.reorderLevel}</td>
-                        <td className="px-4 py-2.5"><Badge tone={statusColor[stockStatus(p.quantity, p.reorderLevel)]}>{stockStatus(p.quantity, p.reorderLevel)}</Badge></td>
+                        <td className="px-4 py-2.5"><Badge tone={stockStatusTone[stockStatus(p.quantity, p.reorderLevel)]}>{stockStatus(p.quantity, p.reorderLevel)}</Badge></td>
                       </tr>
                     ))}
                   </tbody>
@@ -262,8 +254,8 @@ export default function InventoryReports() {
                     {lowStock.length === 0 && <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400 dark:text-gray-500">All stock above reorder level.</td></tr>}
                     {lowStock.map((p, i) => {
                       const shortage = p.threshold - p.quantity
-                      const urgency = p.quantity === 0 ? 'Out of Stock' : p.quantity <= p.threshold * 0.3 ? 'Critical' : 'Low'
-                      const urgencyColor = urgency === 'Critical' || urgency === 'Out of Stock' ? 'red' : 'orange'
+                      const urgency = stockStatus(p.quantity, p.threshold)
+                      const urgencyColor = stockStatusTone[urgency]
                       return (
                         <tr key={p.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'}`}>
                           <td className="px-4 py-2.5 font-medium text-royal-800 dark:text-gray-200">{p.name}</td>

@@ -32,6 +32,16 @@ const productController = {
     const product = await productService.duplicate(req.params.id, req.user.id)
     success(res, 201, product, 'Product duplicated')
   }),
+
+  approveImport: asyncHandler(async (req, res) => {
+    const product = await productService.approveImport(req.params.id, req.user.id)
+    success(res, 200, product, 'Import approved')
+  }),
+
+  discardImport: asyncHandler(async (req, res) => {
+    const result = await productService.discardImport(req.params.id, req.user.id)
+    success(res, 200, result, 'Import discarded')
+  }),
 }
 
 module.exports = productController

@@ -17,4 +17,7 @@ router.post('/shopify/orders', webhookController.handleOrder)
 // Refunds
 router.post('/shopify/refunds', webhookController.handleRefund)
 
+// Products (create/update — keeps ERP images in sync with the store)
+router.post('/shopify/products', webhookController.handleProduct)
+
 module.exports = router

@@ -14,6 +14,8 @@ router.get('/:id', productController.getById)
 
 router.post('/', authorize('SUPER_ADMIN', 'MANAGER'), validate(createProductSchema), productController.create)
 router.post('/:id/duplicate', authorize('SUPER_ADMIN', 'MANAGER'), productController.duplicate)
+router.post('/:id/approve-import', authorize('SUPER_ADMIN', 'MANAGER'), productController.approveImport)
+router.post('/:id/discard-import', authorize('SUPER_ADMIN', 'MANAGER'), productController.discardImport)
 router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER'), validate(updateProductSchema), productController.update)
 router.delete('/:id', authorize('SUPER_ADMIN', 'MANAGER'), productController.remove)
 

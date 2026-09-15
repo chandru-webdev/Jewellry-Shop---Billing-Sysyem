@@ -33,6 +33,23 @@ const webhookController = {
 
     success(res, 200, result, 'Webhook received')
   }),
+
+  // POST /api/webhooks/shopify/products — products/create + products/update
+  handleProduct: asyncHandler(async (req, res) => {
+    const eventId =
+      req.body.id !== undefined
+        ? `product-${req.body.id}-${req.headers['x-shopify-webhook-id'] || Date.now()}`
+        : `${Date.now()}-${Math.random()}`
+
+    const result = await webhookService.handle({
+      topic: req.webhookTopic || 'products/create',
+      eventId,
+      payload: JSON.parse(req.body.toString('utf8')),
+      shopDomain: req.headers['x-shopify-shop-domain'] || '',
+    })
+
+    success(res, 200, result, 'Webhook received')
+  }),
 }
 
 module.exports = webhookController

@@ -12,14 +12,24 @@ const prisma = require('../prisma/client')
 const env = require('../config/env')
 const { request, ShopifyApiError } = require('../integrations/shopify/client')
 
-// Topics we must never miss (order sync depends on these).
-const REQUIRED_TOPICS = ['orders/create', 'orders/paid', 'orders/cancelled', 'orders/fulfilled', 'refunds/create']
+// Topics we must never miss (order sync + product/image sync depend on these).
+const REQUIRED_TOPICS = [
+  'orders/create',
+  'orders/paid',
+  'orders/cancelled',
+  'orders/fulfilled',
+  'refunds/create',
+  'products/create',
+  'products/update',
+]
 
 // The public URL Shopify calls. In production this must be the Railway
 // domain; in development it can be a tunnelled URL (ngrok etc).
 function webhookCallbackUrl(topic) {
   const base = process.env.PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:5000'
-  const path = topic.startsWith('refunds') ? '/api/webhooks/shopify/refunds' : '/api/webhooks/shopify/orders'
+  let path = '/api/webhooks/shopify/orders'
+  if (topic.startsWith('refunds')) path = '/api/webhooks/shopify/refunds'
+  else if (topic.startsWith('products')) path = '/api/webhooks/shopify/products'
   return `${base}${path}`
 }
 

@@ -117,6 +117,24 @@ export default function Products() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
   })
 
+  const approveImportMutation = useMutation({
+    mutationFn: (id) => productsApi.approveImport(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      showToast(`Approved ${res.data?.data?.sku || 'import'} — pushed to Shopify`)
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to approve import'),
+  })
+
+  const discardImportMutation = useMutation({
+    mutationFn: (id) => productsApi.discardImport(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      showToast('Pending import discarded')
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to discard import'),
+  })
+
   const imageMutation = useMutation({
     mutationFn: ({ id, data }) => productsApi.update(id, data),
     onSuccess: () => {
@@ -173,7 +191,7 @@ export default function Products() {
     onSuccess: (res) => {
       const r = res.data?.data || {}
       queryClient.invalidateQueries({ queryKey: ['products'] })
-      showToast(`Imported ${r.created ?? 0} new, updated ${r.updated ?? 0}${r.failed ? `, failed ${r.failed}` : ''}`)
+      showToast(`Imported ${r.created ?? 0} new pending products, updated ${r.updated ?? 0}${r.failed ? `, failed ${r.failed}` : ''}`)
     },
     onError: (err) => setError(err.response?.data?.message || err.message || 'Import failed'),
   })
@@ -197,16 +215,24 @@ export default function Products() {
     if (filterStock === 'in' && (p.inventory?.quantity || 0) <= 0) return false
     if (filterStatus === 'active' && !p.isActive) return false
     if (filterStatus === 'inactive' && p.isActive) return false
+    if (filterStatus === 'pending' && !p.pendingImport) return false
     if (filterMissingData && !(p.weight === 0 || p.costPrice === '' || p.costPrice === 0)) return false
     return true
   })
+
+  const pendingCount = (products || []).filter((p) => p.pendingImport).length
 
   return (
     <div>
       <PageHeader
         title="Products"
         subtitle="Manage jewellery products, pricing, inventory and Shopify synchronization"
-        badge={<Badge tone="purple">{isLoading ? '…' : (products || []).filter((p) => p.isActive).length} Available</Badge>}
+        badge={
+          <span className="flex items-center gap-2">
+            {pendingCount > 0 && <Badge tone="gold">{pendingCount} Pending Imports</Badge>}
+            <Badge tone="purple">{isLoading ? '…' : (products || []).filter((p) => p.isActive).length} Available</Badge>
+          </span>
+        }
         actions={
           canEdit && (
 <div className="flex gap-2">
@@ -283,6 +309,7 @@ export default function Products() {
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="pending">Pending Import</option>
         </select>
       </div>
 
@@ -396,11 +423,25 @@ export default function Products() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge tone={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
+                    {p.pendingImport ? (
+                      <Badge tone="gold">Pending Review</Badge>
+                    ) : (
+                      <Badge tone={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
+                    )}
                   </td>
                   {canEdit && (
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        {p.pendingImport && (
+                          <>
+                            <button onClick={() => approveImportMutation.mutate(p.id)} disabled={approveImportMutation.isPending} className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg cursor-pointer disabled:opacity-40" title="Approve import">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => discardImportMutation.mutate(p.id)} disabled={discardImportMutation.isPending} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg cursor-pointer disabled:opacity-40" title="Discard import">
+                              <X size={14} />
+                            </button>
+                          </>
+                        )}
                         <button onClick={() => setViewing(p)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-white/10 rounded-lg cursor-pointer" title="View">
                           <Eye size={14} />
                         </button>

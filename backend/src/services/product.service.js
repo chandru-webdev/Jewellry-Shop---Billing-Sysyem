@@ -47,6 +47,9 @@ const productService = {
     if (filters.isActive === 'true' || filters.isActive === 'false') {
       where.isActive = filters.isActive === 'true'
     }
+    if (filters.pendingImport === 'true' || filters.pendingImport === 'false') {
+      where.pendingImport = filters.pendingImport === 'true'
+    }
 
     return prisma.product.findMany({
       where,
@@ -389,6 +392,52 @@ const productService = {
     })
 
     return product
+  },
+
+  // POST /api/products/:id/approve-import — accept a Shopify-sourced pending
+  // product: activates it and pushes price/metafields to the store.
+  async approveImport(id, userId) {
+    const existing = await this.getById(id)
+    if (!existing.pendingImport) throw new ApiError(400, 'Product is not a pending import')
+
+    const product = await prisma.product.update({
+      where: { id: existing.id },
+      data: { pendingImport: false, isActive: true },
+    })
+
+    // Refresh Shopify (price, metafields, images) now the product is live.
+    try {
+      await shopifyService.syncProduct(product.id)
+    } catch (err) {
+      product.shopifyError = (err && err.message) || 'Shopify sync failed'
+    }
+
+    await prisma.auditLog.create({
+      data: { userId, action: 'PRODUCT_IMPORT_APPROVED', entity: 'Product', entityId: product.id },
+    })
+
+    return product
+  },
+
+  // POST /api/products/:id/discard-import — remove a Shopify-sourced pending
+  // product that was never activated. Child rows are removed first because the
+  // schema restricts cascades.
+  async discardImport(id, userId) {
+    const existing = await this.getById(id)
+    if (!existing.pendingImport) throw new ApiError(400, 'Product is not a pending import')
+
+    await prisma.$transaction([
+      prisma.inventoryTransaction.deleteMany({ where: { productId: existing.id } }),
+      prisma.inventory.deleteMany({ where: { productId: existing.id } }),
+      prisma.productPriceHistory.deleteMany({ where: { productId: existing.id } }),
+      prisma.product.delete({ where: { id: existing.id } }),
+    ])
+
+    await prisma.auditLog.create({
+      data: { userId, action: 'PRODUCT_IMPORT_DISCARDED', entity: 'Product', entityId: existing.id },
+    })
+
+    return { id: existing.id, discarded: true }
   },
 }
 

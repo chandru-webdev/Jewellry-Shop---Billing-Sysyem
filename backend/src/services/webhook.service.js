@@ -78,6 +78,8 @@ const webhookService = {
 
       if (topic === 'orders/create' || topic === 'orders/paid') {
         result = await this.processOrder(payload, event.id)
+      } else if (topic === 'products/create' || topic === 'products/update') {
+        result = await this.processProduct(payload, event.id)
       } else if (topic === 'orders/cancelled' || topic === 'orders/fulfilled') {
         result = { topic, note: 'Order lifecycle event acknowledged' }
       } else if (topic === 'refunds/create') {
@@ -101,6 +103,37 @@ const webhookService = {
       })
       throw err
     }
+  },
+
+  // products/create + products/update: import the product into the ERP.
+  // New products arrive as PENDING imports for human review; linked products
+  // get their images synced back from the store. Reuses importShopifyProduct
+  // so the pull button and the webhooks behave identically.
+  async processProduct(payload, webhookEventId) {
+    const shopifyProductId = payload.id
+
+    const result = await shopifyService.importShopifyProduct(payload)
+
+    await prisma.auditLog.create({
+      data: {
+        action: result.action === 'created' ? 'SHOPIFY_PRODUCT_IMPORTED' : 'SHOPIFY_PRODUCT_UPDATED',
+        entity: 'Product',
+        entityId: result.id || null,
+        metadata: { shopifyProductId, webhookEventId, action: result.action },
+      },
+    })
+
+    await prisma.shopifySyncLog.create({
+      data: {
+        type: 'PRODUCT',
+        status: result.action === 'skipped' ? 'SKIPPED' : 'SUCCESS',
+        itemsProcessed: 1,
+        message: `Shopify product ${shopifyProductId}: ${result.action}`,
+        payload: { shopifyProductId, action: result.action },
+      },
+    })
+
+    return { shopifyProductId, action: result.action, id: result.id }
   },
 
   // Turn a Shopify order payload into ERP Order + stock changes.

@@ -11,12 +11,139 @@
 // so the dashboard can show the last sync status.
 // =============================================================
 const prisma = require('../prisma/client')
+const { Prisma } = require('@prisma/client')
 const { request, graphql, throttle, ShopifyApiError } = require('../integrations/shopify/client')
-const { calculatePrice, getSilverRate } = require('./pricing.service')
+const { getSilverRate } = require('./pricing.service')
 const { normalizeSKU } = require('../utils/sku')
 const env = require('../config/env')
 
+const Decimal = Prisma.Decimal
+
 const shopifyService = {
+
+  // Normalize a Shopify product payload's image list to clean image URLs.
+  shopifyImageUrls(sp) {
+    return (sp.images || []).map((img) => (img && img.src) || '').filter(Boolean)
+  },
+
+  // Merge image URLs without clobbering pre-existing ERP ones. Preserves
+  // order (store-first, then ERP extras) and dedupes.
+  mergeImageUrls(existing, incoming) {
+    const merged = []
+    const seen = new Set()
+    for (const src of [...(incoming || []), ...(existing || [])]) {
+      if (!src) continue
+      const key = String(src).trim()
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(src)
+    }
+    return merged
+  },
+
+  // Import ONE Shopify product into the ERP (used by the full pull and by the
+  // products/create + products/update webhooks).
+  //
+  // Brand-new products are imported as PENDING (isActive=false, pendingImport=true)
+  // so a human can review them in the ERP Products page before they go live.
+  // Price is adopted from Shopify for new products only; for products already in
+  // the ERP, price/stock stay ERP-owned and only images + shopify links sync back.
+  async importShopifyProduct(sp, { silverRate, defaultCategory } = {}) {
+    const variant = sp.variants?.[0]
+    if (!variant) return { action: 'skipped', reason: 'no variant' }
+
+    const sku = normalizeSKU(variant.sku || `SHOPIFY-${sp.id}`)
+    const shopifyPrice = parseFloat(variant.price) || 0
+    const storeImages = this.shopifyImageUrls(sp)
+
+    let weight = parseFloat(variant.weight)
+    if (Number.isNaN(weight) || weight <= 0) weight = 0.5
+
+    // Match by SKU first, then by shopifyProductId (avoids import loops when
+    // our own ERP->Shopify push triggers a products/update webhook).
+    let existing = await prisma.product.findUnique({ where: { sku } })
+    if (!existing && sp.id) {
+      existing = await prisma.product.findFirst({
+        where: { shopifyProductId: BigInt(sp.id) },
+      })
+    }
+
+    if (existing) {
+      // Linked product: sync images back into the ERP, refresh shopify links,
+      // and backfill a weight only when the ERP one is missing/invalid.
+      const mergedImages = this.mergeImageUrls(existing.imageUrls, storeImages)
+      const data = {
+        shopifyProductId: BigInt(sp.id),
+        shopifyVariantId: BigInt(variant.id),
+        shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : existing.shopifyInventoryItemId,
+        shopifyImageUrl: storeImages[0] || existing.shopifyImageUrl,
+        imageUrls: mergedImages.length ? mergedImages : null,
+      }
+      if (!existing.weight || Number(existing.weight) <= 0) {
+        data.weight = weight
+        if (!existing.netWeight || Number(existing.netWeight) <= 0) data.netWeight = weight
+      }
+
+      await prisma.product.update({ where: { id: existing.id }, data })
+
+      // Create inventory row if missing (one inventory per product).
+      const invRow = await prisma.inventory.findUnique({ where: { productId: existing.id } })
+      if (!invRow) {
+        await prisma.inventory.create({ data: { productId: existing.id, quantity: variant.inventory_quantity || 0 } })
+      }
+
+      return { action: 'updated', id: existing.id }
+    }
+
+    // ---- Brand-new product: import as PENDING for human review ----
+    const silver = silverRate ?? (await getSilverRate())
+    const defaultCategoryId = defaultCategory?.id
+
+    let categoryId = defaultCategoryId
+    if (sp.product_type) {
+      const cat = await prisma.category.findFirst({
+        where: { name: { equals: sp.product_type, mode: 'insensitive' } },
+      })
+      if (cat) categoryId = cat.id
+    }
+
+    // Adopt Shopify's price so the storefront and ERP agree for new imports.
+    // Derive base/gst so baseAmount + gstAmount still sum to sellingPrice.
+    const gstPercent = 3
+    const sellingPrice = new Decimal(shopifyPrice || 0)
+    const baseAmount = sellingPrice.div(1 + gstPercent / 100).toDecimalPlaces(2)
+    const gstAmount = sellingPrice.minus(baseAmount).toDecimalPlaces(2)
+
+    const product = await prisma.product.create({
+      data: {
+        sku,
+        name: sp.title || 'Untitled Product',
+        description: sp.body_html?.replace(/<[^>]*>/g, '') || '',
+        categoryId: categoryId || 1,
+        metal: 'silver',
+        weight,
+        netWeight: weight,
+        makingCharge: 0,
+        gstPercent: 3,
+        baseAmount,
+        gstAmount,
+        sellingPrice,
+        isActive: false,
+        pendingImport: true,
+        shopifyProductId: BigInt(sp.id),
+        shopifyVariantId: BigInt(variant.id),
+        shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
+        shopifyImageUrl: storeImages[0] || null,
+        imageUrls: storeImages.length ? storeImages : null,
+      },
+    })
+
+    await prisma.inventory.create({
+      data: { productId: product.id, quantity: variant.inventory_quantity || 0 },
+    })
+
+    return { action: 'created', id: product.id }
+  },
 
   // Pull ALL products from Shopify store into the ERP database.
   // Creates new products or updates existing ones matched by SKU.
@@ -46,97 +173,10 @@ const shopifyService = {
 
     for (const sp of allShopifyProducts) {
       try {
-        const variant = sp.variants?.[0]
-        if (!variant) { skipped++; continue }
-
-        const sku = normalizeSKU(variant.sku || `SHOPIFY-${sp.id}`)
-        const name = sp.title || 'Untitled Product'
-        const shopifyPrice = parseFloat(variant.price) || 0
-
-        // Robust weight extraction: prefer Shopify variant weight, fall back to
-        // netWeight/netWeight on the product, then a small default.
-        let weight = parseFloat(variant.weight)
-        if (Number.isNaN(weight)) {
-          const existing = await prisma.product.findUnique({ where: { sku } })
-          weight = Number(existing?.netWeight ?? existing?.grossWeight ?? 0)
-        }
-        if (Number.isNaN(weight) || weight <= 0) weight = 0.5
-
-        // Check if product already exists by SKU
-        const existing = await prisma.product.findUnique({ where: { sku } })
-
-        // Calculate price using our pricing engine
-        const makingCharge = 180 // default making charge for imported products
-        const price = calculatePrice({
-          silverRate,
-          weight,
-          makingCharge,
-          gstPercent: 3,
-        })
-
-        if (existing) {
-          // Update existing product with Shopify link
-          await prisma.product.update({
-            where: { id: existing.id },
-            data: {
-              shopifyProductId: BigInt(sp.id),
-              shopifyVariantId: BigInt(variant.id),
-              shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
-              name,
-              weight,
-            },
-          })
-
-          // Create inventory row if it doesn't exist (one inventory per product).
-          // Inventory holds the single unique constraint on productId, so a
-          // second create() for an existing product violates it.
-          const invRow = await prisma.inventory.findUnique({ where: { productId: existing.id } })
-          if (!invRow) {
-            await prisma.inventory.create({
-              data: { productId: existing.id, quantity: variant.inventory_quantity || 0 },
-            })
-          }
-
-          updated++
-        } else {
-          // Determine category from Shopify product type
-          let categoryId = defaultCategory?.id
-          if (sp.product_type) {
-            const cat = await prisma.category.findFirst({
-              where: { name: { equals: sp.product_type, mode: 'insensitive' } },
-            })
-            if (cat) categoryId = cat.id
-          }
-
-          // Create new product
-          const product = await prisma.product.create({
-            data: {
-              sku,
-              name,
-              description: sp.body_html?.replace(/<[^>]*>/g, '') || '',
-              categoryId: categoryId || 1,
-              metal: 'silver',
-              weight,
-              makingCharge,
-              gstPercent: 3,
-              baseAmount: price.baseAmount,
-              gstAmount: price.gstAmount,
-              sellingPrice: price.sellingPrice,
-              isActive: sp.status === 'active',
-              shopifyProductId: BigInt(sp.id),
-              shopifyVariantId: BigInt(variant.id),
-              shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
-            },
-          })
-
-          // Create inventory record
-          await prisma.inventory.create({
-            data: { productId: product.id, quantity: variant.inventory_quantity || 0 },
-          })
-
-          created++
-        }
-
+        const result = await this.importShopifyProduct(sp, { silverRate, defaultCategory })
+        if (result.action === 'created') created++
+        else if (result.action === 'updated') updated++
+        else skipped++
         ok++
       } catch (err) {
         failed++
@@ -522,13 +562,25 @@ const shopifyService = {
 
     if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
 
-    const imageUrls = Array.isArray(product.imageUrls) && product.imageUrls.length
+    // Fetch the store's CURRENT images and merge, so ERP-side updates APPEND
+    // images instead of wiping store-only ones (two-way image ownership).
+    let storeImages = []
+    try {
+      const res = await request(`/products/${product.shopifyProductId}.json?fields=images`)
+      storeImages = (res.product?.images || []).map((img) => img.src).filter(Boolean)
+    } catch (err) {
+      // If we can't read the store product, fall back to a plain image update
+    }
+
+    const erpImages = Array.isArray(product.imageUrls) && product.imageUrls.length
       ? product.imageUrls
       : product.shopifyImageUrl
         ? [product.shopifyImageUrl]
         : []
-    if (imageUrls.length) {
-      shopifyProduct.images = imageUrls.map((src) => ({ src }))
+    const mergedImages = this.mergeImageUrls(erpImages, storeImages)
+
+    if (mergedImages.length) {
+      shopifyProduct.images = mergedImages.map((src) => ({ src }))
     }
 
     await request(`/products/${product.shopifyProductId}.json`, {

@@ -7,4 +7,6 @@ export const productsApi = {
   update: (id, data) => apiClient.put(`/products/${id}`, data),
   remove: (id) => apiClient.delete(`/products/${id}`),
   duplicate: (id) => apiClient.post(`/products/${id}/duplicate`),
+  approveImport: (id) => apiClient.post(`/products/${id}/approve-import`),
+  discardImport: (id) => apiClient.post(`/products/${id}/discard-import`),
 }

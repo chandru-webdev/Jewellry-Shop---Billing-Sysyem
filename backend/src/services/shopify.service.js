@@ -49,6 +49,10 @@ const shopifyService = {
         const variant = sp.variants?.[0]
         if (!variant) { skipped++; continue }
 
+        const sku = normalizeSKU(variant.sku || `SHOPIFY-${sp.id}`)
+        const name = sp.title || 'Untitled Product'
+        const shopifyPrice = parseFloat(variant.price) || 0
+
         // Robust weight extraction: prefer Shopify variant weight, fall back to
         // netWeight/netWeight on the product, then a small default.
         let weight = parseFloat(variant.weight)
@@ -57,10 +61,6 @@ const shopifyService = {
           weight = Number(existing?.netWeight ?? existing?.grossWeight ?? 0)
         }
         if (Number.isNaN(weight) || weight <= 0) weight = 0.5
-
-        const name = sp.title || 'Untitled Product'
-        const sku = normalizeSKU(variant.sku || `SHOPIFY-${sp.id}`)
-        const shopifyPrice = parseFloat(variant.price) || 0
 
         // Check if product already exists by SKU
         const existing = await prisma.product.findUnique({ where: { sku } })

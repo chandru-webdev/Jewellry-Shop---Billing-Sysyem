@@ -15,7 +15,9 @@ const statusColor = { active: 'green', draft: 'gray', archived: 'gray' }
 // Demo/test entries (empty SKU like the store's Gift Card, numeric or
 // lowercase test SKUs like 00001 / slr-002) are excluded automatically —
 // no list to maintain.
-const REAL_SKU_PATTERN = /^[A-Z]{2,}(?:-[A-Z0-9]+)*-\d{3,4}$/
+// Products imported from the store keep a SHOPIFY-<shopifyId> SKU, which is a
+// legitimate ERP SKU even though it doesn't look like an OL-xxx code.
+const REAL_SKU_PATTERN = /^SHOPIFY-\d+$|^[A-Z]{2,}(?:-[A-Z0-9]+)*-\d{3,4}$/
 const isRealSku = (sku) => REAL_SKU_PATTERN.test(String(sku || '').trim().toUpperCase())
 
 export default function ProductsSync() {

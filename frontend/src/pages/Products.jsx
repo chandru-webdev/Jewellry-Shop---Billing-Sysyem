@@ -37,7 +37,6 @@ export default function Products() {
   const [inlineEdit, setInlineEdit] = useState({ productId: null, field: null })
   const [inlineValue, setInlineValue] = useState('')
   const [toast, setToast] = useState('')
-  const [syncing, setSyncing] = useState(false)
   const toastTimer = useRef(null)
 
   const { data: products, isLoading } = useQuery({
@@ -168,14 +167,27 @@ export default function Products() {
     showToast('Products exported')
   }
 
-  const handleSyncShopify = () => {
-    if (syncing) return
-    setSyncing(true)
-    setTimeout(() => {
-      setSyncing(false)
-      showToast('Synced with Shopify')
-    }, 1500)
-  }
+  // Import products FROM Shopify into the ERP (creates/updates by SKU).
+  const importMutation = useMutation({
+    mutationFn: () => shopifyApi.pullProducts(),
+    onSuccess: (res) => {
+      const r = res.data?.data || {}
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      showToast(`Imported ${r.created ?? 0} new, updated ${r.updated ?? 0}${r.failed ? `, failed ${r.failed}` : ''}`)
+    },
+    onError: (err) => setError(err.response?.data?.message || err.message || 'Import failed'),
+  })
+
+  // Push all active ERP products TO Shopify.
+  const syncShopifyMutation = useMutation({
+    mutationFn: () => shopifyApi.syncAllProducts(),
+    onSuccess: (res) => {
+      const r = res.data?.data || {}
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      showToast(`Synced ${r.ok ?? 0} products to Shopify${r.failed ? `, failed ${r.failed}` : ''}`)
+    },
+    onError: (err) => setError(err.response?.data?.message || err.message || 'Sync failed'),
+  })
 
   const filtered = (products || []).filter((p) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sku?.toLowerCase().includes(search.toLowerCase())) return false
@@ -197,10 +209,12 @@ export default function Products() {
         badge={<Badge tone="purple">{isLoading ? '…' : (products || []).filter((p) => p.isActive).length} Available</Badge>}
         actions={
           canEdit && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => showToast('Products imported from Shopify')}><Upload size={14} /> Import</Button>
+<div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => importMutation.mutate()}>
+                {importMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <><Upload size={14} /> Import</>}
+              </Button>
               <ExportControls onExport={handleExport} />
-              <Button variant="outline" size="sm" onClick={handleSyncShopify} disabled={syncing}>{syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Sync Shopify</Button>
+              <Button variant="outline" size="sm" onClick={() => syncShopifyMutation.mutate()} disabled={syncShopifyMutation.isPending}>{syncShopifyMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <><RefreshCw size={14} /> Sync Shopify</>}</Button>
               <Button size="sm" onClick={() => { setEditing(null); setModalKey((k) => k + 1); setModalOpen(true) }}>
                 <Plus size={14} /> Add Product
               </Button>

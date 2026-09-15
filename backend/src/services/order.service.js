@@ -50,7 +50,13 @@ const orderService = {
       where: { id: Number(id) },
       include: {
         customer: true,
-        items: { include: { product: { select: { id: true, sku: true } } } },
+        items: {
+          include: {
+            product: {
+              select: { id: true, sku: true, shopifyImageUrl: true, imageUrls: true },
+            },
+          },
+        },
         invoice: true,
         payments: true,
       },

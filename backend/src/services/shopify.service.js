@@ -447,6 +447,11 @@ const shopifyService = {
   // Find one Shopify "location" id. Every stock value lives at a
   // location. We use ONE canonical location for all products (cached),
   // otherwise stock would be split across locations and double-counted.
+  //
+  // WHICH location? It must be one the Online Store can sell from —
+  // otherwise customers see "Sold out" even though the Shopify total is > 0.
+  // "Shop location" (and any shop-named location) is the online-fulfilling
+  // one in this store; fall back to the first active location if unknown.
   async getLocationId() {
     if (this._locationId) return this._locationId
 
@@ -642,6 +647,12 @@ const shopifyService = {
       )
     }
 
+    // Drop empty / NaN values — Shopify rejects blank numeric & text values
+    // ("Value can't be blank"), which was failing the whole price sync.
+    const validMetafields = metafields.filter(
+      (m) => m.value !== '' && m.value !== null && m.value !== 'NaN' && m.value !== undefined
+    )
+
     const ownerId = `gid://shopify/Product/${product.shopifyProductId}`
     const res = await graphql(
       `mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -649,7 +660,7 @@ const shopifyService = {
           userErrors { field message }
         }
       }`,
-      { metafields: metafields.map((m) => ({ ...m, ownerId })) }
+      { metafields: validMetafields.map((m) => ({ ...m, ownerId })) }
     )
 
     const userErrors = res?.data?.metafieldsSet?.userErrors || []

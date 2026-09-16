@@ -98,6 +98,13 @@ async function ensureSchema() {
       ['imageUrls', 'JSONB'],
       ['trackInventory', 'BOOLEAN'],
       ['pushToShopify', 'BOOLEAN'],
+      ['stoneType', 'TEXT'],
+      ['stonePieces', 'INTEGER'],
+      ['stoneValue', 'DECIMAL(12,2)'],
+      ['lowStockThreshold', 'INTEGER'],
+      ['shopifyProductId', 'BIGINT'],
+      ['shopifyVariantId', 'BIGINT'],
+      ['shopifyInventoryItemId', 'BIGINT'],
     ]
     for (const [col, type] of productColumns) {
       await prisma.$executeRawUnsafe(`
@@ -159,6 +166,84 @@ async function ensureSchema() {
       END $$
     `)
     console.log('Collection table + expanded Product columns ensured.')
+
+    // ---------- Product.pendingImport (Shopify import review flag) ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Product" ADD COLUMN "pendingImport" BOOLEAN NOT NULL DEFAULT false;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Product.pendingImport column ensured.')
+
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Product_pendingImport_idx" ON "Product"("pendingImport")`)
+
+    // Defaults + backfill for newly ensured columns so existing Railway rows behave.
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Product" ALTER COLUMN "lowStockThreshold" SET DEFAULT 5`)
+    await prisma.$executeRawUnsafe(`UPDATE "Product" SET "lowStockThreshold" = 5 WHERE "lowStockThreshold" IS NULL`)
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Product" ALTER COLUMN "purity" SET DEFAULT 92.5`)
+
+    // ---------- OrderItem snapshot columns (silverRate, makingCharge, gstAmount) ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "OrderItem" ADD COLUMN "makingCharge" DECIMAL(10,2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "OrderItem" ADD COLUMN "silverRate" DECIMAL(10,2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "OrderItem" ADD COLUMN "gstAmount" DECIMAL(12,2);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('OrderItem.makingCharge/silverRate/gstAmount columns ensured.')
+
+    // ---------- Order / Invoice columns the dashboard & importer SELECT fully ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Order" ADD COLUMN "source" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Order" ADD COLUMN "shopifyOrderId" BIGINT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Order_shopifyOrderId_key" ON "Order"("shopifyOrderId")`)
+
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Invoice" ADD COLUMN "salespersonId" INTEGER;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Invoice" ADD COLUMN "discount" DECIMAL(12,2) DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Invoice" ADD COLUMN "gstTotal" DECIMAL(12,2) DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Invoice" ADD COLUMN "totalMakingCharge" DECIMAL(12,2) DEFAULT 0;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('Order.source/shopifyOrderId + Invoice.salespersonId/discount/gstTotal/totalMakingCharge ensured.')
 
     // costPrice: COGS per unit for margin calculation.
     await prisma.$executeRawUnsafe(`

@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Phone, Mail } from 'lucide-react'
+import { Search, Plus, Phone, Mail, Eye, Download } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import { Label, Input } from '../components/ui/FormControls'
+import CustomerDetailDrawer from '../components/CustomerDetailDrawer'
+import InvoiceDetail from '../components/InvoiceDetail'
 import { customersApi } from '../api/customers'
+import { invoicesApi } from '../api/invoices'
+import { downloadInvoicePDF } from '../utils/pdfInvoice'
 import { formatINR, formatDate } from '../utils/format'
 import { exportCustomersExcel, inRange } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
@@ -19,7 +23,18 @@ export default function Customers() {
   const [newCustomer, setNewCustomer] = useState(EMPTY_CUSTOMER)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const [customerDetailOpen, setCustomerDetailOpen] = useState(false)
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null)
+  const [invoiceDetailOpen, setInvoiceDetailOpen] = useState(false)
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null)
   const queryClient = useQueryClient()
+
+  const { data: selectedInvoice } = useQuery({
+    queryKey: ['invoices', selectedInvoiceId],
+    queryFn: () => invoicesApi.get(selectedInvoiceId).then((r) => r.data.data),
+    enabled: invoiceDetailOpen && !!selectedInvoiceId,
+    retry: false,
+  })
 
   const { data: apiCustomers } = useQuery({
     queryKey: ['customers'],
@@ -65,6 +80,27 @@ export default function Customers() {
     setNewCustomer(EMPTY_CUSTOMER)
   }
 
+  const openCustomerDetail = (c) => {
+    setSelectedCustomerId(c.id)
+    setCustomerDetailOpen(true)
+  }
+
+  const closeCustomerDetail = () => {
+    setCustomerDetailOpen(false)
+    setSelectedCustomerId(null)
+  }
+
+  const openInvoiceDetail = (invId) => {
+    setSelectedInvoiceId(invId)
+    closeCustomerDetail()
+    setInvoiceDetailOpen(true)
+  }
+
+  const closeInvoiceDetail = () => {
+    setInvoiceDetailOpen(false)
+    setSelectedInvoiceId(null)
+  }
+
   const handleSaveCustomer = async () => {
     if (!newCustomer.name.trim()) return
     setSaving(true)
@@ -101,6 +137,7 @@ export default function Customers() {
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total Spent</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Last Order</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -121,7 +158,18 @@ export default function Customers() {
                   <td className="px-4 py-3 text-right font-semibold text-royal-900 dark:text-gray-200">{c.orders}</td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(c.totalSpent)}</td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(c.lastOrder)}</td>
-                  </tr>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => openCustomerDetail(c)}
+                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                        title="View Customer"
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -173,6 +221,32 @@ export default function Customers() {
       </Modal>
 
       {toast && <div className="fixed bottom-6 right-6 z-50 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-sm rounded-lg px-4 py-2 border border-emerald-200 dark:border-emerald-800 shadow-lg">{toast}</div>}
+
+      {/* Customer Details Right Drawer — full height, 30% width slide-in from right */}
+      <CustomerDetailDrawer
+        open={customerDetailOpen}
+        customerId={selectedCustomerId}
+        onClose={closeCustomerDetail}
+        onInvoiceView={openInvoiceDetail}
+      />
+
+      {/* Invoice Detail Modal */}
+      <Modal
+        open={invoiceDetailOpen}
+        title=""
+        onClose={closeInvoiceDetail}
+        size="xl"
+        footer={
+          selectedInvoice ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={closeInvoiceDetail}>Close</Button>
+              <Button size="sm" onClick={() => downloadInvoicePDF(selectedInvoice)}><Download size={14} /> Download PDF</Button>
+            </>
+          ) : null
+        }
+      >
+        {selectedInvoice ? <InvoiceDetail invoice={selectedInvoice} /> : <p className="text-sm text-gray-400 text-center py-10">Loading...</p>}
+      </Modal>
     </div>
   )
 }

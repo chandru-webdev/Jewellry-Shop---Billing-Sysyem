@@ -131,6 +131,15 @@ async function ensureSchema() {
     await prisma.$executeRawUnsafe(`UPDATE "Product" SET "netWeight" = "weight" WHERE "netWeight" IS NULL OR "netWeight" = 0 OR "netWeight" = 0.000`)
     await prisma.$executeRawUnsafe(`UPDATE "Product" SET "grossWeight" = "weight" WHERE "grossWeight" IS NULL OR "grossWeight" = 0 OR "grossWeight" = 0.000`)
 
+    // Backfill older order-item rows that imported before weight was snapshotted,
+    // so dashboard top-products weight and order totals stay correct.
+    await prisma.$executeRawUnsafe(`
+      UPDATE "OrderItem" oi
+      SET "weight" = p.weight
+      FROM "Product" p
+      WHERE oi."productId" = p.id AND (oi."weight" IS NULL OR oi."weight" = 0)
+    `)
+
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Product_barcode_key" ON "Product"("barcode")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Product_collectionId_idx" ON "Product"("collectionId")`)
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Product_supplierId_idx" ON "Product"("supplierId")`)

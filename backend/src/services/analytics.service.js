@@ -129,9 +129,17 @@ const analyticsService = {
     }
 
     const data = buckets.map(({ name, value }) => ({ name, value: Number(value.toDecimalPlaces(2)) }))
+    const invoicedTotal = num(invoices.reduce((s, inv) => s.plus(new Decimal(inv.grandTotal ?? 0)), new Decimal(0)))
+    const paidTotal = num(invoices.reduce(
+      (s, inv) => s.plus(inv.payments.reduce((sum, p) => sum.plus(p.amount), new Decimal(0))),
+      new Decimal(0)
+    ))
     return {
       data,
       total: num(data.reduce((sum, b) => sum + b.value, 0)),
+      invoiceCount: invoices.length,
+      invoicedTotal,
+      paidTotal,
       hasData: data.some((b) => b.value !== 0),
     }
   },

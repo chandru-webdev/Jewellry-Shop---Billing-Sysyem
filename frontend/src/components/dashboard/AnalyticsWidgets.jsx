@@ -142,21 +142,83 @@ function NetRevenueWidget({ data }) {
 
 function ReceivablesWidget({ data }) {
   const rows = data?.data || [{ name: 'Current', value: 0 }]
+  const invoiced = data?.invoicedTotal ?? 0
+  const paid = data?.paidTotal ?? 0
+  const outstanding = data?.total ?? invoiced - paid
+  const donut = [
+    { name: 'Paid', value: Math.max(0, paid) },
+    { name: 'Outstanding', value: Math.max(0, outstanding) },
+  ]
+
   return (
     <Card title="Receivable Summary" icon={Wallet}>
       <div className="h-64">
-        {data?.hasData ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8f5ff' }} />
-              <Bar dataKey="value" name="Outstanding" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        {data?.invoiceCount ? (
+          <div>
+            <div className="flex items-center gap-4">
+              <div className="relative w-40 h-40 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donut}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={74}
+                      paddingAngle={2}
+                      strokeWidth={0}
+                    >
+                      <Cell fill="#10b981" />
+                      <Cell fill="#f59e0b" />
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Outstanding</p>
+                  <p className="text-sm font-bold text-royal-950 dark:text-white">{formatINR(outstanding)}</p>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#10b981' }} />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex-1">Paid</span>
+                  <span className="text-xs font-bold text-royal-950 dark:text-white">{formatINR(paid)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#f59e0b' }} />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex-1">Outstanding</span>
+                  <span className="text-xs font-bold text-royal-950 dark:text-white">{formatINR(outstanding)}</span>
+                </div>
+                <div className="pt-2 border-t border-gray-100 dark:border-white/[0.08] mt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex-1">Invoiced total</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{formatINR(invoiced)}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{data.invoiceCount} invoice(s)</p>
+                </div>
+              </div>
+            </div>
+            {data?.hasData && outstanding > 0 && (
+              <div className="h-40 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={rows} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0edf6" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8f5ff' }} />
+                    <Bar dataKey="value" name="Outstanding" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         ) : (
-          <ChartEmpty icon={Wallet} message="Create invoices to view your total amount owed." />
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
+            <ChartEmpty icon={Wallet} message="Create invoices to view your total amount owed." />
+          </div>
         )}
       </div>
     </Card>

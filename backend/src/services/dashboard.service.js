@@ -223,7 +223,7 @@ const dashboardService = {
           },
         },
         include: {
-          product: { select: { id: true, name: true, sku: true, sellingPrice: true } },
+          product: { select: { id: true, name: true, sku: true, sellingPrice: true, weight: true } },
           order: { select: { createdAt: true } },
         },
       }),
@@ -284,7 +284,7 @@ const dashboardService = {
         }
       }
       productSales[key].qty += item.quantity
-      productSales[key].weight += Number(item.weight || 0) * item.quantity
+      productSales[key].weight += Number(item.weight || item.product.weight || 0) * item.quantity
       productSales[key].revenue = productSales[key].revenue.plus(item.lineTotal || 0)
     }
 

@@ -205,6 +205,7 @@ const webhookService = {
     const skus = lineItems.map((l) => l.sku)
     const products = await prisma.product.findMany({ where: { sku: { in: skus } } })
     const productBySku = new Map(products.map((p) => [p.sku, p]))
+    const silverRate = (await prisma.metalRate.findUnique({ where: { metal: 'silver' } }))?.rate ?? 0
 
     // Only matched products become OrderItems / affect stock.
     // Unmatched SKUs (not in the ERP) are ignored but counted.
@@ -223,14 +224,23 @@ const webhookService = {
             paymentMethod,
             totalAmount: new Decimal(payload.total_price || 0).toDecimalPlaces(2),
             items: {
-              create: matched.map((l) => ({
-                productId: productBySku.get(l.sku).id,
-                sku: l.sku,
-                name: l.title || l.name || l.sku,
-                quantity: Number(l.quantity || 1),
-                unitPrice: new Decimal(l.price || 0).toDecimalPlaces(2),
-                lineTotal: new Decimal(l.price || 0).mul(l.quantity || 1).toDecimalPlaces(2),
-              })),
+              create: matched.map((l) => {
+                const prod = productBySku.get(l.sku)
+                const quantity = Number(l.quantity || 1)
+                const lineTotal = new Decimal(l.price || 0).mul(quantity)
+                return {
+                  productId: prod.id,
+                  sku: l.sku,
+                  name: l.title || l.name || l.sku,
+                  quantity,
+                  unitPrice: new Decimal(l.price || 0).toDecimalPlaces(2),
+                  lineTotal: lineTotal.toDecimalPlaces(2),
+                  weight: Number(prod.weight ?? 0),
+                  makingCharge: Number(prod.makingCharge ?? 0),
+                  silverRate,
+                  gstAmount: new Decimal(prod.gstAmount ?? 0).mul(quantity).toDecimalPlaces(2),
+                }
+              }),
             },
           },
         })

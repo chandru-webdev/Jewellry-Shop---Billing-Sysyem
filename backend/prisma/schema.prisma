@@ -189,6 +189,8 @@ model Product {
   shopifyTags            String?
   shopifyImageUrl        String?
   imageUrls              Json?
+  shopifyStatus          String                 @default("active") // active | draft | archived (Shopify product status)
+  chargeTax              Boolean                @default(true) // shopify variant.taxable — separate from ERP GST%
   trackInventory         Boolean                @default(true) // Shopify manages stock
   pushToShopify          Boolean                @default(true) // false = billing-software-only product
   inventory              Inventory?

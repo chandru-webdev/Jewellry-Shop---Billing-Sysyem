@@ -132,6 +132,8 @@ const productService = {
         shopifyTags: data.shopifyTags || null,
         shopifyImageUrl: data.shopifyImageUrl || (Array.isArray(data.imageUrls) ? data.imageUrls[0] : null) || null,
         imageUrls: Array.isArray(data.imageUrls) && data.imageUrls.length ? data.imageUrls : null,
+        shopifyStatus: data.shopifyStatus || 'active',
+        chargeTax: data.chargeTax !== false,
         inventory: { create: { quantity: data.initialStock || 0 } },
       },
       include: { category: true, inventory: true, collection: true, supplier: true },
@@ -277,8 +279,10 @@ const productService = {
 
     // Push to Shopify if price-relevant fields changed OR status changed
     const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
+    const shopifyStatusChanged = data.shopifyStatus !== undefined && data.shopifyStatus !== existing.shopifyStatus
+    const chargeTaxChanged = data.chargeTax !== undefined && data.chargeTax !== existing.chargeTax
     const imageChanged = imageUrlListSupplied(data.imageUrls) || data.shopifyImageUrl !== undefined
-    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.colour !== undefined || data.purity !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || imageChanged)) {
+    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.colour !== undefined || data.purity !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || shopifyStatusChanged || chargeTaxChanged || imageChanged)) {
       shopifyService.updateProductOnShopify(product).catch(() => {})
     }
 
@@ -382,6 +386,8 @@ const productService = {
         shopifyTags: existing.shopifyTags,
         shopifyImageUrl: existing.shopifyImageUrl,
         imageUrls: existing.imageUrls,
+        shopifyStatus: existing.shopifyStatus || 'active',
+        chargeTax: existing.chargeTax !== false,
         inventory: { create: { quantity: existing.inventory?.quantity ?? 0 } },
       },
       include: { category: true, inventory: true, collection: true, supplier: true },

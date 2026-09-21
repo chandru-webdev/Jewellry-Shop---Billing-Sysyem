@@ -34,6 +34,8 @@ const createProductSchema = z.object({
   shopifyTags: z.string().nullable().optional(),
   shopifyImageUrl: z.string().nullable().optional(),
   imageUrls: z.array(z.string()).nullable().optional(),
+  shopifyStatus: z.enum(['active', 'draft', 'archived']).optional(),
+  chargeTax: z.boolean().optional(),
   trackInventory: z.boolean().optional(),
   pushToShopify: z.boolean().optional(),
 })

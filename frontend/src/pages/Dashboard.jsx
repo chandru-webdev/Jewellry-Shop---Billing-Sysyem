@@ -5,7 +5,7 @@ import {
   IndianRupee, TrendingUp, ShoppingCart, FileText, AlertTriangle,
   Receipt, Clock, Coins, Package, Users, Truck, Boxes, CreditCard,
   ArrowRight, BarChart3, Gem, CircleDollarSign, Store,
-  Calendar, ChevronDown, Plus, Minus, X,
+  Calendar, ChevronDown, Plus, Minus,
 } from 'lucide-react'
 import {
   AreaChart, Area, LineChart, Line, PieChart, Pie, Cell,
@@ -14,6 +14,7 @@ import {
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
+import Modal from '../components/ui/Modal'
 import { formatINR } from '../utils/format'
 import { dashboardApi } from '../api/dashboard'
 import { productsApi } from '../api/products'
@@ -233,17 +234,25 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-[#1a1025] rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.05]">
-          <div>
-            <h3 className="text-base font-bold text-royal-950 dark:text-white">Quick Stock Update</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">Add or remove stock for any product</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-white/10 rounded-lg cursor-pointer"><X size={18} /></button>
-        </div>
-
-        <div className="p-5 space-y-4">
+    <Modal open onClose={onClose} title={
+      <div>
+        <h3 className="text-base font-bold text-royal-950 dark:text-white">Quick Stock Update</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">Add or remove stock for any product</p>
+      </div>
+    } footer={
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button
+          variant={type === 'IN' ? 'primary' : 'danger'}
+          onClick={handleSubmit}
+          loading={stockMutation.isPending}
+          disabled={!selectedProduct || !quantity || Number(quantity) <= 0}
+        >
+          {type === 'IN' ? 'Add Stock' : 'Remove Stock'}
+        </Button>
+      </div>
+    }>
+        <div className="space-y-4">
           {/* IN / OUT toggle */}
           <div className="flex rounded-lg border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <button onClick={() => setType('IN')}
@@ -309,20 +318,7 @@ function StockUpdateModal({ open, onClose, onSuccess }) {
             </div>
           )}
         </div>
-
-        <div className="px-5 py-4 border-t border-gray-100 dark:border-white/[0.05] flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button
-            variant={type === 'IN' ? 'primary' : 'danger'}
-            onClick={handleSubmit}
-            loading={stockMutation.isPending}
-            disabled={!selectedProduct || !quantity || Number(quantity) <= 0}
-          >
-            {type === 'IN' ? 'Add Stock' : 'Remove Stock'}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

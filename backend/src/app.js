@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit')
 const env = require('./config/env')
 const routes = require('./routes')
 const errorHandler = require('./middleware/errorHandler')
+const path = require('path')
 
 const app = express()
 
@@ -46,6 +47,9 @@ app.use('/api/webhooks', require('./routes/webhook.routes'))
 
 // Parse incoming JSON bodies (limit to 1MB to block huge payloads)
 app.use(express.json({ limit: '1mb' }))
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // Log requests in development
 if (env.nodeEnv === 'development') {

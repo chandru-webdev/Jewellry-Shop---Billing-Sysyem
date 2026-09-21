@@ -10,6 +10,8 @@
 // Shopify store. Every bulk job is recorded in ShopifySyncLog
 // so the dashboard can show the last sync status.
 // =============================================================
+const fs = require('fs')
+const path = require('path')
 const prisma = require('../prisma/client')
 const { Prisma } = require('@prisma/client')
 const { request, graphql, throttle, ShopifyApiError } = require('../integrations/shopify/client')
@@ -26,14 +28,36 @@ const shopifyService = {
     return (sp.images || []).map((img) => (img && img.src) || '').filter(Boolean)
   },
 
-  // Merge image URLs without clobbering pre-existing ERP ones. Preserves
-  // order (store-first, then ERP extras) and dedupes.
-  mergeImageUrls(existing, incoming) {
+  // Normalize URL for comparison: strip query params, CDN size suffixes
+  normalizeImageUrl(url) {
+    if (!url) return ''
+    try {
+      const u = new URL(url)
+      // Remove query params and Shopify CDN size suffixes (e.g., _100x, _large)
+      let path = u.pathname.replace(/(_\d+x\d*|_\w+)(?=\.[^.]+$)/, '')
+      return `${u.origin}${path}`
+    } catch {
+      return String(url).trim()
+    }
+  },
+
+  // Merge image URLs: store images first, then ERP images that aren't already on store.
+  // Normalizes URLs for comparison to handle CDN variants.
+  mergeImageUrls(storeImages, erpImages) {
     const merged = []
     const seen = new Set()
-    for (const src of [...(incoming || []), ...(existing || [])]) {
+    // Add store images first (they're already on Shopify)
+    for (const src of storeImages || []) {
       if (!src) continue
-      const key = String(src).trim()
+      const key = this.normalizeImageUrl(src)
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(src)
+    }
+    // Add ERP images only if not already present (after normalization)
+    for (const src of erpImages || []) {
+      if (!src) continue
+      const key = this.normalizeImageUrl(src)
       if (seen.has(key)) continue
       seen.add(key)
       merged.push(src)
@@ -78,6 +102,8 @@ const shopifyService = {
         shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : existing.shopifyInventoryItemId,
         shopifyImageUrl: storeImages[0] || existing.shopifyImageUrl,
         imageUrls: mergedImages.length ? mergedImages : null,
+        shopifyStatus: (sp.status && ['active', 'draft', 'archived'].includes(sp.status)) ? sp.status : existing.shopifyStatus || 'active',
+        chargeTax: typeof variant.taxable === 'boolean' ? variant.taxable : existing.chargeTax,
       }
       if (!existing.weight || Number(existing.weight) <= 0) {
         data.weight = weight
@@ -135,6 +161,8 @@ const shopifyService = {
         shopifyInventoryItemId: variant.inventory_item_id ? BigInt(variant.inventory_item_id) : null,
         shopifyImageUrl: storeImages[0] || null,
         imageUrls: storeImages.length ? storeImages : null,
+        shopifyStatus: (sp.status && ['active', 'draft', 'archived'].includes(sp.status)) ? sp.status : 'active',
+        chargeTax: typeof variant.taxable === 'boolean' ? variant.taxable : true,
       },
     })
 
@@ -498,11 +526,13 @@ const shopifyService = {
 
   // Create a brand-new product on Shopify. Returns the Shopify ids.
   async createProductOnShopify(product) {
+    const shopifyStatus = product.shopifyStatus || (product.isActive ? 'active' : 'draft')
     const variant = {
       sku: product.sku,
       price: Number(product.sellingPrice).toFixed(2),
       weight: Number(product.netWeight ?? product.weight ?? 0),
       weight_unit: 'g',
+      taxable: product.chargeTax !== false,
       inventory_management: product.trackInventory === false ? null : 'shopify',
     }
 
@@ -515,7 +545,7 @@ const shopifyService = {
       vendor: product.shopifyVendor || 'OPAL LINE',
       product_type: product.shopifyProductType || product.category?.name || 'Jewellery',
       body_html: product.description || '',
-      status: product.isActive ? 'active' : 'draft',
+      status: shopifyStatus,
       variants: [variant],
     }
 
@@ -547,6 +577,16 @@ const shopifyService = {
     // Push the product-details / price-breakup metafields (storefront section).
     await this.pushProductMetafields({ ...product, shopifyProductId: p.id })
 
+    // Upload videos to Shopify product media
+    const videoUrls = (product.imageUrls || []).filter(u => u && (u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov')))
+    for (const videoUrl of videoUrls) {
+      try {
+        await this.uploadVideoToShopify({ ...product, shopifyProductId: p.id }, videoUrl)
+      } catch (err) {
+        console.error(`Failed to upload video ${videoUrl} to Shopify:`, err.message)
+      }
+    }
+
     return {
       shopifyProductId: p.id,
       shopifyVariantId: createdVariant.id,
@@ -556,13 +596,14 @@ const shopifyService = {
 
   // Update an existing Shopify product's details + price (and stock)
   async updateProductOnShopify(product) {
+    const shopifyStatus = product.shopifyStatus || (product.isActive ? 'active' : 'draft')
     const shopifyProduct = {
       id: Number(product.shopifyProductId),
       title: product.name,
       vendor: product.shopifyVendor || 'OPAL LINE',
       product_type: product.shopifyProductType || product.category?.name || 'Jewellery',
       body_html: product.description || '',
-      status: product.isActive ? 'active' : 'draft',
+      status: shopifyStatus,
     }
 
     if (product.shopifyTags) shopifyProduct.tags = product.shopifyTags
@@ -582,7 +623,7 @@ const shopifyService = {
       : product.shopifyImageUrl
         ? [product.shopifyImageUrl]
         : []
-    const mergedImages = this.mergeImageUrls(erpImages, storeImages)
+    const mergedImages = this.mergeImageUrls(storeImages, erpImages)
 
     if (mergedImages.length) {
       shopifyProduct.images = mergedImages.map((src) => ({ src }))
@@ -597,6 +638,7 @@ const shopifyService = {
       id: Number(product.shopifyVariantId),
       price: Number(product.sellingPrice).toFixed(2),
       sku: product.sku,
+      taxable: product.chargeTax !== false,
     }
 
     if (product.compareAtPrice && Number(product.compareAtPrice) > 0) {
@@ -616,6 +658,16 @@ const shopifyService = {
 
     // Refresh the storefront product-details / price-breakup metafields.
     await this.pushProductMetafields(product)
+
+    // Upload videos to Shopify product media (new videos only — existing stay)
+    const videoUrls = (product.imageUrls || []).filter(u => u && (u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov')))
+    for (const videoUrl of videoUrls) {
+      try {
+        await this.uploadVideoToShopify(product, videoUrl)
+      } catch (err) {
+        console.error(`Failed to upload video ${videoUrl} to Shopify:`, err.message)
+      }
+    }
   },
 
   // Push the product-details + price-breakup metafields (silver / stone /
@@ -667,6 +719,74 @@ const shopifyService = {
     if (userErrors.length) {
       throw new ShopifyApiError(422, `Shopify metafields: ${userErrors.map((e) => e.message).join('; ')}`)
     }
+  },
+
+  // Upload a video file to Shopify and attach as product media
+  // Uses staged uploads: create target -> PUT file -> productCreateMedia
+  async uploadVideoToShopify(product, videoUrl) {
+    // videoUrl is like "/uploads/xyz.mp4" or full URL
+    // Extract filename and read from local uploads dir
+    const filename = videoUrl.split('/').pop()
+    if (!filename) throw new Error('Invalid video URL')
+    const localPath = path.join(process.cwd(), 'uploads', filename)
+    if (!fs.existsSync(localPath)) throw new Error(`Video file not found: ${localPath}`)
+
+    const fileBuffer = fs.readFileSync(localPath)
+    const fileSize = fileBuffer.length
+    const mimeType = 'video/mp4' // assume mp4; could detect from extension
+
+    // 1. Create staged upload target
+    const stagedRes = await graphql(
+      `mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+        stagedUploadsCreate(input: $input) {
+          stagedTargets { url resourceUrl parameters { name value } }
+          userErrors { field message }
+        }
+      }`,
+      {
+        input: [{
+          resource: 'PRODUCT_VIDEO',
+          filename,
+          mimeType,
+          fileSize,
+          httpMethod: 'POST'
+        }]
+      }
+    )
+
+    const stagedData = stagedRes?.data?.stagedUploadsCreate
+    const errors = stagedData?.userErrors || []
+    if (errors.length) throw new ShopifyApiError(422, `Staged upload: ${errors.map(e => e.message).join('; ')}`)
+
+    const target = stagedData?.stagedTargets?.[0]
+    if (!target) throw new Error('No staged target returned')
+
+    // 2. Upload file to staged URL (multipart/form-data with parameters)
+    const formData = new FormData()
+    target.parameters.forEach(p => formData.append(p.name, p.value))
+    formData.append('file', new Blob([fileBuffer], { type: mimeType }), filename)
+
+    const uploadRes = await fetch(target.url, { method: 'POST', body: formData })
+    if (!uploadRes.ok) throw new Error(`Staged upload failed: ${uploadRes.status}`)
+
+    // 3. Create product media from staged resource URL
+    const mediaRes = await graphql(
+      `mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+        productCreateMedia(productId: $productId, media: $media) {
+          media { id mediaContentType }
+          mediaUserErrors { code message }
+        }
+      }`,
+      {
+        productId: `gid://shopify/Product/${product.shopifyProductId}`,
+        media: [{ originalSource: target.resourceUrl, mediaContentType: 'VIDEO' }]
+      }
+    )
+
+    const mediaErrors = mediaRes?.data?.productCreateMedia?.mediaUserErrors || []
+    if (mediaErrors.length) throw new ShopifyApiError(422, `Product media: ${mediaErrors.map(e => e.message).join('; ')}`)
+
+    return mediaRes.data.productCreateMedia.media
   },
 
   // Push ONE ERP product to Shopify (create if needed, else update)

@@ -15,6 +15,12 @@ const statusTone = { PAID: 'green', COMPLETED: 'green', PENDING: 'orange', FAILE
 const typeTone = { RECEIVED: 'green', SENT: 'red' }
 const payDir = (p) => p.type || (String(p.status || '').toUpperCase() === 'REFUNDED' ? 'SENT' : 'RECEIVED')
 
+// Products the payment is for, from the linked invoice/order line items.
+const paymentProducts = (p) => {
+  const items = p?.invoice?.items?.length ? p.invoice.items : p?.order?.items || []
+  return items.map((i) => ({ name: i.name, sku: i.sku, quantity: i.quantity }))
+}
+
 export default function Payments() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
@@ -175,8 +181,12 @@ export default function Payments() {
         {selected && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Amount</p><p className="font-bold text-royal-950 dark:text-white text-xl">{formatINR(selected.amount)}</p></div>
+              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Total Amount</p><p className="font-bold text-royal-950 dark:text-white text-xl">{formatINR(selected.amount)}</p></div>
               <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Status</p><Badge tone={statusTone[selected.status]}>{selected.status}</Badge></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Pending Amount</p><p className="font-medium text-amber-600">{selected.status === 'PENDING' ? formatINR(selected.pendingAmount || selected.amount) : '—'}</p></div>
+              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Date</p><p className="font-medium">{formatDate(selected.createdAt || selected.date)}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Method</p><p className="font-medium">{selected.method}</p></div>
@@ -185,6 +195,23 @@ export default function Payments() {
             <div className="grid grid-cols-2 gap-3">
               <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Invoice</p><p className="font-medium">{selected.invoice?.invoiceNumber || selected.invoice || '—'}</p></div>
               <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer || '—'}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Product</p>
+                {paymentProducts(selected).length > 0 ? (
+                  <ul className="mt-1 space-y-1">
+                    {paymentProducts(selected).map((it, i) => (
+                      <li key={i} className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}</span>
+                        <span className="font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">({it.sku}{it.quantity > 1 ? ` × ${it.quantity}` : ''})</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="font-medium text-gray-500 dark:text-gray-400">—</p>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -197,13 +224,13 @@ export default function Payments() {
         </>
       }>
         <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="space-y-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer</label>
               <p className="text-sm text-gray-500 dark:text-gray-400">{selected?.customer?.name || selected?.customer || '—'}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Amount *</label>
               <input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({...editForm, amount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required />
             </div>
             {editForm.status === 'PENDING' && (
@@ -212,29 +239,52 @@ export default function Payments() {
                 <input type="number" step="0.01" value={editForm.pendingAmount} onChange={(e) => setEditForm({...editForm, pendingAmount: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Amount still to be received" />
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
-              <select value={editForm.method} onChange={(e) => setEditForm({...editForm, method: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
-                <option value="CASH">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="CARD">Card</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="ONLINE">Online</option>
-                <option value="OTHER">Other</option>
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+                <select value={editForm.method} onChange={(e) => setEditForm({...editForm, method: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="CARD">Card</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="ONLINE">Online</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
+                  <option value="PAID">Paid</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="FAILED">Failed</option>
+                  <option value="REFUNDED">Refunded</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                <input type="text" value={formatDate(selected?.createdAt || selected?.date)} readOnly className="w-full rounded-lg border border-gray-300 bg-gray-50 dark:bg-white/5 px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference</label>
+                <input type="text" value={editForm.reference} onChange={(e) => setEditForm({...editForm, reference: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Transaction reference" />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-              <select value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
-                <option value="PAID">Paid</option>
-                <option value="PENDING">Pending</option>
-                <option value="FAILED">Failed</option>
-                <option value="REFUNDED">Refunded</option>
-              </select>
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference</label>
-              <input type="text" value={editForm.reference} onChange={(e) => setEditForm({...editForm, reference: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" placeholder="Transaction reference" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product</label>
+              {paymentProducts(selected).length > 0 ? (
+                <ul className="space-y-1 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/5 px-3 py-2">
+                  {paymentProducts(selected).map((it, i) => (
+                    <li key={i} className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}</span>
+                      <span className="font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">({it.sku}{it.quantity > 1 ? ` × ${it.quantity}` : ''})</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">—</p>
+              )}
             </div>
           </div>
         </form>

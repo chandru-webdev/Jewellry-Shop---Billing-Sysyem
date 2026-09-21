@@ -2,7 +2,9 @@ import { useState } from 'react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { Input, Select, Label, Textarea } from '../ui/FormControls'
+import { Plus, X, Lock, Upload } from 'lucide-react'
 import { formatINR } from '../../utils/format'
+import apiClient from '../../api/client'
 
 // Real ERP SKUs look like SLR-001 / SLV-RNG-00001 (letters, hyphen, digits).
 const SKU_PATTERN = /^[A-Z]{2,}(?:-[A-Z]{2,})?-\d{3,}$/
@@ -57,7 +59,9 @@ const emptyForm = {
   shopifyVendor: 'Opal Line',
   shopifyProductType: '',
   shopifyTags: '',
-  shopifyImageUrl: '',
+  shopifyMedia: [{ type: 'image', url: '' }],
+  shopifyStatus: 'active',
+  chargeTax: true,
   trackInventory: true,
   pushToShopify: true,
 }
@@ -83,7 +87,7 @@ function buildForm(product, silverRate) {
     stoneType: product.stoneType || '',
     stonePieces: product.stonePieces != null ? String(product.stonePieces) : '',
     stoneValue: product.stoneValue != null ? String(product.stoneValue) : '',
-    silverRateUsed: product.silverRateUsed != null ? String(product.silverRateUsed) : '',
+    silverRateUsed: silverRate != null && silverRate !== '' ? String(silverRate) : (product.silverRateUsed != null ? String(product.silverRateUsed) : ''),
     makingCharge: String(product.makingCharge ?? 20),
     gstPercent: String(product.gstPercent ?? 3),
     compareAtPrice: product.compareAtPrice != null ? String(product.compareAtPrice) : '',
@@ -92,7 +96,13 @@ function buildForm(product, silverRate) {
     shopifyVendor: product.shopifyVendor || 'Opal Line',
     shopifyProductType: product.shopifyProductType || '',
     shopifyTags: product.shopifyTags || '',
-    shopifyImageUrl: product.shopifyImageUrl || '',
+    shopifyMedia: Array.isArray(product.imageUrls) && product.imageUrls.length
+      ? product.imageUrls.filter(Boolean).map(u => ({ type: 'image', url: u }))
+      : product.shopifyImageUrl
+        ? [{ type: 'image', url: product.shopifyImageUrl }]
+        : [{ type: 'image', url: '' }],
+    shopifyStatus: product.shopifyStatus || 'active',
+    chargeTax: product.chargeTax !== false,
     trackInventory: product.trackInventory !== false,
     pushToShopify: product.pushToShopify !== false,
   }
@@ -216,19 +226,63 @@ export default function ProductFormModal({
       compareAtPrice: form.compareAtPrice !== '' ? numOr(form.compareAtPrice, 0) : null,
       costPrice: form.costPrice !== '' ? numOr(form.costPrice, 0) : null,
       ...(isEdit ? {} : { initialStock: numOr(form.initialStock, 0) }),
+      ...(isEdit ? { initialStock: numOr(form.initialStock, 0), updateStock: true } : {}),
       shopifyVendor: form.shopifyVendor.trim() || 'Opal Line',
       shopifyProductType: form.shopifyProductType.trim() || undefined,
       shopifyTags: form.shopifyTags.trim() || undefined,
-      shopifyImageUrl: form.shopifyImageUrl.trim() || undefined,
+      shopifyImageUrls: undefined,
+      shopifyStatus: form.shopifyStatus,
+      chargeTax: form.chargeTax,
       trackInventory: form.trackInventory,
       pushToShopify: form.pushToShopify,
     }
+
+    const mediaUrls = (form.shopifyMedia || []).filter(m => m.url.trim()).map(m => m.url.trim())
+    if (mediaUrls.length) payload.imageUrls = mediaUrls
 
     if (priceManual && form.priceOverride !== undefined && priceOverride !== '') {
       payload.sellingPrice = Number(priceOverride)
     }
 
     onSubmit(payload)
+  }
+
+  const MAX_MEDIA = 10
+
+  const mediaAt = (i) => (e) => setForm((cur) => ({ ...cur, shopifyMedia: cur.shopifyMedia.map((m, j) => (j === i ? { ...m, url: e.target.value } : m)) }))
+  const mediaTypeAt = (i) => (e) => setForm((cur) => ({ ...cur, shopifyMedia: cur.shopifyMedia.map((m, j) => (j === i ? { ...m, type: e.target.value } : m)) }))
+  const removeMediaAt = (i) => () => setForm((cur) => ({ ...cur, shopifyMedia: cur.shopifyMedia.filter((_, j) => j !== i) }))
+  const addMedia = () => setForm((cur) => cur.shopifyMedia.length < MAX_MEDIA ? { ...cur, shopifyMedia: [...cur.shopifyMedia, { type: 'image', url: '' }] } : cur)
+
+  const uploadMediaAt = (i) => async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await apiClient.post('/upload/media', formData)
+      const url = res.data.data?.url
+      if (url) {
+        setForm((cur) => ({ ...cur, shopifyMedia: cur.shopifyMedia.map((m, j) => j === i ? { ...m, url, type: file.type.startsWith('video/') ? 'video' : 'image' } : m) }))
+      }
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('Upload failed: ' + (err.response?.data?.message || err.message))
+    } finally {
+      e.target.value = ''
+    }
+  }
+
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasteUrls, setPasteUrls] = useState('')
+
+  const handlePasteSubmit = () => {
+    const newUrls = pasteUrls.split('\n').map(u => u.trim()).filter(Boolean)
+    if (!newUrls.length) return
+    const added = newUrls.slice(0, MAX_MEDIA - form.shopifyMedia.length).map(u => ({ type: 'image', url: u }))
+    setForm(cur => ({ ...cur, shopifyMedia: [...cur.shopifyMedia, ...added] }))
+    setPasteUrls('')
+    setPasteOpen(false)
   }
 
   return (
@@ -346,9 +400,24 @@ export default function ProductFormModal({
                 Re-enable auto net weight
               </button>
             </div>
-            <div>
+<div>
               <Label htmlFor="silverRateUsed">Silver rate (₹/g)</Label>
-              <Input id="silverRateUsed" type="number" step="0.01" min="0" value={form.silverRateUsed} onChange={set('silverRateUsed')} required placeholder={silverRate != null ? `Today: ${silverRate}` : 'Rate not set — enter today’s rate'} />
+              <div className="relative">
+                <Input
+                  id="silverRateUsed"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.silverRateUsed || silverRate != null ? String(silverRate) : ''}
+                  readOnly
+                  className="bg-gray-50 dark:bg-white/5 cursor-not-allowed"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-gray-400">
+                  <Lock size={14} />
+                  <span className="text-[10px] uppercase tracking-wider">Locked</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">Locked to today's silver rate — price auto-calculates from this rate.</p>
             </div>
             <div>
               <Label htmlFor="makingCharge">Making charge (₹/g)</Label>
@@ -405,6 +474,14 @@ export default function ProductFormModal({
           {form.pushToShopify && (
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label htmlFor="shopifyStatus">Status on Shopify</Label>
+                <Select id="shopifyStatus" value={form.shopifyStatus} onChange={set('shopifyStatus')}>
+                  <option value="active">Active</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="shopifyVendor">Vendor</Label>
                 <Input id="shopifyVendor" value={form.shopifyVendor} onChange={set('shopifyVendor')} />
               </div>
@@ -416,13 +493,73 @@ export default function ProductFormModal({
                 <Label htmlFor="shopifyTags">Tags (comma separated)</Label>
                 <Input id="shopifyTags" value={form.shopifyTags} onChange={set('shopifyTags')} placeholder="silver, rings, bestseller" />
               </div>
+
               <div className="col-span-2">
-                <Label htmlFor="shopifyImageUrl">Product image URL</Label>
-                <Input id="shopifyImageUrl" value={form.shopifyImageUrl} onChange={set('shopifyImageUrl')} placeholder="https://..." />
-                <p className="text-[11px] text-gray-400 mt-1">Shopify fetches the photo from this URL.</p>
+                <Label>Product media (Shopify gallery — images & videos)</Label>
+                <div className="space-y-2">
+                  {form.shopifyMedia.map((media, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Select value={media.type} onChange={mediaTypeAt(i)} className="w-24">
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                      </Select>
+                      <Input value={media.url} onChange={mediaAt(i)} placeholder={`URL ${i + 1} — https://...`} className="flex-1" />
+                      <label className="p-2 text-royal-600 dark:text-royal-400 hover:bg-royal-50 dark:hover:bg-royal-500/10 rounded-lg cursor-pointer flex items-center gap-1" title="Upload file">
+                        <Upload size={16} />
+                        <span className="hidden sm:inline text-xs font-medium">Upload</span>
+                        <input type="file" accept="image/*,video/*" onChange={uploadMediaAt(i)} className="hidden" />
+                      </label>
+                      <button type="button" onClick={removeMediaAt(i)} disabled={form.shopifyMedia.length <= 1} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="Remove">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={addMedia}
+                      disabled={form.shopifyMedia.length >= MAX_MEDIA}
+                      className="flex items-center gap-1 text-xs font-medium text-royal-600 dark:text-royal-400 hover:underline cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={14} /> Add media ({form.shopifyMedia.length}/{MAX_MEDIA})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPasteOpen(true)}
+                      disabled={form.shopifyMedia.length >= MAX_MEDIA}
+                      className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={14} /> Paste URLs
+                    </button>
+                  </div>
+                </div>
+
+              {pasteOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setPasteOpen(false)}>
+                  <div className="bg-white dark:bg-[#1a1025] rounded-xl shadow-xl w-full max-w-md p-6 m-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-lg font-semibold text-royal-950 dark:text-white mb-3">Paste Image URLs</h3>
+                    <Textarea value={pasteUrls} onChange={e => setPasteUrls(e.target.value)} placeholder="Paste one URL per line..." className="mb-3" rows={6} />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => setPasteOpen(false)}>Cancel</Button>
+                      <Button onClick={handlePasteSubmit}>Add URLs</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+                <p className="text-[11px] text-gray-400 mt-1">Add image or video URLs. Images are pushed to Shopify product gallery. Videos stored locally (Shopify video upload requires GraphQL). Maximum 10 items.</p>
               </div>
-              <div className="col-span-2 flex items-center">
+
+              <div className="col-span-2 flex items-center justify-between gap-4 border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2.5">
                 <Toggle checked={form.trackInventory} onChange={(v) => setForm({ ...form, trackInventory: v })} label="Track inventory in Shopify" />
+                <div className="w-32">
+                  <Label htmlFor="shopifyStock">Available stock</Label>
+                  <Input id="shopifyStock" type="number" step="1" min="0" value={form.initialStock} onChange={set('initialStock')} disabled={!form.trackInventory} />
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <Toggle checked={form.chargeTax} onChange={(v) => setForm({ ...form, chargeTax: v })} label="Charge tax on Shopify" />
+                <p className="text-[11px] text-gray-400 mt-1">Separate from our internal GST% — this is the Shopify taxable flag applied to the storefront checkout.</p>
               </div>
             </div>
           )}

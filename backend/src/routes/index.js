@@ -35,5 +35,6 @@ router.use('/purchase-returns', require('./purchaseReturn.routes'))
 router.use('/purchase-invoices', require('./purchaseInvoice.routes'))
 router.use('/expenses', require('./expense.routes'))
 router.use('/ledger', require('./ledger.routes'))
+router.use('/upload', require('./upload.routes'))
 
 module.exports = router

@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ShoppingCart, Trash2, Search, Coins, Calculator, Receipt, User, CreditCard, XCircle } from 'lucide-react'
+import { ShoppingCart, Trash2, Search, Coins, Calculator, Receipt, User, CreditCard, XCircle, Users } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import { Label } from '../components/ui/FormControls'
 import { productsApi } from '../api/products'
 import { invoicesApi } from '../api/invoices'
 import { metalRatesApi } from '../api/metalRates'
+import { customersApi } from '../api/customers'
 import { formatINR, formatWeight } from '../utils/format'
 
 const PAYMENT_METHODS = [
@@ -23,6 +25,8 @@ export default function Billing() {
   const queryClient = useQueryClient()
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '', gstin: '' })
   const [paymentMethod, setPaymentMethod] = useState('CASH')
   const [error, setError] = useState('')
@@ -39,9 +43,28 @@ export default function Billing() {
     retry: false,
   })
 
+  const { data: customers, isLoading: customersLoading } = useQuery({
+    queryKey: ['customers', 'search', customerSearch],
+    queryFn: () => customersApi.list({ search: customerSearch, limit: 20 }).then((r) => r.data.data),
+    enabled: customerSearch.length >= 2,
+    retry: false,
+  })
+
   const silverRate = (!ratesError && metalRates?.rate) || 92.80
   const GST_RATE = 3
   const products = apiProducts || []
+
+  const handleCustomerSelect = (cust) => {
+    setSelectedCustomer(cust)
+    setCustomer({ name: cust.name, phone: cust.phone, email: cust.email || '', address: cust.address || '', gstin: cust.gstin || '' })
+    setCustomerSearch(cust.name)
+  }
+
+  const clearCustomer = () => {
+    setSelectedCustomer(null)
+    setCustomer({ name: '', phone: '', email: '', address: '', gstin: '' })
+    setCustomerSearch('')
+  }
 
   const addItem = (product) => {
     const existing = items.find((i) => i.productId === product.id)
@@ -244,6 +267,52 @@ export default function Billing() {
           {/* Customer */}
           <Card title="Customer" icon={User}>
             <div className="space-y-3">
+              <div className="relative">
+                <Label htmlFor="customer-search">Search existing customer</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      id="customer-search"
+                      type="text"
+                      placeholder="Type 2+ chars to search customers..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
+                    />
+                  </div>
+                  {selectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={clearCustomer}
+                      className="p-2 text-gray-400 hover:text-red-500 rounded-lg cursor-pointer"
+                      title="Clear selection"
+                    >
+                      <XCircle size={18} />
+                    </button>
+                  )}
+                </div>
+                {customersLoading && <div className="text-xs text-gray-400 mt-1">Searching...</div>}
+                {!customersLoading && customers?.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-[#1a1025] rounded-lg border border-gray-200 dark:border-white/[0.08] shadow-lg divide-y divide-gray-100 dark:divide-white/[0.05]">
+                    {customers.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleCustomerSelect(c)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-royal-50 dark:hover:bg-white/5 flex items-center justify-between cursor-pointer"
+                      >
+                        <div>
+                          <p className="font-medium text-royal-950 dark:text-white">{c.name}</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{c.phone} {c.email ? `· ${c.email}` : ''}</p>
+                        </div>
+                        <Users size={14} className="text-royal-600" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <input type="text" placeholder="Customer name *" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
               <input type="text" placeholder="Phone *" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />
               <input type="email" placeholder="Email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500" />

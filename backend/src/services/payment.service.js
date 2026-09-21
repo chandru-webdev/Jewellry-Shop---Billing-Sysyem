@@ -37,8 +37,20 @@ const paymentService = {
       where,
       include: {
         customer: { select: { id: true, name: true, phone: true } },
-        invoice: { select: { id: true, invoiceNumber: true } },
-        order: { select: { id: true, orderNumber: true } },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            items: true,
+          },
+        },
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            items: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: Number(limit),
@@ -173,7 +185,11 @@ const paymentService = {
   async getById(id) {
     const payment = await prisma.payment.findUnique({
       where: { id: Number(id) },
-      include: { customer: true, invoice: true, order: true },
+      include: {
+        customer: true,
+        invoice: { include: { items: true } },
+        order: { include: { items: true } },
+      },
     })
     if (!payment) throw new ApiError(404, 'Payment not found')
     return payment

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, ExternalLink, Copy, Power, Package, Check, X, History } from 'lucide-react'
+import { Pencil, ExternalLink, Copy, Power, Package, Check, X, History, Film, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
@@ -29,16 +29,19 @@ function Section({ title, children }) {
 export default function ProductViewModal({ open, onClose, product, shopDomain, onEdit, onDuplicate, onDeactivate, onAdjustStock, submitting }) {
   const [adjustStock, setAdjustStock] = useState(null)
   const [stockValue, setStockValue] = useState('')
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   if (!product) return null
   const inv = product.inventory
   const qty = inv?.quantity ?? 0
   const threshold = product.lowStockThreshold || 5
   const stockTone = qty > threshold ? 'green' : qty > 0 ? 'orange' : 'red'
-  const images = (Array.isArray(product.imageUrls) && product.imageUrls.length
+  const mediaUrls = (Array.isArray(product.imageUrls) && product.imageUrls.length
     ? product.imageUrls
     : product.shopifyImageUrl
       ? [product.shopifyImageUrl]
-      : []).filter(Boolean)
+      : []).filter(Boolean).filter((url, i, arr) => arr.indexOf(url) === i)
+  const isVideo = (url) => /\.(mp4|webm|mov)$/i.test(url.split('?')[0])
   const shopHandle = shopDomain?.replace(/\.myshopify\.com$/, '')
   const shopifyUrl = product.shopifyProductId && shopHandle
     ? `https://admin.shopify.com/store/${shopHandle}/products/${product.shopifyProductId}`
@@ -55,7 +58,8 @@ export default function ProductViewModal({ open, onClose, product, shopDomain, o
   }
 
   return (
-    <Modal open={open} title={product.name} onClose={onClose} size="2xl"
+    <>
+      <Modal open={open} title={product.name} onClose={onClose} size="2xl"
       footer={
         <div className="flex flex-wrap items-center justify-between w-full gap-2">
           <div className="text-[11px] text-gray-400">
@@ -73,15 +77,30 @@ export default function ProductViewModal({ open, onClose, product, shopDomain, o
         </div>
       }
     >
-      {images.length > 0 ? (
+      {mediaUrls.length > 0 ? (
         <div className="flex flex-wrap gap-3 mb-6">
-          {images.map((url, i) => (
-            <img key={`${url}-${i}`} src={url} alt={`${product.name} ${i + 1}`} className="w-24 h-24 object-cover rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5" />
+          {mediaUrls.map((url, i) => (
+            <div
+              key={`${url}-${i}`}
+              className="relative w-24 h-24 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 overflow-hidden cursor-zoom-in"
+              onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+              title="Click to enlarge"
+            >
+              {isVideo(url) ? (
+                <>
+                  <video src={url} muted playsInline className="w-full h-full object-cover" />
+                  <div className="absolute bottom-1 right-1 p-1 bg-black/60 text-white rounded text-[9px]"><Film size={10} /></div>
+                </>
+              ) : (
+                <img src={url} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+              )}
+              <div className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"><Maximize2 size={12} /></div>
+            </div>
           ))}
         </div>
       ) : (
         <div className="w-24 h-24 rounded-xl border border-dashed border-gray-300 dark:border-white/10 flex items-center justify-center text-gray-400 dark:text-gray-500 text-xs mb-6">
-          No image
+          No media
         </div>
       )}
 
@@ -164,7 +183,7 @@ export default function ProductViewModal({ open, onClose, product, shopDomain, o
             <Row label="Vendor" value={product.shopifyVendor} />
             <Row label="Type" value={product.shopifyProductType} />
             <Row label="Tags" value={product.shopifyTags} />
-            <Row label="Images" value={images.length ? `${images.length} image(s)` : undefined} />
+            <Row label="Media" value={mediaUrls.length ? `${mediaUrls.length} item(s)` : undefined} />
             <Row label="Track inventory" value={product.trackInventory ? 'Yes' : 'No'} />
           </Section>
         </div>
@@ -184,5 +203,52 @@ export default function ProductViewModal({ open, onClose, product, shopDomain, o
         </Link>
       </div>
     </Modal>
+
+    {lightboxOpen && (
+      <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={() => setLightboxOpen(false)}>
+        <div className="relative w-full h-full max-w-5xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 z-10 p-2 bg-white/10 text-white rounded-full hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
+          {mediaUrls.length > 1 && (
+            <>
+              <button
+                onClick={() => setLightboxIndex((i) => (i - 1 + mediaUrls.length) % mediaUrls.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/10 text-white rounded-full hover:bg-white/20"
+                aria-label="Previous"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <button
+                onClick={() => setLightboxIndex((i) => (i + 1) % mediaUrls.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/10 text-white rounded-full hover:bg-white/20"
+                aria-label="Next"
+              >
+                <ChevronRight size={28} />
+              </button>
+            </>
+          )}
+          {isVideo(mediaUrls[lightboxIndex]) ? (
+            <video
+              src={mediaUrls[lightboxIndex]}
+              controls
+              autoPlay
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <img
+              src={mediaUrls[lightboxIndex]}
+              alt={`${product.name} ${lightboxIndex + 1}`}
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
+      </div>
+    )}
+    </>
   )
 }

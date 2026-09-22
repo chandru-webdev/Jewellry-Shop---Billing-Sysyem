@@ -723,3 +723,24 @@ model Expense {
   @@index([status])
   @@index([date])
 }
+
+// ---------- BACKUP / RESTORE ----------
+
+// Every backup snapshot (type BACKUP) and every re-push restore (type RESTORE)
+// is recorded here. RESTORE rows keep `counts` of what was pushed so the UI
+// can show a full push history.
+model Backup {
+  id            Int      @id @default(autoincrement())
+  type          String   @default("BACKUP") // BACKUP | RESTORE
+  name          String
+  size          Int      @default(0) // bytes (snapshot payload only)
+  counts        Json?    // { products: 55, customers: 32, ... }
+  data          Json?    // full snapshot (only on BACKUP rows)
+  message       String?  // restore summary / error message
+  createdById   Int?
+  createdAt     DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([createdById])
+}

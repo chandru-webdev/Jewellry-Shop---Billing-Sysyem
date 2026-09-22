@@ -28,3 +28,12 @@ export const shopifyApi = {
 export const exportApi = {
   downloadCsv: (type) => apiClient.get(`/export/${type}`, { responseType: 'blob' }),
 }
+
+// Database backup / restore
+export const backupApi = {
+  list: () => apiClient.get('/backup'),
+  create: () => apiClient.post('/backup'),
+  get: (id) => apiClient.get(`/backup/${id}`),
+  download: (id) => apiClient.get(`/backup/${id}`, { params: { download: 1 }, responseType: 'blob' }),
+  restore: (id) => apiClient.post(`/backup/${id}/restore`),
+}

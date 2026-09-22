@@ -527,6 +527,24 @@ async function ensureSchema() {
       END $$
     `)
     console.log('Payment.pendingAmount / Expense.pendingAmount columns ensured.')
+
+    // ---------- Backup / Restore history model ----------
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Backup" (
+        "id" SERIAL PRIMARY KEY,
+        "type" TEXT NOT NULL DEFAULT 'BACKUP',
+        "name" TEXT NOT NULL,
+        "size" INTEGER NOT NULL DEFAULT 0,
+        "counts" JSONB,
+        "data" JSONB,
+        "message" TEXT,
+        "createdById" INTEGER,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Backup_type_idx" ON "Backup"("type")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Backup_createdAt_idx" ON "Backup"("createdAt")`)
+    console.log('Backup model ensured.')
   } catch (e) {
     console.error('Schema check failed:', e.message)
   }

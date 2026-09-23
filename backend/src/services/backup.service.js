@@ -1,5 +1,42 @@
 const prisma = require('../prisma/client')
 
+// Prisma 7 (and decimal.js) serialize a Decimal as a plain object shaped like
+// { s, e, d } when it is stored in a JSON column or passed through JSON
+// serialization. Detect those by shape, not by constructor name (Prisma 7's
+// class is "Decimal2", not "Decimal").
+function isDecimalParts(v) {
+  return (
+    v !== null &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    typeof v.s === 'number' &&
+    typeof v.e === 'number' &&
+    Array.isArray(v.d)
+  )
+}
+
+// Rebuild the numeric value from decimal.js { s, e, d } parts.
+// The coefficient is the concatenation of d limbs (base 1e7, limbs after the
+// first zero-padded to 7 digits); the exponent is e - (digitCount - 1).
+function decimalPartsToNumber(parts) {
+  const coeff = parts.d
+    .map((limb, i) => (i === 0 ? String(limb) : String(limb).padStart(7, '0')))
+    .join('')
+  const digits = coeff.replace(/^0+/, '')
+  if (!digits) return 0
+  const exp = parts.e - (coeff.length - 1)
+  const sign = parts.s < 0 ? '-' : ''
+  let out
+  if (exp >= 0) {
+    out = digits + '0'.repeat(exp)
+  } else {
+    const dp = digits.length + exp
+    out = dp <= 0 ? '0.' + '0'.repeat(-dp) + digits : digits.slice(0, dp) + '.' + digits.slice(dp)
+  }
+  const n = parseFloat(sign + out)
+  return Number.isFinite(n) ? n : 0
+}
+
 // Make a Prisma result JSON-safe: BigInt -> string, Decimal -> number,
 // Date -> ISO string. Everything else passes through unchanged.
 function sanitize(value) {
@@ -9,7 +46,7 @@ function sanitize(value) {
   if (value instanceof Date) return value.toISOString()
   if (typeof value === 'object') {
     if (Array.isArray(value)) return value.map(sanitize)
-    if (value.constructor && value.constructor.name === 'Decimal') return Number(value.toString())
+    if (isDecimalParts(value)) return decimalPartsToNumber(value)
     const out = {}
     for (const k of Object.keys(value)) {
       const v = sanitize(value[k])
@@ -21,6 +58,7 @@ function sanitize(value) {
 }
 
 function num(v, fallback = 0) {
+  if (isDecimalParts(v)) return decimalPartsToNumber(v)
   const n = Number(v)
   return Number.isFinite(n) ? n : fallback
 }
@@ -556,5 +594,8 @@ module.exports = {
   get,
   restore,
   sanitize,
+  isDecimalParts,
+  decimalPartsToNumber,
+  num,
   prisma,
 }

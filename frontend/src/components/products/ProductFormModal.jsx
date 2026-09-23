@@ -125,8 +125,24 @@ export default function ProductFormModal({
   const [skuError, setSkuError] = useState('')
   const [barcodeError, setBarcodeError] = useState('')
   const [netManual, setNetManual] = useState(false)
-  const [priceManual, setPriceManual] = useState(false)
-  const [priceOverride, setPriceOverride] = useState('')
+  // Manual selling-price override. When empty, the backend auto-calculates the price
+  // from net weight × (silver rate + making charge) + stone value, then + GST%.
+  // Pre-filled only when the stored price was deliberately set by hand (it differs
+  // from what the formula would produce at the stored rate), so a manual price
+  // survives editing other fields.
+  const [priceOverride, setPriceOverride] = useState(() => {
+    if (!product) return ''
+    const storedPrice = Number(product.sellingPrice ?? 0)
+    if (!storedPrice) return ''
+    const rate = Number(product.silverRateUsed ?? 0) > 0 ? Number(product.silverRateUsed) : Number(silverRate ?? 0)
+    const net = Number(product.netWeight ?? product.weight ?? 0) || 0
+    const making = Number(product.makingCharge ?? 0) || 0
+    const gst = Number(product.gstPercent ?? 3) || 0
+    const stone = Number(product.stoneValue ?? 0) || 0
+    const base = net * (rate + making) + stone
+    const expected = base + (base * gst) / 100
+    return Math.abs(expected - storedPrice) > 0.01 ? String(storedPrice) : ''
+  })
   const isEdit = Boolean(product)
 
   const set = (field) => (e) => {
@@ -175,11 +191,6 @@ export default function ProductFormModal({
   const canPreview = ![netWeightPreview, ratePreview, mcPreview].some(Number.isNaN)
   const basePreview = canPreview ? netWeightPreview * (ratePreview + mcPreview) + (Number.isNaN(stoneValuePreview) ? 0 : stoneValuePreview) : NaN
   const sellingPreview = canPreview && !Number.isNaN(gstPreview) ? basePreview + (basePreview * gstPreview) / 100 : NaN
-
-  const enableOverride = () => {
-    setPriceOverride(Number.isNaN(sellingPreview) ? '' : String(round3(sellingPreview)))
-    setPriceManual(true)
-  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -240,7 +251,7 @@ export default function ProductFormModal({
     const mediaUrls = (form.shopifyMedia || []).filter(m => m.url.trim()).map(m => m.url.trim())
     if (mediaUrls.length) payload.imageUrls = mediaUrls
 
-    if (priceManual && form.priceOverride !== undefined && priceOverride !== '') {
+    if (priceOverride !== '' && priceOverride !== undefined && priceOverride !== null) {
       payload.sellingPrice = Number(priceOverride)
     }
 
@@ -428,19 +439,17 @@ export default function ProductFormModal({
               <Input id="gst" type="number" step="0.01" min="0" value={form.gstPercent} onChange={set('gstPercent')} />
             </div>
             <div className="flex items-end pb-1">
-              {priceManual ? (
-                <div className="w-full">
-                  <Label htmlFor="priceOverride">Selling price (₹)</Label>
-                  <Input id="priceOverride" type="number" step="0.01" min="0" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} />
-                  <button type="button" onClick={() => setPriceManual(false)} className="text-xs text-royal-600 hover:underline mt-1">Use auto price</button>
-                </div>
-              ) : (
-                <div className="w-full">
-                  <Label>Selling price (₹)</Label>
-                  <Input readOnly value={Number.isNaN(sellingPreview) ? '' : formatINR(sellingPreview)} className="bg-gray-100 dark:bg-white/5 text-royal-800 dark:text-gray-200 font-semibold" />
-                  <button type="button" onClick={enableOverride} className="text-xs text-royal-600 hover:underline mt-1">Override price</button>
-                </div>
-              )}
+              <div className="w-full">
+                <Label>Selling price (₹) — auto-calculated</Label>
+                <Input readOnly value={Number.isNaN(sellingPreview) ? '' : formatINR(sellingPreview)} className="bg-royal-50 dark:bg-royal-500/10 text-royal-800 dark:text-gray-200 font-semibold" />
+              </div>
+            </div>
+            <div className="flex items-end pb-1">
+              <div className="w-full">
+                <Label htmlFor="priceOverride">Manual selling price (₹) (optional)</Label>
+                <Input id="priceOverride" type="number" step="0.01" min="0" value={priceOverride} onChange={(e) => setPriceOverride(e.target.value)} placeholder="Leave empty to auto-calculate" />
+                <p className="text-[11px] text-gray-400 mt-1">Only fill this if you want to set the final price by hand — otherwise it is calculated automatically.</p>
+              </div>
             </div>
             <div className="col-span-2">
               <p className="text-xs text-gray-500 bg-royal-50 dark:bg-white/5 rounded-lg px-3 py-2">

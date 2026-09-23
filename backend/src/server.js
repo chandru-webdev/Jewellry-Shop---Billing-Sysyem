@@ -105,6 +105,8 @@ async function ensureSchema() {
       ['shopifyProductId', 'BIGINT'],
       ['shopifyVariantId', 'BIGINT'],
       ['shopifyInventoryItemId', 'BIGINT'],
+      ['shopifyStatus', "TEXT NOT NULL DEFAULT 'active'"],
+      ['chargeTax', 'BOOLEAN NOT NULL DEFAULT true'],
     ]
     for (const [col, type] of productColumns) {
       await prisma.$executeRawUnsafe(`

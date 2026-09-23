@@ -13,6 +13,7 @@ router.get('/', productController.list)
 router.get('/:id', productController.getById)
 
 router.post('/', authorize('SUPER_ADMIN', 'MANAGER'), validate(createProductSchema), productController.create)
+router.post('/repair-pricing', authorize('SUPER_ADMIN', 'MANAGER'), productController.repairPricing)
 router.post('/:id/duplicate', authorize('SUPER_ADMIN', 'MANAGER'), productController.duplicate)
 router.post('/:id/approve-import', authorize('SUPER_ADMIN', 'MANAGER'), productController.approveImport)
 router.post('/:id/discard-import', authorize('SUPER_ADMIN', 'MANAGER'), productController.discardImport)

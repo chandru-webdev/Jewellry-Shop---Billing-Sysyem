@@ -15,6 +15,12 @@ router.get('/status', shopifyController.status)
 // GET /api/shopify/sync-logs — list sync log entries
 router.get('/sync-logs', shopifyController.syncLogs)
 
+// POST /api/shopify/sync-logs/retry-failed — re-run bulk jobs for failed types
+router.post('/sync-logs/retry-failed', shopifyController.retryFailedSyncs)
+
+// DELETE /api/shopify/sync-logs — delete FAILED log entries
+router.delete('/sync-logs', shopifyController.clearFailedLogs)
+
 // GET /api/shopify/inventory-comparison — ERP vs Shopify stock levels
 router.get('/inventory-comparison', shopifyController.inventoryComparison)
 

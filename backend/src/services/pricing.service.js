@@ -139,4 +139,85 @@ async function recalculateAllProducts(newRate, { userId, reason } = {}) {
   return products.length
 }
 
-module.exports = { calculatePrice, getSilverRate, previewRecalculation, recalculateAllProducts }
+// Repair products whose stored silverRateUsed is missing/0 (the pricing bug where
+// baseAmount was computed without the silver value, e.g. stored 0 instead of the
+// live rate). Only touches products with a weight and an existing price, and uses
+// the CURRENT rate — mirrors what the create/update path now does.
+async function recalculateMissingSilverRate({ userId, reason } = {}) {
+  const silverRate = await getSilverRate()
+
+  const products = await prisma.product.findMany({ where: { isActive: true } })
+
+  const repairs = []
+  const priceHistoryRecords = []
+
+  for (const p of products) {
+    const rateUsed = p.silverRateUsed != null ? Number(p.silverRateUsed) : 0
+    const wt = Number(p.weight || 0)
+    const hasPrice = Number(p.sellingPrice || 0) > 0 || Number(p.baseAmount || 0) > 0
+    // Leave Shopify-imported / pending-import products alone: they deliberately
+    // adopt the storefront price, not the ERP formula.
+    if (rateUsed > 0 || wt <= 0 || !hasPrice || p.pendingImport || p.shopifyProductId != null) continue
+
+    const price = calculatePrice({
+      silverRate,
+      weight: p.weight,
+      makingCharge: p.makingCharge,
+      gstPercent: p.gstPercent,
+      stoneValue: p.stoneValue,
+    })
+
+    if (price.sellingPrice.equals(p.sellingPrice) && Number(p.silverRateUsed) > 0) continue
+
+    priceHistoryRecords.push({
+      productId: p.id,
+      priceType: 'SELLING',
+      oldPrice: p.sellingPrice,
+      newPrice: price.sellingPrice,
+      reason: reason || 'PRICING_FIX_MISSING_SILVER_RATE',
+      notes: `Silver rate was 0/missing; recalculated at live rate ₹${silverRate}/g`,
+      changedById: userId || null,
+    })
+
+    repairs.push(
+      prisma.product.update({
+        where: { id: p.id },
+        data: {
+          silverRateUsed: new Decimal(silverRate),
+          baseAmount: price.baseAmount,
+          gstAmount: price.gstAmount,
+          sellingPrice: price.sellingPrice,
+        },
+      })
+    )
+  }
+
+  if (repairs.length > 0) {
+    await prisma.$transaction(repairs, { timeout: 120000 })
+  }
+
+  if (priceHistoryRecords.length > 0) {
+    const historyData = priceHistoryRecords.map((r) => {
+      const changeAmount = new Decimal(r.newPrice).minus(r.oldPrice)
+      const changePercentage = r.oldPrice.equals(0)
+        ? 0
+        : changeAmount.div(r.oldPrice).mul(100).toDecimalPlaces(4)
+      return {
+        productId: r.productId,
+        priceType: r.priceType,
+        oldPrice: r.oldPrice.toDecimalPlaces(2),
+        newPrice: r.newPrice.toDecimalPlaces(2),
+        changeAmount: changeAmount.toDecimalPlaces(2),
+        changePercentage,
+        reason: r.reason,
+        notes: r.notes,
+        changedById: r.changedById,
+      }
+    })
+    await prisma.productPriceHistory.createMany({ data: historyData })
+  }
+
+  return { repaired: repairs.length, productsChecked: products.length, silverRate }
+}
+
+module.exports = { calculatePrice, getSilverRate, previewRecalculation, recalculateAllProducts, recalculateMissingSilverRate }

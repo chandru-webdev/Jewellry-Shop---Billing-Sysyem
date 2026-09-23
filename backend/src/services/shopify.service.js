@@ -947,6 +947,47 @@ const shopifyService = {
     return latest
   },
 
+  // Re-run the bulk job for each sync type that has FAILED log entries, then
+  // delete only those stale FAILED rows. New jobs record fresh SUCCESS/FAILED
+  // logs whose failures stay visible.
+  async retryFailedSyncs(userId) {
+    const failed = await prisma.shopifySyncLog.findMany({
+      where: { status: 'FAILED' },
+      select: { id: true, type: true },
+      orderBy: { id: 'desc' },
+      take: 200,
+    })
+
+    const jobByType = {
+      PRODUCT: () => this.syncAllProducts(userId),
+      PRICE: () => this.syncAllPrices(userId),
+      INVENTORY: () => this.syncAllInventory(userId),
+      ORDER: () => this.pullOrdersFromShopify(userId),
+    }
+
+    const types = [...new Set(failed.map((l) => l.type))]
+    const results = []
+    for (const type of types) {
+      const job = jobByType[type]
+      if (!job) continue
+      try {
+        const res = await job()
+        results.push({ type, ok: res.ok ?? 0, failed: res.failed ?? 0, retried: true })
+      } catch (err) {
+        results.push({ type, retried: false, error: err.message || 'Unknown error' })
+      }
+    }
+
+    const staleIds = failed.filter((l) => types.includes(l.type)).map((l) => l.id)
+    let cleared = 0
+    if (staleIds.length) {
+      const del = await prisma.shopifySyncLog.deleteMany({ where: { id: { in: staleIds } } })
+      cleared = del.count
+    }
+
+    return { types: types.length, results, cleared }
+  },
+
   // ERP vs Shopify inventory comparison
   async inventoryComparison() {
     const products = await prisma.product.findMany({

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2 } from 'lucide-react'
+import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2, XCircle } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -93,6 +93,15 @@ export default function ShopifyDashboard() {
 
   const failedCount = logs.filter((l) => l.status === 'FAILED').length
 
+  const clearFailuresMutation = useMutation({
+    mutationFn: () => shopifyApi.clearFailedLogs(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-sync-logs'] })
+    },
+  })
+
   const stats = useMemo(() => [
     { label: 'Orders Synced', value: syncStatus.order?.itemsProcessed ?? 0, sub: syncStatus.order?.createdAt ? `Latest ${formatDateTime(syncStatus.order.createdAt)}` : 'No sync yet', Icon: ShoppingBag, accent: 'from-blue-500 to-blue-600' },
     { label: 'Products Synced', value: syncStatus.product?.itemsProcessed ?? 0, sub: syncStatus.product?.createdAt ? `Latest ${formatDateTime(syncStatus.product.createdAt)}` : 'No sync yet', Icon: Package, accent: 'from-royal-500 to-royal-700' },
@@ -139,6 +148,11 @@ export default function ShopifyDashboard() {
     <div>
       <PageHeader title="Shopify Dashboard" subtitle="Monitor ecommerce synchronization, health and recent activity" actions={
         <div className="flex gap-2">
+          {failedCount > 0 && (
+            <Button variant="outline" size="sm" onClick={() => clearFailuresMutation.mutate()} loading={clearFailuresMutation.isPending} disabled={clearFailuresMutation.isPending} className="text-red-600 border-red-200 hover:bg-red-50">
+              <XCircle size={14} /> Clear Failures ({failedCount})
+            </Button>
+          )}
           <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
             {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><RefreshCw size={14} /> Sync All</>}
           </Button>

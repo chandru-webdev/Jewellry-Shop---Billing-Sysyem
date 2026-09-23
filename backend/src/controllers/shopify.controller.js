@@ -86,6 +86,19 @@ const shopifyController = {
     const data = await shopifyService.priceComparison()
     success(res, 200, data, 'Price comparison fetched')
   }),
+
+  // POST /api/shopify/sync-logs/retry-failed — re-run the bulk job for each
+  // sync type that has FAILED log entries, then clears those stale rows.
+  retryFailedSyncs: asyncHandler(async (req, res) => {
+    const result = await shopifyService.retryFailedSyncs(req.user.id)
+    success(res, 200, result, 'Failed syncs retried')
+  }),
+
+  // DELETE /api/shopify/sync-logs — delete FAILED log entries.
+  clearFailedLogs: asyncHandler(async (req, res) => {
+    const deleted = await prisma.shopifySyncLog.deleteMany({ where: { status: 'FAILED' } })
+    success(res, 200, { deleted: deleted.count }, 'Failed sync logs cleared')
+  }),
 }
 
 module.exports = shopifyController

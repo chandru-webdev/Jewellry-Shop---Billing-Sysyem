@@ -81,6 +81,34 @@ export default function SyncLogs() {
     },
   })
 
+  const retryAllMutation = useMutation({
+    mutationFn: () => shopifyApi.retryFailedSyncs(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopify-sync-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-logs'] })
+      showToast('Retried all failed syncs')
+    },
+    onError: (err) => {
+      const msg = err?.response?.data?.message || err?.message || 'Retry all failed'
+      showToast(`Retry all failed: ${msg}`, 'error')
+    },
+  })
+
+  const clearFailuresMutation = useMutation({
+    mutationFn: () => shopifyApi.clearFailedLogs(),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['shopify-sync-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-logs'] })
+      showToast(`Cleared ${res?.data?.data?.deleted ?? 0} failed sync log(s)`)
+    },
+    onError: (err) => {
+      const msg = err?.response?.data?.message || err?.message || 'Clear failed'
+      showToast(`Clear failures: ${msg}`, 'error')
+    },
+  })
+
   const exportCSV = () => {
     const header = ['ID', 'Entity', 'Type', 'Message', 'Direction', 'Action', 'Status', 'Items', 'Time']
     const rows = filtered.map((l) => [l.id, l.entityLabel, l.typeKey, l.entityName, l.direction, l.action, l.status, l.itemsProcessed, l.time])
@@ -99,6 +127,17 @@ export default function SyncLogs() {
     <div>
       <PageHeader title="Sync Logs" subtitle="Detailed Shopify ↔ ERP synchronization history" actions={
         <div className="flex gap-2">
+          {failed > 0 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => retryAllMutation.mutate()} loading={retryAllMutation.isPending} disabled={retryAllMutation.isPending}>
+                <RefreshCw size={14} className={retryAllMutation.isPending ? 'animate-spin' : ''} /> Retry All Failed
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => clearFailuresMutation.mutate()} loading={clearFailuresMutation.isPending} disabled={clearFailuresMutation.isPending}
+                className="text-red-600 border-red-200 hover:bg-red-50">
+                <XCircle size={14} /> Clear Failures
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="sm" onClick={exportCSV}><Download size={14} /> Export CSV</Button>
           <Button variant="primary" size="sm" onClick={() => refetch()} loading={isFetching}>
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} /> Refresh

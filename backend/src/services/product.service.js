@@ -92,7 +92,7 @@ const productService = {
     const stoneValue = makeDecimal(data.stoneValue, 0)
     const hasOverride = data.sellingPrice !== undefined && data.sellingPrice !== null && data.sellingPrice !== ''
 
-    const silverRate = data.silverRateUsed !== undefined && data.silverRateUsed !== null && data.silverRateUsed !== ''
+    const silverRate = data.silverRateUsed !== undefined && data.silverRateUsed !== null && data.silverRateUsed !== '' && Number(data.silverRateUsed) > 0
       ? new Decimal(data.silverRateUsed)
       : new Decimal(await getSilverRate())
 
@@ -197,9 +197,9 @@ const productService = {
     const gstPercent = supplied(data.gstPercent) ? makeDecimal(data.gstPercent, 0) : new Decimal(existing.gstPercent)
     const stoneValue = supplied(data.stoneValue) ? makeDecimal(data.stoneValue, 0) : existing.stoneValue ? new Decimal(existing.stoneValue) : new Decimal(0)
 
-    const silverRate = supplied(data.silverRateUsed)
+    const silverRate = supplied(data.silverRateUsed) && Number(data.silverRateUsed) > 0
       ? new Decimal(data.silverRateUsed)
-      : existing.silverRateUsed
+      : existing.silverRateUsed && Number(existing.silverRateUsed) > 0
         ? new Decimal(existing.silverRateUsed)
         : new Decimal(await getSilverRate())
 

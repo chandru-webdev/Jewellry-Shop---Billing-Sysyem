@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
 const productService = require('../services/product.service')
+const { recalculateMissingSilverRate } = require('../services/pricing.service')
 
 const productController = {
   list: asyncHandler(async (req, res) => {
@@ -41,6 +42,11 @@ const productController = {
   discardImport: asyncHandler(async (req, res) => {
     const result = await productService.discardImport(req.params.id, req.user.id)
     success(res, 200, result, 'Import discarded')
+  }),
+
+  repairPricing: asyncHandler(async (req, res) => {
+    const result = await recalculateMissingSilverRate({ userId: req.user.id, reason: 'PRICING_FIX_MISSING_SILVER_RATE' })
+    success(res, 200, result, 'Pricing repaired')
   }),
 }
 

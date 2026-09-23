@@ -18,6 +18,8 @@ export const shopifyApi = {
 
   // Sync log entries
   getSyncLogs: (params) => apiClient.get('/shopify/sync-logs', { params }),
+  retryFailedSyncs: () => apiClient.post('/shopify/sync-logs/retry-failed'),
+  clearFailedLogs: () => apiClient.delete('/shopify/sync-logs'),
 
   // ERP vs Shopify comparisons
   getInventoryComparison: () => apiClient.get('/shopify/inventory-comparison'),

@@ -25,6 +25,8 @@ const STATUS_OPTIONS = [
   { value: 'VOID', label: 'Returned' },
 ]
 
+// DB stores line totals (already × qty); keep per-unit values in state so the
+// preview scales with qty and the original sale prices can be sent back on save.
 const buildInitialItems = (invoiceItems) =>
   (invoiceItems || [])
     .map((it) => ({
@@ -36,9 +38,9 @@ const buildInitialItems = (invoiceItems) =>
       weight: Number(it.weight),
       silverRate: Number(it.silverRate) || 0,
       makingCharge: Number(it.makingCharge),
-      base: Number(it.baseAmount),
-      gst: Number(it.gstAmount),
-      total: Number(it.finalAmount),
+      base: Number(it.baseAmount) / it.quantity,
+      gst: Number(it.gstAmount) / it.quantity,
+      total: Number(it.finalAmount) / it.quantity,
     }))
     .filter((i) => i.productId)
 
@@ -121,7 +123,8 @@ export default function SaleEditForm({ invoice, onCancel, onSaved }) {
   )
 
   const discountValue = Math.max(0, Number(discount) || 0)
-  const grandTotal = Math.max(0, totals.base + totals.gst - discountValue)
+  // Backend computes grandTotal = Σ line finalAmounts − discount.
+  const grandTotal = Math.max(0, totals.total - discountValue)
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -133,7 +136,15 @@ export default function SaleEditForm({ invoice, onCancel, onSaved }) {
           address: customer.address || undefined,
           gstin: customer.gstin || undefined,
         },
-        items: items.map((i) => ({ productId: i.productId, quantity: i.qty })),
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.qty,
+          // Preserve the original per-unit sale prices from the stored invoice
+          // (or current product prices for newly added lines).
+          baseAmount: Number(i.base.toFixed(2)),
+          gstAmount: Number(i.gst.toFixed(2)),
+          sellingPrice: Number(i.total.toFixed(2)),
+        })),
         discount: discountValue,
         paymentMethod,
         status,
@@ -298,7 +309,7 @@ export default function SaleEditForm({ invoice, onCancel, onSaved }) {
                 <span>Grand Total</span><span>{formatINR(grandTotal)}</span>
               </div>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 pt-1">
-                Totals are recalculated at current rates when you save — original sale prices are not preserved.
+                Original sale prices are preserved across edits; only newly added lines use current rates.
               </p>
             </div>
             <div className="mt-4 flex gap-2">

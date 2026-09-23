@@ -101,6 +101,9 @@ const orderService = {
     let gstTotal = new Decimal(0)
     let totalWeight = new Decimal(0)
     let totalMaking = new Decimal(0)
+    // Header must equal the sum of the stored line totals (sellingPrice × qty),
+    // which can differ from base+gst when a product price was overridden.
+    let lineTotalSum = new Decimal(0)
 
     const orderItemsData = []
     const invoiceItemsData = []
@@ -118,6 +121,7 @@ const orderService = {
 
       subtotal = subtotal.plus(baseAmount)
       gstTotal = gstTotal.plus(gstAmount)
+      lineTotalSum = lineTotalSum.plus(lineTotal)
       totalWeight = totalWeight.plus(new Decimal(product.weight).mul(qty))
       totalMaking = totalMaking.plus(new Decimal(product.makingCharge).mul(product.weight).mul(qty))
 
@@ -148,7 +152,7 @@ const orderService = {
       })
     }
 
-    const totalAmount = subtotal.plus(gstTotal)
+    const totalAmount = lineTotalSum.toDecimalPlaces(2)
     const isPaid = Boolean(data.paymentMethod)
 
     // Invoice number for the linked invoice (if this order is paid)
@@ -165,7 +169,7 @@ const orderService = {
           source: 'POS',
           customerId,
           status: isPaid ? 'PAID' : 'PENDING',
-          totalAmount: totalAmount.toDecimalPlaces(2),
+          totalAmount: totalAmount,
           items: { create: orderItemsData },
         },
       })
@@ -188,7 +192,7 @@ const orderService = {
           subtotal: subtotal.toDecimalPlaces(2),
           discount: new Decimal(0).toDecimalPlaces(2),
           gstTotal: gstTotal.toDecimalPlaces(2),
-          grandTotal: totalAmount.toDecimalPlaces(2),
+          grandTotal: totalAmount,
           totalWeight: totalWeight.toDecimalPlaces(3),
           totalMakingCharge: totalMaking.toDecimalPlaces(2),
           items: { create: invoiceItemsData },

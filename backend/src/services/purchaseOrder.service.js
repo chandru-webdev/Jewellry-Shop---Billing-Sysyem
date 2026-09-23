@@ -60,7 +60,7 @@ const purchaseOrderService = {
     return order
   },
 
-  async create({ supplierId, status, items, notes, createdById, orderDate, expectedDelivery, gstPercent, subtotal, totalAmount: providedTotal }) {
+  async create({ supplierId, status, items, notes, createdById, orderDate, expectedDelivery, gstPercent, subtotal }) {
     if (!items || items.length === 0) {
       throw new ApiError(400, 'At least one item is required')
     }
@@ -96,9 +96,9 @@ const purchaseOrderService = {
 
     const gstPct = new Decimal(gstPercent !== undefined ? gstPercent : 3)
     const gstAmount = subTotal.mul(gstPct).div(100)
-    const finalTotal = new Decimal(providedTotal ?? 0).greaterThan(0)
-      ? new Decimal(providedTotal)
-      : subTotal.plus(gstAmount)
+    // Header is always derived from the line items (+GST) so it can never
+    // diverge from them.
+    const finalTotal = subTotal.plus(gstAmount)
 
     const order = await prisma.purchaseOrder.create({
       data: {
@@ -206,11 +206,7 @@ const purchaseOrderService = {
         },
       }
     } else if (data.subtotal !== undefined || data.totalAmount !== undefined) {
-      update = {
-        ...update,
-        ...(data.subtotal !== undefined && { subtotal: new Decimal(data.subtotal) }),
-        ...(data.totalAmount !== undefined && { totalAmount: new Decimal(data.totalAmount) }),
-      }
+      throw new ApiError(400, 'Cannot override subtotal or total directly — edit the line items instead')
     }
 
     return prisma.purchaseOrder.update({

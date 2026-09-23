@@ -211,6 +211,28 @@ const webhookService = {
     // Unmatched SKUs (not in the ERP) are ignored but counted.
     const matched = lineItems.filter((l) => productBySku.has(l.sku))
 
+    // Order header must equal the sum of the stored line items. Shopify's
+    // total_price also includes shipping, taxes and unmatched-SKU lines, so it
+    // cannot be used as-is or the header would never match the items.
+    const itemsData = matched.map((l) => {
+      const prod = productBySku.get(l.sku)
+      const quantity = Number(l.quantity || 1)
+      const lineTotal = new Decimal(l.price || 0).mul(quantity)
+      return {
+        productId: prod.id,
+        sku: l.sku,
+        name: l.title || l.name || l.sku,
+        quantity,
+        unitPrice: new Decimal(l.price || 0).toDecimalPlaces(2),
+        lineTotal: lineTotal.toDecimalPlaces(2),
+        weight: Number(prod.weight ?? 0),
+        makingCharge: Number(prod.makingCharge ?? 0),
+        silverRate,
+        gstAmount: new Decimal(prod.gstAmount ?? 0).mul(quantity).toDecimalPlaces(2),
+      }
+    })
+    const totalAmount = itemsData.reduce((sum, it) => sum.plus(it.lineTotal), new Decimal(0))
+
     // ---- Create order + items + reduce stock atomically ----
     const order = await prisma.$transaction(
       async (tx) => {
@@ -222,26 +244,8 @@ const webhookService = {
             customerId,
             status: 'PAID',
             paymentMethod,
-            totalAmount: new Decimal(payload.total_price || 0).toDecimalPlaces(2),
-            items: {
-              create: matched.map((l) => {
-                const prod = productBySku.get(l.sku)
-                const quantity = Number(l.quantity || 1)
-                const lineTotal = new Decimal(l.price || 0).mul(quantity)
-                return {
-                  productId: prod.id,
-                  sku: l.sku,
-                  name: l.title || l.name || l.sku,
-                  quantity,
-                  unitPrice: new Decimal(l.price || 0).toDecimalPlaces(2),
-                  lineTotal: lineTotal.toDecimalPlaces(2),
-                  weight: Number(prod.weight ?? 0),
-                  makingCharge: Number(prod.makingCharge ?? 0),
-                  silverRate,
-                  gstAmount: new Decimal(prod.gstAmount ?? 0).mul(quantity).toDecimalPlaces(2),
-                }
-              }),
-            },
+            totalAmount: totalAmount.toDecimalPlaces(2),
+            items: { create: itemsData },
           },
         })
 
@@ -256,7 +260,7 @@ const webhookService = {
           data: {
             orderId: ord.id,
             customerId,
-            amount: new Decimal(payload.total_price || 0).toDecimalPlaces(2),
+            amount: totalAmount.toDecimalPlaces(2),
             method: paymentMethod || 'ONLINE',
             status: 'PAID',
           },

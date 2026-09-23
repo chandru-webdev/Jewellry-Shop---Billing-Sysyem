@@ -100,6 +100,7 @@ const invoiceService = {
 
     let subtotal = new Decimal(0)
     let gstTotal = new Decimal(0)
+    let finalTotal = new Decimal(0)
     let totalWeight = new Decimal(0)
     let totalMaking = new Decimal(0)
 
@@ -112,12 +113,21 @@ const invoiceService = {
       }
 
       const qty = new Decimal(line.quantity)
-      const baseAmount = new Decimal(product.baseAmount).mul(qty)
-      const gstAmount = new Decimal(product.gstAmount).mul(qty)
-      const finalAmount = new Decimal(product.sellingPrice).mul(qty)
+      // Per-unit prices: line overrides (sent when editing so original sale
+      // prices are preserved) take precedence over the product's current rate.
+      const unitBase =
+        line.baseAmount !== undefined ? new Decimal(line.baseAmount) : new Decimal(product.baseAmount)
+      const unitGst = line.gstAmount !== undefined ? new Decimal(line.gstAmount) : new Decimal(product.gstAmount)
+      const unitFinal =
+        line.sellingPrice !== undefined ? new Decimal(line.sellingPrice) : new Decimal(product.sellingPrice)
+
+      const baseAmount = unitBase.mul(qty)
+      const gstAmount = unitGst.mul(qty)
+      const finalAmount = unitFinal.mul(qty)
 
       subtotal = subtotal.plus(baseAmount)
       gstTotal = gstTotal.plus(gstAmount)
+      finalTotal = finalTotal.plus(finalAmount)
       totalWeight = totalWeight.plus(new Decimal(product.weight).mul(qty))
       totalMaking = totalMaking.plus(new Decimal(product.makingCharge).mul(product.weight).mul(qty))
 
@@ -135,7 +145,7 @@ const invoiceService = {
       })
     }
 
-    return { itemsData, subtotal, gstTotal, totalWeight, totalMaking, productMap }
+    return { itemsData, subtotal, gstTotal, finalTotal, totalWeight, totalMaking, productMap }
   },
 
   // POST /api/invoices — creates invoice, reduces stock, records payment (all atomically)
@@ -148,15 +158,15 @@ const invoiceService = {
     const last = await prisma.invoice.findFirst({ orderBy: { id: 'desc' }, select: { id: true } })
     const invoiceNumber = `${prefix}${String((last?.id ?? 0) + 1).padStart(4, '0')}`
 
-    const { itemsData, subtotal, gstTotal, totalWeight, totalMaking, productMap } = await this._buildItemsData(
-      data.items
-    )
+    const { itemsData, subtotal, gstTotal, finalTotal, totalWeight, totalMaking, productMap } =
+      await this._buildItemsData(data.items)
 
     const discount = new Decimal(data.discount || 0)
-    if (discount.greaterThan(subtotal.plus(gstTotal))) {
+    if (discount.greaterThan(finalTotal)) {
       throw new ApiError(400, 'Discount cannot exceed the total')
     }
-    const grandTotal = subtotal.plus(gstTotal).minus(discount)
+    // Header always equals the sum of the line finalAmounts (selling price × qty).
+    const grandTotal = finalTotal.minus(discount)
     const isPaid = Boolean(data.paymentMethod)
 
     const invoice = await prisma.$transaction(
@@ -248,7 +258,7 @@ const invoiceService = {
     if (data.items && data.items.length > 0) {
       const built = await this._buildItemsData(data.items)
       itemsData = built.itemsData
-      if (discount.greaterThan(built.subtotal.plus(built.gstTotal))) {
+      if (discount.greaterThan(built.finalTotal)) {
         throw new ApiError(400, 'Discount cannot exceed the total')
       }
       rebuiltTotals = {
@@ -256,7 +266,7 @@ const invoiceService = {
         gstTotal: built.gstTotal,
         totalWeight: built.totalWeight,
         totalMaking: built.totalMaking,
-        grandTotal: built.subtotal.plus(built.gstTotal).minus(discount),
+        grandTotal: built.finalTotal.minus(discount),
       }
     }
 

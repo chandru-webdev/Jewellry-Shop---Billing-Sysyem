@@ -51,7 +51,6 @@ export default function Billing() {
   })
 
   const silverRate = (!ratesError && metalRates?.rate) || 92.80
-  const GST_RATE = 3
   const products = apiProducts || []
 
   const handleCustomerSelect = (cust) => {
@@ -69,15 +68,16 @@ export default function Billing() {
   const addItem = (product) => {
     const existing = items.find((i) => i.productId === product.id)
     if (existing) {
-      setItems(items.map((i) =>
-        i.productId === product.id ? { ...i, qty: i.qty + 1, total: i.total + (i.sellingPrice || 0) } : i
-      ))
+      setItems(items.map((i) => (i.productId === product.id ? { ...i, qty: i.qty + 1 } : i)))
     } else {
-      const silverValue = Number(product.baseAmount) * 1 || 0
-      const makingValue = Number(product.makingCharge) * Number(product.weight) || 0
-      const subtotal = silverValue + makingValue
-      const gst = subtotal * GST_RATE / 100
-      const total = subtotal + gst
+      // baseAmount already includes silver + making + stone. Use the exact
+      // per-unit amounts the backend stores (base/gst/selling price) so the
+      // on-screen total matches the saved invoice exactly.
+      const weight = Number(product.weight) || 0
+      const makingCharge = Number(product.makingCharge) || 0
+      const stoneValue = Number(product.stoneValue) || 0
+      const subtotal = Number(product.baseAmount) || 0
+      const makingValue = makingCharge * weight
 
       setItems([...items, {
         id: Date.now(),
@@ -85,14 +85,15 @@ export default function Billing() {
         name: product.name,
         sku: product.sku,
         qty: 1,
-        weight: product.weight,
+        weight,
         silverRate,
-        makingCharge: product.makingCharge,
-        silverValue,
+        makingCharge,
+        silverValue: Math.max(0, subtotal - makingValue - stoneValue),
         makingValue,
+        stoneValue,
         subtotal,
-        gst,
-        total,
+        gst: Number(product.gstAmount) || 0,
+        total: Number(product.sellingPrice) || 0,
       }])
     }
     setSearch('')
@@ -102,11 +103,7 @@ export default function Billing() {
 
   const updateQty = (id, newQty) => {
     const q = Math.max(1, parseInt(newQty) || 1)
-    setItems(items.map((i) => {
-      if (i.id !== id) return i
-      const unitTotal = i.subtotal + i.gst
-      return { ...i, qty: q, total: unitTotal * q }
-    }))
+    setItems(items.map((i) => (i.id === id ? { ...i, qty: q } : i)))
   }
 
   const totals = items.reduce((acc, item) => ({
@@ -114,7 +111,7 @@ export default function Billing() {
     makingValue: acc.makingValue + item.makingValue * item.qty,
     subtotal: acc.subtotal + item.subtotal * item.qty,
     gst: acc.gst + item.gst * item.qty,
-    total: acc.total + item.total,
+    total: acc.total + item.total * item.qty,
     weight: acc.weight + item.weight * item.qty,
   }), { silverValue: 0, makingValue: 0, subtotal: 0, gst: 0, total: 0, weight: 0 })
 

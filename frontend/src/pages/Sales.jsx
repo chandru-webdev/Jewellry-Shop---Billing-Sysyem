@@ -1,19 +1,19 @@
 ﻿import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Search, Download, Eye, Calendar, Edit,
-  Plus, X, Users, Receipt, Package, ShoppingCart,
+  Search, Download, Calendar, X, Users, Receipt, Plus,
+  ShoppingCart, Package,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { invoicesApi } from '../api/invoices'
 import { customersApi } from '../api/customers'
 import { ordersApi } from '../api/orders'
-import { formatINR, formatDate } from '../utils/format'
+import { formatINR } from '../utils/format'
 import { downloadInvoicePDF } from '../utils/pdfInvoice'
+import printInvoice from '../utils/printInvoice'
 import { inRange } from '../utils/exportExcel'
 import {
   exportSalesInvoicesExcel,
@@ -21,54 +21,22 @@ import {
   exportCustomersExcel,
   exportReturnsExcel,
 } from '../utils/exportSalesExcel'
-import SaleEditForm from '../components/SaleEditForm'
 import CustomerDetailDrawer from '../components/CustomerDetailDrawer'
 import InvoiceDetail from '../components/InvoiceDetail'
-import { useAuth } from '../context/AuthContext'
+import {
+  SalesInvoicesTable,
+  SalesOrdersTable,
+  CustomersTable,
+  ReturnsTable,
+  OrderDetailModal,
+  CustomerFormModal,
+  InvoiceEditModal,
+} from '../components/sales'
+import { useInvoiceEditor } from '../components/sales/useInvoiceEditor'
 import ExportControls from '../components/ui/ExportControls'
 
-const statusTone = {
-  PAID: 'green',
-  FINAL: 'blue',
-  DRAFT: 'gray',
-  VOID: 'red',
-}
-
-const statusLabel = {
-  PAID: 'Billed',
-  FINAL: 'Billed',
-  DRAFT: 'Draft',
-  VOID: 'Returned',
-}
-
-const paymentTone = {
-  CASH: 'gray',
-  UPI: 'blue',
-  CARD: 'purple',
-  BANK_TRANSFER: 'indigo',
-  ONLINE: 'emerald',
-  OTHER: 'gray',
-}
-
-const orderStatusTone = {
-  PENDING: 'orange',
-  PAID: 'green',
-  FULFILLED: 'blue',
-  CANCELLED: 'red',
-  REFUNDED: 'purple',
-  RETURNED: 'red',
-}
-
-const orderStatusLabel = {
-  PENDING: 'Pending',
-  PAID: 'Paid',
-  FULFILLED: 'Fulfilled',
-  CANCELLED: 'Cancelled',
-  REFUNDED: 'Refunded',
-  RETURNED: 'Returned',
-}
 export default function Sales() {
-  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('invoices')
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -78,16 +46,28 @@ export default function Sales() {
   const [dateTo, setDateTo] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
-  const [selectedInvoiceForEdit, setSelectedInvoiceForEdit] = useState(null)
-  const [invoiceEditOpen, setInvoiceEditOpen] = useState(false)
-  const [pendingEditInvoice, setPendingEditInvoice] = useState(null)
-  const [editConfirmOpen, setEditConfirmOpen] = useState(false)
   const [orderDetailOpen, setOrderDetailOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState(null)
+  const [customerFormOpen, setCustomerFormOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState(null)
+  const [confirmReturn, setConfirmReturn] = useState(null)
 
-  const { data: invoices, isLoading, error: invoicesError } = useQuery({
+  const { invoice: editInvoice, editorOpen, openEditor, closeEditor, handleSaved } = useInvoiceEditor()
+
+  const refundMutation = useMutation({
+    mutationFn: (id) => ordersApi.updateStatus(id, 'REFUNDED'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      setConfirmReturn(null)
+    },
+  })
+
+  const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices', search, filterStatus, filterPayment, dateFrom, dateTo],
     queryFn: () =>
       invoicesApi.list({ search, status: filterStatus, paymentMethod: filterPayment, dateFrom, dateTo }).then(
@@ -95,21 +75,21 @@ export default function Sales() {
       ),
   })
 
-  const { data: orders, isLoading: ordersLoading, error: ordersError } = useQuery({
+  const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', search],
     queryFn: () => ordersApi.list({ search }).then((r) => r.data.data),
     enabled: activeTab === 'orders',
   })
 
-  const { data: customers, isLoading: customersLoading, error: customersError } = useQuery({
+  const { data: customers, isLoading: customersLoading } = useQuery({
     queryKey: ['customers', search],
     queryFn: () => customersApi.list({ search }).then((r) => r.data.data),
     enabled: activeTab === 'customers',
   })
 
-  const { data: returns, error: returnsError } = useQuery({
-    queryKey: ['returns', search],
-    queryFn: () => ordersApi.list({ status: 'CANCELLED' }).then((r) => r.data.data),
+  const { data: returns, isLoading: returnsLoading } = useQuery({
+    queryKey: ['orders', 'returns'],
+    queryFn: () => ordersApi.list({ limit: 100 }).then((r) => r.data.data),
     enabled: activeTab === 'returns',
   })
 
@@ -135,29 +115,14 @@ export default function Sales() {
     setSelectedCustomerId(null)
   }
 
-  const downloadPdf = (inv) => {
-    downloadInvoicePDF(inv)
+  const openEditCustomer = (c) => {
+    setEditingCustomer(c)
+    setCustomerFormOpen(true)
   }
 
-  const handleInvoiceEdit = async (inv) => {
-    const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
-    if (!canEdit) return alert('You do not have permission to edit invoices.')
-
-    // Load the full invoice (with line items) so the form can be pre-filled
-    try {
-      const r = await invoicesApi.get(inv.id)
-      const full = r.data.data
-      if (full.status === 'DRAFT') {
-        setSelectedInvoiceForEdit(full)
-        setInvoiceEditOpen(true)
-      } else {
-        // Finalized invoices: ask for confirmation inside the app (no browser dialog)
-        setPendingEditInvoice(full)
-        setEditConfirmOpen(true)
-      }
-    } catch {
-      alert('Could not load invoice details. Please try again.')
-    }
+  const openOrderDetail = (o) => {
+    setSelectedOrderId(o.id)
+    setOrderDetailOpen(true)
   }
 
   const filteredInvoices = displayInvoices
@@ -204,7 +169,7 @@ export default function Sales() {
       const all = (r.data.data || []).filter((c) => inRange(c.createdAt, from, to))
       exportCustomersExcel(all)
     } else if (activeTab === 'returns') {
-      const r = await ordersApi.list({ status: 'CANCELLED', limit: 100000 })
+      const r = await ordersApi.list({ limit: 100000 })
       const all = (r.data.data || []).filter((o) => inRange(o.createdAt, from, to))
       exportReturnsExcel(all)
     }
@@ -262,7 +227,7 @@ export default function Sales() {
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === tab.value
                 ? 'border-royal-700 text-royal-700 dark:text-gray-300'
-                : 'border-transparent text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 hover:border-gray-300'
             }`}
           >
             <tab.icon size={14} />
@@ -341,276 +306,63 @@ export default function Sales() {
 
       {/* Tab Content */}
       <Card className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            {/* === SALES INVOICES TAB === */}
-            {activeTab === 'invoices' && (
-              <>
-                <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Items</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Qty</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Payment</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Sale Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {isLoading && (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        Loading sales records...
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoading && filteredInvoices.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        No sales found. Click "New Sale" to create one.
-                      </td>
-                    </tr>
-                  )}
-                  {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{inv.invoiceNumber}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-royal-950 dark:text-white">
-                          {inv.customer?.name || 'Walk-in Customer'}
-                        </span>
-                        {inv.customer?.phone && <span className="block text-[11px] text-gray-400 dark:text-gray-500">{inv.customer.phone}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(inv.date)}</td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv._count?.items || 0}</td>
-                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{inv.totalQuantity || 0}</td>
-                      <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(inv.grandTotal)}</td>
-                      <td className="px-4 py-3 text-center">
-                        {inv.paymentMethod ? (
-                          <Badge tone={paymentTone[inv.paymentMethod]}>{inv.paymentMethod}</Badge>
-                        ) : (
-                          <span className="text-gray-400 dark:text-gray-500 text-xs">â€”</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge tone={statusTone[inv.status]}>{statusLabel[inv.status] || inv.status}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-<div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => fetchInvoice(inv.id)}
-                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                        title="View Details"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleInvoiceEdit(inv)}
-                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                        title="Edit Invoice"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => downloadPdf(inv)}
-                        className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                        title="Download PDF"
-                      >
-                        <Download size={14} />
-                      </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </>
-            )}
+        {activeTab === 'invoices' && (
+          <SalesInvoicesTable
+            invoices={filteredInvoices}
+            isLoading={isLoading}
+            onView={(inv) => fetchInvoice(inv.id)}
+            onEdit={openEditor}
+            onPrint={printInvoice}
+            onDownload={downloadInvoicePDF}
+          />
+        )}
 
-            {/* === SALES ORDERS TAB === */}
-            {activeTab === 'orders' && (
-              <>
-                <div className="px-4 pt-4 pb-2">
-                  <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 w-fit">
-                    {[
-                      { key: 'all', label: 'All', count: displayOrders.length },
-                      { key: 'FULFILLED', label: 'Fulfilled', count: displayOrders.filter((o) => o.status === 'FULFILLED').length },
-                      { key: 'PAID', label: 'Paid', count: displayOrders.filter((o) => o.status === 'PAID').length },
-                      { key: 'PENDING', label: 'Pending', count: displayOrders.filter((o) => o.status === 'PENDING').length },
-                      { key: 'CANCELLED', label: 'Cancelled', count: displayOrders.filter((o) => o.status === 'CANCELLED').length },
-                    ].map((f) => (
-                      <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${orderStatusFilter === f.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 dark:text-gray-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}>
-                        {f.label}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 dark:bg-white/10 text-royal-700 dark:text-gray-300' : 'bg-gray-200 text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{f.count}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Order #</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Items</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {ordersLoading && (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        Loading orders...
-                      </td>
-                    </tr>
-                  )}
-                  {!ordersLoading && filteredOrders.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        {orderStatusFilter === 'all' ? 'No orders found.' : `No ${orderStatusFilter.toLowerCase()} orders found.`}
-                      </td>
-                    </tr>
-                  )}
-                  {!ordersLoading &&
-                    filteredOrders.map((o) => (
-                      <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || `#${o.id}`}</td>
-                        <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || 'â€”'}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{o._count?.items || 0}</td>
-                        <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              onClick={() => fetchInvoice(o.id)}
-                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                              title="View"
-                            >
-                              <Eye size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </>
-            )}
+        {activeTab === 'orders' && (
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex gap-1 bg-gray-100 dark:bg-white/10 rounded-lg p-1 w-fit overflow-x-auto">
+              {[
+                { key: 'all', label: 'All', count: displayOrders.length },
+                { key: 'FULFILLED', label: 'Fulfilled', count: displayOrders.filter((o) => o.status === 'FULFILLED').length },
+                { key: 'PAID', label: 'Paid', count: displayOrders.filter((o) => o.status === 'PAID').length },
+                { key: 'PENDING', label: 'Pending', count: displayOrders.filter((o) => o.status === 'PENDING').length },
+                { key: 'CANCELLED', label: 'Cancelled', count: displayOrders.filter((o) => o.status === 'CANCELLED').length },
+                { key: 'REFUNDED', label: 'Refunded', count: displayOrders.filter((o) => o.status === 'REFUNDED').length },
+              ].map((f) => (
+                <button key={f.key} onClick={() => setOrderStatusFilter(f.key)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${orderStatusFilter === f.key ? 'bg-white dark:bg-[#1a1025] text-royal-700 dark:text-gray-300 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300'}`}>
+                  {f.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${orderStatusFilter === f.key ? 'bg-royal-100 dark:bg-white/10 text-royal-700 dark:text-gray-300' : 'bg-gray-200 text-gray-500 dark:text-gray-400'}`}>{f.count}</span>
+                </button>
+              ))}
+            </div>
+            <SalesOrdersTable
+              orders={filteredOrders}
+              isLoading={ordersLoading}
+              onView={(o) => openOrderDetail(o)}
+              onEdit={(o) => openEditor(o.invoice)}
+            />
+          </div>
+        )}
 
-            {/* === CUSTOMERS TAB (no Total Spent, no Last Order) === */}
-            {activeTab === 'customers' && (
-              <>
-                <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Contact</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {customersLoading && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        Loading customers...
-                      </td>
-                    </tr>
-                  )}
-                  {!customersLoading && displayCustomers.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        No customers found.
-                      </td>
-                    </tr>
-                  )}
-                  {!customersLoading &&
-                    displayCustomers.map((c) => (
-                      <tr key={c.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-royal-500 to-royal-700 text-white flex items-center justify-center text-[10px] font-bold">
-                              {c.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                            </span>
-                            <span className="font-medium text-royal-950 dark:text-white">{c.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">{c.phone}</td>
-                        <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 dark:text-gray-500">{c._count?.invoices || 0}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              onClick={() => openCustomerDetail(c)}
-                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                              title="View"
-                            >
-                              <Eye size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </>
-            )}
+        {activeTab === 'customers' && (
+          <CustomersTable
+            customers={displayCustomers}
+            isLoading={customersLoading}
+            onView={(c) => openCustomerDetail(c)}
+            onEdit={(c) => openEditCustomer(c)}
+          />
+        )}
 
-            {/* === RETURNS TAB === */}
-            {activeTab === 'returns' && (
-              <>
-                <thead>
-                  <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Order #</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Date</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Total</th>
-                    <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {displayReturns.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                        No returns found.
-                      </td>
-                    </tr>
-                  ) : (
-                    displayReturns.map((o) => (
-                      <tr key={o.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-royal-700 dark:text-gray-300">{o.orderNumber || `#${o.id}`}</td>
-                        <td className="px-4 py-3 font-medium text-royal-950 dark:text-white">{o.customer?.name || 'â€”'}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 dark:text-gray-500">{formatDate(o.createdAt)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(o.totalAmount)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge tone={orderStatusTone[o.status]}>{orderStatusLabel[o.status] || o.status}</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end">
-                            <button
-                              onClick={() => { setSelectedOrder(o); setOrderDetailOpen(true) }}
-                              className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"
-                              title="View Details"
-                            >
-                              <Eye size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </>
-            )}
-          </table>
-        </div>
+        {activeTab === 'returns' && (
+          <ReturnsTable
+            orders={displayReturns}
+            isLoading={returnsLoading}
+            onView={(o) => openOrderDetail(o)}
+            onRefund={(o) => setConfirmReturn(o)}
+          />
+        )}
       </Card>
 
-      {/* Full Details Modal */}
+      {/* Invoice detail modal */}
       <Modal
         open={detailOpen}
         title={`Invoice ${selectedInvoice?.invoiceNumber || ''}`}
@@ -621,7 +373,7 @@ export default function Sales() {
               <Button variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
                 Close
               </Button>
-              <Button size="sm" onClick={() => downloadPdf(selectedInvoice)}>
+              <Button size="sm" onClick={() => downloadInvoicePDF(selectedInvoice)}>
                 <Download size={14} /> Download PDF
               </Button>
             </>
@@ -631,91 +383,64 @@ export default function Sales() {
         {selectedInvoice && <InvoiceDetail invoice={selectedInvoice} />}
       </Modal>
 
-      {/* Confirm editing a finalized invoice */}
-      <Modal
-        open={editConfirmOpen}
-        title={`Edit ${pendingEditInvoice?.invoiceNumber || 'invoice'}?`}
-        onClose={() => setEditConfirmOpen(false)}
-        footer={
-          <>
-            <Button variant="ghost" size="sm" onClick={() => setEditConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditConfirmOpen(false)
-                setSelectedInvoiceForEdit(pendingEditInvoice)
-                setInvoiceEditOpen(true)
-              }}
-            >
-              Proceed
-            </Button>
-          </>
-        }
-      >
-        <div className="text-sm space-y-3">
-          <p>
-            This invoice is already{' '}
-            <span className="font-semibold text-royal-950 dark:text-white">
-              "{statusLabel[pendingEditInvoice?.status] || pendingEditInvoice?.status}"
-            </span>
-            .
-          </p>
-          <p>Changing line items, quantities, or amounts on a finalized invoice may affect:</p>
-          <ul className="list-disc pl-5 text-gray-600 dark:text-gray-400 space-y-1">
-            <li>Accounting records and tax reports</li>
-            <li>Stock/inventory levels</li>
-            <li>Payment reconciliation and customer balances</li>
-            <li>GST/GSTR-1/GSTR-3B summaries</li>
-          </ul>
-          <p className="font-medium text-royal-950 dark:text-white">Are you sure you want to proceed?</p>
-        </div>
-      </Modal>
+      {/* Order detail modal (shared with Sales Orders page) */}
+      <OrderDetailModal
+        open={orderDetailOpen}
+        orderId={selectedOrderId}
+        onClose={() => { setOrderDetailOpen(false); setSelectedOrderId(null) }}
+      />
 
-      {/* Edit Invoice Modal */}
-      <Modal
-        open={invoiceEditOpen}
-        title={`Edit Invoice ${selectedInvoiceForEdit?.invoiceNumber || ''}`}
-        onClose={() => setInvoiceEditOpen(false)}
-        size="xl"
-      >
-        {selectedInvoiceForEdit && (
-          <SaleEditForm
-            invoice={selectedInvoiceForEdit}
-            onCancel={() => setInvoiceEditOpen(false)}
-            onSaved={() => {
-              setInvoiceEditOpen(false)
-              setSelectedInvoiceForEdit(null)
-            }}
-          />
-        )}
-      </Modal>
+      {/* Invoice edit (shared with dedicated pages) */}
+      <InvoiceEditModal
+        open={editorOpen}
+        invoice={editInvoice}
+        onClose={closeEditor}
+        onSaved={handleSaved}
+      />
 
-      <Modal open={orderDetailOpen} title={`Order â€” ${selectedOrder?.orderNumber || ''}`} onClose={() => setOrderDetailOpen(false)} footer={
-        <Button variant="ghost" onClick={() => setOrderDetailOpen(false)}>Close</Button>
-      }>
-        {selectedOrder && (
-          <div className="text-sm space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div><span className="text-gray-500 dark:text-gray-400">Order #:</span> <span className="font-semibold text-royal-950 dark:text-white">{selectedOrder.orderNumber}</span></div>
-              <div><span className="text-gray-500 dark:text-gray-400">Status:</span> <Badge tone={orderStatusTone[selectedOrder.status]}>{orderStatusLabel[selectedOrder.status]}</Badge></div>
-              <div><span className="text-gray-500 dark:text-gray-400">Customer:</span> <span className="font-medium text-royal-950 dark:text-white">{selectedOrder.customer?.name || 'Walk-in'}</span></div>
-              <div><span className="text-gray-500 dark:text-gray-400">Amount:</span> <span className="font-bold text-royal-800 dark:text-gray-200">{formatINR(selectedOrder.totalAmount)}</span></div>
-              <div><span className="text-gray-500 dark:text-gray-400">Items:</span> <span className="text-royal-950 dark:text-white">{selectedOrder._count?.items || 0}</span></div>
-              <div><span className="text-gray-500 dark:text-gray-400">Date:</span> <span className="text-royal-950 dark:text-white">{formatDate(selectedOrder.createdAt || selectedOrder.date)}</span></div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Customer Details Right Drawer â€” full height, 30% width slide-in from right */}
+      {/* Customer detail drawer */}
       <CustomerDetailDrawer
         open={customerDetailOpen}
         customerId={selectedCustomerId}
         onClose={closeCustomerDetail}
         onInvoiceView={(invId) => { closeCustomerDetail(); fetchInvoice(invId) }}
       />
+
+      {/* Customer add/edit modal (shared with dedicated page) */}
+      <CustomerFormModal
+        open={customerFormOpen}
+        customer={editingCustomer}
+        onClose={() => { setCustomerFormOpen(false); setEditingCustomer(null) }}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['customers'] })}
+      />
+
+      {/* Refund confirm (matches Sales Returns page) */}
+      <Modal
+        open={Boolean(confirmReturn)}
+        title="Confirm Refund"
+        onClose={() => setConfirmReturn(null)}
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmReturn(null)}>Cancel</Button>
+            <Button size="sm" variant="gold" onClick={() => refundMutation.mutate(confirmReturn.id)} disabled={refundMutation.isPending}>
+              {refundMutation.isPending ? 'Processing...' : 'Confirm Refund'}
+            </Button>
+          </>
+        }
+      >
+        {confirmReturn && (
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-600 dark:text-gray-300">
+              Refund order <span className="font-semibold text-royal-950 dark:text-white">{confirmReturn.orderNumber || `#${confirmReturn.id}`}</span> for{' '}
+              <span className="font-semibold text-emerald-700">{formatINR(confirmReturn.totalAmount)}</span>?
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              This will return all items to stock and void the linked invoice{' '}
+              {confirmReturn.invoice?.invoiceNumber ? `(${confirmReturn.invoice.invoiceNumber})` : ''}. This action is permanent.
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

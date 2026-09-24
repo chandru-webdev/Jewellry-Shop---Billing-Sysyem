@@ -34,7 +34,7 @@ const orderService = {
       where,
       include: {
         customer: { select: { id: true, name: true, phone: true, email: true, address: true } },
-        invoice: { select: { id: true, invoiceNumber: true } },
+        invoice: { select: { id: true, invoiceNumber: true, paymentMethod: true } },
         items: {
           select: { id: true, sku: true, name: true, quantity: true, unitPrice: true, lineTotal: true, weight: true, makingCharge: true, silverRate: true, gstAmount: true },
         },

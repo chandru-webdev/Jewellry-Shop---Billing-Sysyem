@@ -340,6 +340,33 @@ const invoiceService = {
           }
         }
 
+        // Keep the linked order's items + total in step with the invoice so the
+        // Orders list never shows a stale amount after an invoice edit. The order
+        // total stays the sum of its line totals (no discount field on orders).
+        if (itemsData !== null && existing.orderId) {
+          const orderItemsData = itemsData.map((it) => ({
+            productId: it.productId,
+            sku: it.sku,
+            name: it.name,
+            quantity: it.quantity,
+            unitPrice: new Decimal(it.finalAmount).dividedBy(new Decimal(it.quantity)).toDecimalPlaces(2),
+            lineTotal: it.finalAmount,
+            weight: it.weight,
+            makingCharge: it.makingCharge,
+            silverRate: it.silverRate,
+            gstAmount: it.gstAmount,
+          }))
+          const orderLineTotal = itemsData.reduce(
+            (sum, it) => sum.plus(new Decimal(it.finalAmount)),
+            new Decimal(0)
+          )
+          await tx.orderItem.deleteMany({ where: { orderId: existing.orderId } })
+          await tx.order.update({
+            where: { id: existing.orderId },
+            data: { totalAmount: orderLineTotal.toDecimalPlaces(2), items: { create: orderItemsData } },
+          })
+        }
+
         // Keep the linked payment record consistent with the new totals / method / status.
         if (data.paymentMethod || data.status || itemsData !== null) {
           const payPatch = { method: effectivePayMethod, status: payStatus }

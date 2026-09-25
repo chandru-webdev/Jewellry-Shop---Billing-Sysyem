@@ -44,6 +44,7 @@ const STEP_LABEL_TONE = {
   running: 'text-amber-600 dark:text-amber-400',
   pending: 'text-gray-400 dark:text-gray-500',
   blocked: 'text-gray-400 dark:text-gray-500',
+  not_tracked: 'text-gray-400 dark:text-gray-500',
 }
 
 export default function MetalRates() {
@@ -158,7 +159,20 @@ export default function MetalRates() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (rate) => metalRatesApi.updateSilver(parseFloat(rate)),
+    mutationFn: async (rate) => {
+      const value = parseFloat(rate)
+      try {
+        return await metalRatesApi.updateSilver(value)
+      } catch (err) {
+        const status = err?.response?.status
+        const transient = status === 502 || status === 499 || status === 504 || !status
+        if (transient) {
+          await new Promise((r) => setTimeout(r, 8000))
+          return await metalRatesApi.updateSilver(value)
+        }
+        throw err
+      }
+    },
     onSuccess: (data) => {
       const res = data?.data?.data
       queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
@@ -228,14 +242,18 @@ export default function MetalRates() {
   const viewSteps = useMemo(() => {
     if (!viewItem) return []
     const stored = Array.isArray(viewItem.steps) ? viewItem.steps : []
+    // A row is "tracked" if it predates pipeline tracking (no steps/status were
+    // ever recorded for it) or it's genuinely mid-sync right now.
+    const isTracked = stored.length > 0 || viewItem.shopifyStatus || viewItem.productsUpdated != null
     const rate = stored.find((s) => s.key === 'rate') || {
       key: 'rate', label: 'Rate updated in ERP', status: 'DONE', at: viewItem.changedAt,
       detail: `₹${parseFloat(viewItem.oldRate).toFixed(2)} → ₹${parseFloat(viewItem.newRate).toFixed(2)} /gm`, error: null,
     }
     const reprice = stored.find((s) => s.key === 'reprice') || (viewItem.productsUpdated != null
       ? { key: 'reprice', label: 'Products repriced', status: 'DONE', at: viewItem.changedAt, detail: `${viewItem.productsUpdated} products repriced`, error: null }
-      : { key: 'reprice', label: 'Products repriced', status: 'PENDING', at: null, detail: 'Not recorded', error: null })
-    let shopify = stored.find((x) => x.key === 'shopify')
+      : { key: 'reprice', label: 'Products repriced', status: isTracked ? 'PENDING' : 'NOT_TRACKED', at: null, detail: isTracked ? 'Not recorded' : 'Not tracked — predates pipeline tracking', error: null })
+    const shopifyStored = stored.find((x) => x.key === 'shopify')
+    let shopify = shopifyStored
     if (!shopify) {
       shopify = viewItem.shopifyStatus
         ? {
@@ -244,9 +262,9 @@ export default function MetalRates() {
             at: null, detail: viewItem.shopifyMessage || '',
             error: viewItem.shopifyStatus === 'FAILED' ? (viewItem.shopifyMessage || 'Shopify push failed') : null,
           }
-        : { key: 'shopify', label: 'Pushed to Shopify', status: 'PENDING', at: null, detail: 'Not recorded', error: null }
+        : { key: 'shopify', label: 'Pushed to Shopify', status: isTracked ? 'PENDING' : 'NOT_TRACKED', at: null, detail: isTracked ? 'Not recorded' : 'Not tracked — predates pipeline tracking', error: null }
     }
-    const completeStatus = shopify.status === 'DONE' ? 'DONE' : shopify.status === 'FAILED' ? 'BLOCKED' : 'PENDING'
+    const completeStatus = shopify.status === 'DONE' ? 'DONE' : shopify.status === 'FAILED' ? 'BLOCKED' : shopify.status === 'NOT_TRACKED' ? 'NOT_TRACKED' : 'PENDING'
     return [
       rate, reprice, shopify,
       {
@@ -256,7 +274,9 @@ export default function MetalRates() {
           ? 'All steps succeeded'
           : completeStatus === 'BLOCKED'
             ? 'Stopped — previous step failed'
-            : 'Waiting for previous steps',
+            : completeStatus === 'NOT_TRACKED'
+              ? 'Not tracked — this update predates pipeline tracking'
+              : 'Waiting for previous steps',
         error: null,
       },
     ]
@@ -640,7 +660,7 @@ export default function MetalRates() {
 
             <ol className="space-y-0">
               {viewSteps.map((step, idx) => {
-                const status = step.status === 'DONE' ? 'done' : step.status === 'FAILED' ? 'failed' : step.status === 'BLOCKED' ? 'blocked' : step.status === 'RUNNING' ? 'running' : 'pending'
+                const status = step.status === 'DONE' ? 'done' : step.status === 'FAILED' ? 'failed' : step.status === 'BLOCKED' ? 'blocked' : step.status === 'RUNNING' ? 'running' : step.status === 'NOT_TRACKED' ? 'not_tracked' : 'pending'
                 return (
                   <li key={step.key} className="relative flex items-start gap-3 pb-4 last:pb-0">
                     {idx < viewSteps.length - 1 && (
@@ -654,6 +674,7 @@ export default function MetalRates() {
                         {status === 'failed' && <Badge tone="red"><XCircle size={12} /> Failed</Badge>}
                         {status === 'blocked' && <Badge tone="gray">Not reached</Badge>}
                         {status === 'pending' && <Badge tone="gray">Pending</Badge>}
+                        {status === 'not_tracked' && <Badge tone="gray">Not tracked</Badge>}
                       </div>
                       {step.detail && (
                         <p className={`text-xs mt-0.5 ${status === 'failed' ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{step.detail}</p>

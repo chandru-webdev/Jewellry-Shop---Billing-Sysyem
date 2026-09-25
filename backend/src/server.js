@@ -5,6 +5,19 @@ const { registerWebhooks } = require('./services/webhookRegister.service')
 
 async function ensureSchema() {
   try {
+    // Fast path: if the newest schema marker column already exists, every
+    // <CREATE ... IF NOT EXISTS / EXCEPTION> check below is a no-op. Skipping
+    // them drops cold boot from ~25s to ~1s, which matters on the Free plan:
+    // the container sleeps when idle and a slow wake makes the first request
+    // die with 502 before the update/history row is ever written.
+    try {
+      const marker = await prisma.$queryRawUnsafe(
+        `SELECT 1 FROM information_schema.columns WHERE table_name = 'MetalRateHistory' AND column_name = 'syncPayload'`
+      )
+      if (marker && marker.length > 0) return
+    } catch {
+      // information_schema unavailable — fall through and run the full checks.
+    }
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "ProductPriceHistory" (
         "id" SERIAL PRIMARY KEY,

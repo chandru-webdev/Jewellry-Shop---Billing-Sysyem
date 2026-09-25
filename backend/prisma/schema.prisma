@@ -425,13 +425,18 @@ model MetalRate {
 
 // Audit trail — EVERY rate change is recorded here, forever.
 model MetalRateHistory {
-  id          Int       @id @default(autoincrement())
-  metal       MetalType
-  oldRate     Decimal   @db.Decimal(10, 2)
-  newRate     Decimal   @db.Decimal(10, 2)
-  changedById Int?
-  changedBy   User?     @relation(fields: [changedById], references: [id])
-  changedAt   DateTime  @default(now())
+  id              Int       @id @default(autoincrement())
+  metal           MetalType
+  oldRate         Decimal   @db.Decimal(10, 2)
+  newRate         Decimal   @db.Decimal(10, 2)
+  changedById     Int?
+  changedBy       User?     @relation(fields: [changedById], references: [id])
+  changedAt       DateTime  @default(now())
+  productsUpdated Int? // how many active products were repriced for this change
+  shopifyStatus   String? // PENDING | SUCCESS | FAILED (null = legacy row)
+  shopifyMessage  String? // sync outcome / error detail
+  steps           Json? // per-step tracker: [{ key, label, status, at, detail, error }]
+  syncPayload     Json? // Shopify response: { total, ok, failed, firstError }
 
   @@index([metal])
   @@index([changedAt])

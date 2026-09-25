@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Coins, TrendingUp, TrendingDown, AlertCircle, ArrowRight, Loader2, Send, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Coins, TrendingUp, TrendingDown, AlertCircle, ArrowRight, Loader2, Send, Clock, CheckCircle, XCircle, CalendarDays, RefreshCw, Check, X, Eye } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -22,6 +22,28 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p className="text-gold-400">Rate: ₹{payload[0].value}/gm</p>
     </div>
   )
+}
+
+// Step status icon: green check / red x / amber spinner / grey dot
+const StepIcon = ({ status }) => {
+  if (status === 'done') {
+    return <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><Check size={12} className="text-white" /></span>
+  }
+  if (status === 'failed') {
+    return <span className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0"><X size={12} className="text-white" /></span>
+  }
+  if (status === 'running') {
+    return <span className="w-5 h-5 rounded-full border-2 border-amber-500 flex items-center justify-center shrink-0"><Loader2 size={10} className="animate-spin text-amber-500" /></span>
+  }
+  return <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-white/20 flex items-center justify-center shrink-0"><span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-white/30" /></span>
+}
+
+const STEP_LABEL_TONE = {
+  done: 'text-royal-950 dark:text-white',
+  failed: 'text-red-600',
+  running: 'text-amber-600 dark:text-amber-400',
+  pending: 'text-gray-400 dark:text-gray-500',
+  blocked: 'text-gray-400 dark:text-gray-500',
 }
 
 export default function MetalRates() {
@@ -55,8 +77,67 @@ export default function MetalRates() {
     queryFn: () => metalRatesApi.getHistory({ limit: 30 }).then((r) => r.data.data),
   })
 
+  // Daily pipeline report (used by the status card + daily report table)
+  const { data: reportData, isLoading: reportLoading } = useQuery({
+    queryKey: ['metal-rates-report'],
+    queryFn: () => metalRatesApi.getReport({ days: 14 }).then((r) => r.data.data),
+  })
+
+  const reportGroups = useMemo(() => {
+    const map = new Map()
+    for (const it of reportData?.items || []) {
+      const day = formatDate(it.changedAt)
+      if (!map.has(day)) map.set(day, [])
+      map.get(day).push(it)
+    }
+    return [...map.entries()].map(([day, items]) => ({
+      day,
+      items,
+      anyFailed: items.some((i) => i.shopifyStatus === 'FAILED'),
+      allComplete: items.length > 0 && items.every((i) => i.shopifyStatus === 'SUCCESS'),
+    }))
+  }, [reportData])
+
   const currentRate = rates?.rate ? parseFloat(rates.rate) : 0
   const lastUpdated = rates?.updatedAt
+
+  // Live pipeline after a rate update: rate -> prices -> shopify sync
+  const [pipeline, setPipeline] = useState(null)
+  const [pipelineActive, setPipelineActive] = useState(false)
+  const [viewItem, setViewItem] = useState(null)
+
+  useEffect(() => {
+    if (!pipelineActive) return
+    let cancelled = false
+    const started = Date.now()
+    const id = setInterval(async () => {
+      if (cancelled) return
+      try {
+        const r = await metalRatesApi.getReport({ days: 1 })
+        const items = r?.data?.data?.items || []
+        const match = items.find((i) => String(i.newRate) === String(pipeline.newRate))
+        if (match) {
+          setPipeline((prev) => ({
+            ...prev,
+            historyId: match.id,
+            shopifyStatus: match.shopifyStatus || 'PENDING',
+            shopifyMessage: match.shopifyMessage || 'Pushing updated prices to Shopify…',
+            steps: match.steps || prev.steps || null,
+            syncPayload: match.syncPayload || prev.syncPayload || null,
+          }))
+          if (match.shopifyStatus === 'SUCCESS' || match.shopifyStatus === 'FAILED') {
+            setPipelineActive(false)
+            queryClient.invalidateQueries({ queryKey: ['metal-rates-report'] })
+            return
+          }
+        }
+      } catch {
+        // transient network error — keep polling
+      }
+      if (Date.now() - started > 120000) setPipelineActive(false)
+    }, 4000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [pipelineActive, pipeline?.newRate, pipeline?.historyId])
 
   const chartData = (historyData || [])
     .slice()
@@ -78,14 +159,108 @@ export default function MetalRates() {
 
   const updateMutation = useMutation({
     mutationFn: (rate) => metalRatesApi.updateSilver(parseFloat(rate)),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const res = data?.data?.data
       queryClient.invalidateQueries({ queryKey: ['metal-rates'] })
       queryClient.invalidateQueries({ queryKey: ['metal-rates-history'] })
       queryClient.invalidateQueries({ queryKey: ['silver-rate-current'] })
+      queryClient.invalidateQueries({ queryKey: ['metal-rates-report'] })
+      if (res && !res.unchanged) {
+        setPipeline({
+          historyId: res.historyId || null,
+          oldRate: res.oldRate,
+          newRate: res.newRate,
+          updatedProducts: res.updatedProducts,
+          shopifyStatus: 'PENDING',
+          shopifyMessage: 'Pushing updated prices to Shopify…',
+        })
+        setPipelineActive(true)
+      }
       setNewRate('')
       setPreviewOpen(false)
     },
   })
+
+  const retryMutation = useMutation({
+    mutationFn: (id) => metalRatesApi.retryShopify(id),
+    onSuccess: (data) => {
+      const res = data?.data?.data
+      setPipeline((prev) => ({
+        ...prev,
+        shopifyStatus: res?.shopifyStatus || 'FAILED',
+        shopifyMessage: res?.shopifyMessage || '',
+        steps: res?.steps || prev?.steps || null,
+      }))
+      setPipelineActive(false)
+      queryClient.invalidateQueries({ queryKey: ['metal-rates-report'] })
+    },
+  })
+
+  const retryRowMutation = useMutation({
+    mutationFn: (id) => metalRatesApi.retryShopify(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metal-rates-report'] })
+      queryClient.invalidateQueries({ queryKey: ['metal-rates-history'] })
+    },
+  })
+
+  // Live stepper derived from the current pipeline (session run after an update)
+  const liveSteps = useMemo(() => {
+    if (!pipeline) return []
+    const st = pipeline.shopifyStatus // SUCCESS | FAILED | PENDING
+    const steps = [
+      { key: 'rate', label: 'Rate updated in ERP', status: 'done', detail: `₹${Number(pipeline.oldRate).toFixed(2)} → ₹${Number(pipeline.newRate).toFixed(2)} /gm`, at: null, error: null },
+      { key: 'reprice', label: 'Products repriced', status: pipeline.updatedProducts != null ? 'done' : 'pending', detail: `${pipeline.updatedProducts ?? 0} products repriced`, at: null, error: null },
+      { key: 'shopify', label: 'Pushed to Shopify', status: st === 'SUCCESS' ? 'done' : st === 'FAILED' ? 'failed' : 'running', detail: pipeline.shopifyMessage || 'Pushing updated prices to Shopify…', at: null, error: null },
+      { key: 'complete', label: 'Complete', status: st === 'SUCCESS' ? 'done' : st === 'FAILED' ? 'blocked' : 'pending', detail: st === 'SUCCESS' ? 'All steps succeeded' : st === 'FAILED' ? 'Stopped — previous step failed' : 'Waiting for previous steps', at: null, error: null },
+    ]
+    const stored = Array.isArray(pipeline.steps) ? pipeline.steps : []
+    for (const step of steps) {
+      const s = stored.find((x) => x.key === step.key)
+      if (s?.at) step.at = s.at
+      if (s?.detail) step.detail = s.detail
+      if (s?.error) step.error = s.error
+    }
+    return steps
+  }, [pipeline])
+
+  // Full step breakdown for the "View" modal, derived from a persisted row
+  const viewSteps = useMemo(() => {
+    if (!viewItem) return []
+    const stored = Array.isArray(viewItem.steps) ? viewItem.steps : []
+    const rate = stored.find((s) => s.key === 'rate') || {
+      key: 'rate', label: 'Rate updated in ERP', status: 'DONE', at: viewItem.changedAt,
+      detail: `₹${parseFloat(viewItem.oldRate).toFixed(2)} → ₹${parseFloat(viewItem.newRate).toFixed(2)} /gm`, error: null,
+    }
+    const reprice = stored.find((s) => s.key === 'reprice') || (viewItem.productsUpdated != null
+      ? { key: 'reprice', label: 'Products repriced', status: 'DONE', at: viewItem.changedAt, detail: `${viewItem.productsUpdated} products repriced`, error: null }
+      : { key: 'reprice', label: 'Products repriced', status: 'PENDING', at: null, detail: 'Not recorded', error: null })
+    let shopify = stored.find((x) => x.key === 'shopify')
+    if (!shopify) {
+      shopify = viewItem.shopifyStatus
+        ? {
+            key: 'shopify', label: 'Pushed to Shopify',
+            status: viewItem.shopifyStatus === 'SUCCESS' ? 'DONE' : viewItem.shopifyStatus === 'FAILED' ? 'FAILED' : 'PENDING',
+            at: null, detail: viewItem.shopifyMessage || '',
+            error: viewItem.shopifyStatus === 'FAILED' ? (viewItem.shopifyMessage || 'Shopify push failed') : null,
+          }
+        : { key: 'shopify', label: 'Pushed to Shopify', status: 'PENDING', at: null, detail: 'Not recorded', error: null }
+    }
+    const completeStatus = shopify.status === 'DONE' ? 'DONE' : shopify.status === 'FAILED' ? 'BLOCKED' : 'PENDING'
+    return [
+      rate, reprice, shopify,
+      {
+        key: 'complete', label: 'Complete',
+        status: completeStatus, at: completeStatus === 'DONE' ? shopify.at : null,
+        detail: completeStatus === 'DONE'
+          ? 'All steps succeeded'
+          : completeStatus === 'BLOCKED'
+            ? 'Stopped — previous step failed'
+            : 'Waiting for previous steps',
+        error: null,
+      },
+    ]
+  }, [viewItem])
 
   const requestMutation = useMutation({
     mutationFn: (rate) => metalRatesApi.createRequest(parseFloat(rate)),
@@ -264,7 +439,242 @@ export default function MetalRates() {
             </Card>
           </div>
 
-          {/* Price Change Preview Modal */}
+          {/* Live pipeline status after a rate update — 4-step stepper */}
+      {pipeline && (
+        <Card title="Update Status" icon={CheckCircle} className="mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+            <ol className="flex-1 space-y-0">
+              {liveSteps.map((step, idx) => (
+                <li key={step.key} className="relative flex items-start gap-3 pb-5 last:pb-0">
+                  {idx < liveSteps.length - 1 && (
+                    <span className={`absolute left-[9px] top-6 bottom-0 w-px ${step.status === 'done' ? 'bg-emerald-300 dark:bg-emerald-500/40' : 'bg-gray-200 dark:bg-white/[0.08]'}`} />
+                  )}
+                  <StepIcon status={step.status} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className={`text-sm font-semibold ${STEP_LABEL_TONE[step.status]}`}>{step.label}</p>
+                      {step.status === 'done' && <Badge tone="green"><CheckCircle size={12} /> Done</Badge>}
+                      {step.status === 'failed' && <Badge tone="red"><XCircle size={12} /> Failed</Badge>}
+                      {step.status === 'running' && <Badge tone="orange"><Loader2 size={12} className="animate-spin" /> Running</Badge>}
+                      {step.status === 'blocked' && <Badge tone="gray">Not reached</Badge>}
+                      {step.status === 'pending' && <Badge tone="gray">Pending</Badge>}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">
+                      {step.detail}
+                      {step.at && <span className="ml-2 text-[11px] text-gray-400 dark:text-gray-500">· {formatDateTime(step.at)}</span>}
+                    </p>
+                    {step.key === 'shopify' && step.error && (
+                      <p className="text-xs text-red-600 mt-1">Shopify sync failed: {step.error}</p>
+                    )}
+                    {step.key === 'shopify' && pipeline.syncPayload && (
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        Total: {pipeline.syncPayload.total} · Pushed: {pipeline.syncPayload.ok} · Failed: {pipeline.syncPayload.failed}
+                      </p>
+                    )}
+                    {step.key === 'shopify' && step.status === 'failed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 text-red-600 border-red-600 hover:bg-red-50"
+                        onClick={() => retryMutation.mutate(pipeline.historyId)}
+                        disabled={retryMutation.isPending}
+                      >
+                        {retryMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Retry Sync
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className={`rounded-xl px-6 py-5 text-center border shrink-0 ${
+              pipeline.shopifyStatus === 'SUCCESS'
+                ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20'
+                : pipeline.shopifyStatus === 'FAILED'
+                  ? 'bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/20'
+                  : 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20'
+            }`}>
+              {pipeline.shopifyStatus === 'SUCCESS' ? (
+                <CheckCircle size={28} className="mx-auto mb-1.5 text-emerald-600" />
+              ) : pipeline.shopifyStatus === 'FAILED' ? (
+                <XCircle size={28} className="mx-auto mb-1.5 text-red-600" />
+              ) : (
+                <Loader2 size={28} className="mx-auto mb-1.5 animate-spin text-amber-600" />
+              )}
+              <p className={`text-sm font-bold ${
+                pipeline.shopifyStatus === 'SUCCESS'
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : pipeline.shopifyStatus === 'FAILED'
+                    ? 'text-red-700 dark:text-red-400'
+                    : 'text-amber-700 dark:text-amber-400'
+              }`}>
+                {pipeline.shopifyStatus === 'SUCCESS' ? 'All complete' : pipeline.shopifyStatus === 'FAILED' ? 'Sync failed' : 'Updating…'}
+              </p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">Rate · Prices · Shopify</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Daily Update Report — green when every step of the day completed, red if any failed */}
+      <Card title="Daily Update Report" icon={CalendarDays} className="mb-6">
+        {reportLoading ? (
+          <div className="py-10 flex items-center justify-center"><Loader2 className="animate-spin text-gray-400 dark:text-gray-500" size={22} /></div>
+        ) : reportGroups.length === 0 ? (
+          <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">No rate updates in the last 14 days</div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="green">Complete: {reportData?.summary?.complete ?? 0}</Badge>
+              <Badge tone="orange">Pending: {reportData?.summary?.pending ?? 0}</Badge>
+              <Badge tone="red">Failed: {reportData?.summary?.failed ?? 0}</Badge>
+              <span className="text-xs text-gray-400 dark:text-gray-500 self-center">Last 14 days</span>
+            </div>
+
+            {reportGroups.map((group) => (
+              <div key={group.day}>
+                <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/[0.08] pb-2 mb-2">
+                  <p className="text-sm font-semibold text-royal-950 dark:text-white">{group.day}</p>
+                  <Badge tone={group.anyFailed ? 'red' : group.allComplete ? 'green' : 'orange'}>
+                    {group.anyFailed ? 'Some failed' : group.allComplete ? 'All complete' : 'Incomplete'}
+                  </Badge>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-white/[0.08]">
+                        <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Time</th>
+                        <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Updated By</th>
+                        <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Rate</th>
+                        <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Change</th>
+                        <th className="text-right py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Products</th>
+                        <th className="text-left py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Shopify</th>
+                        <th className="text-center py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.items.map((it) => {
+                        const diff = parseFloat(it.newRate) - parseFloat(it.oldRate)
+                        const diffPct = parseFloat(it.oldRate) > 0 ? ((diff / parseFloat(it.oldRate)) * 100).toFixed(2) : '0.00'
+                        return (
+                          <tr key={it.id} className="border-b border-gray-50 last:border-0">
+                            <td className="py-2 whitespace-nowrap text-gray-500 dark:text-gray-400 dark:text-gray-500">{formatDateTime(it.changedAt)}</td>
+                            <td className="py-2 whitespace-nowrap">{it.changedBy?.name || 'System'}</td>
+                            <td className="py-2 text-center whitespace-nowrap">
+                              <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">₹{parseFloat(it.oldRate).toFixed(2)}</span>
+                              <ArrowRight size={12} className="inline mx-1 text-gray-400" />
+                              <span className="font-bold text-royal-950 dark:text-white">₹{parseFloat(it.newRate).toFixed(2)}</span>
+                            </td>
+                            <td className={`py-2 text-right font-semibold whitespace-nowrap ${diff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {diff >= 0 ? '+' : ''}{diff.toFixed(2)} ({diffPct}%)
+                            </td>
+                            <td className="py-2 text-right text-gray-600 dark:text-gray-400 dark:text-gray-500">{it.productsUpdated ?? '—'}</td>
+                            <td className="py-2">
+                              {it.shopifyStatus === 'SUCCESS' && <Badge tone="green"><CheckCircle size={12} /> Synced</Badge>}
+                              {it.shopifyStatus === 'FAILED' && (
+                                <div className="flex items-center gap-1.5">
+                                  <Badge tone="red"><XCircle size={12} /> Failed</Badge>
+                                  {(isSuperAdmin || isManager) && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-red-600 border-red-600 hover:bg-red-50 px-2"
+                                      onClick={() => retryRowMutation.mutate(it.id)}
+                                      disabled={retryRowMutation.isPending}
+                                    >
+                                      {retryRowMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Retry
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                              {it.shopifyStatus === 'PENDING' && <Badge tone="orange"><Loader2 size={12} className="animate-spin" /> Syncing…</Badge>}
+                              {!it.shopifyStatus && <span className="text-xs text-gray-400 dark:text-gray-500">—</span>}
+                            </td>
+                            <td className="py-2 text-center">
+                              <Button size="sm" variant="outline" onClick={() => setViewItem(it)}>
+                                <Eye size={12} /> View
+                              </Button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Per-update detail modal — full 4-step breakdown with timestamps */}
+      <Modal
+        open={!!viewItem}
+        title="Rate Update Detail"
+        onClose={() => setViewItem(null)}
+        footer={
+          <Button variant="outline" onClick={() => setViewItem(null)}>Close</Button>
+        }
+      >
+        {viewItem && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Old Rate</p>
+                <p className="text-lg font-bold text-gray-700 dark:text-gray-300">₹{parseFloat(viewItem.oldRate).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">New Rate</p>
+                <p className="text-lg font-bold text-royal-900 dark:text-gray-200">₹{parseFloat(viewItem.newRate).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Updated By</p>
+                <p className="text-sm font-bold text-royal-900 dark:text-gray-200">{viewItem.changedBy?.name || 'System'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Products</p>
+                <p className="text-lg font-bold text-royal-900 dark:text-gray-200">{viewItem.productsUpdated ?? '—'}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Updated at {formatDateTime(viewItem.changedAt)}</p>
+
+            <ol className="space-y-0">
+              {viewSteps.map((step, idx) => {
+                const status = step.status === 'DONE' ? 'done' : step.status === 'FAILED' ? 'failed' : step.status === 'BLOCKED' ? 'blocked' : step.status === 'RUNNING' ? 'running' : 'pending'
+                return (
+                  <li key={step.key} className="relative flex items-start gap-3 pb-4 last:pb-0">
+                    {idx < viewSteps.length - 1 && (
+                      <span className={`absolute left-[9px] top-6 bottom-0 w-px ${status === 'done' ? 'bg-emerald-300 dark:bg-emerald-500/40' : 'bg-gray-200 dark:bg-white/[0.08]'}`} />
+                    )}
+                    <StepIcon status={status} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className={`text-sm font-semibold ${STEP_LABEL_TONE[status]}`}>{step.label}</p>
+                        {status === 'done' && <Badge tone="green"><CheckCircle size={12} /> Done</Badge>}
+                        {status === 'failed' && <Badge tone="red"><XCircle size={12} /> Failed</Badge>}
+                        {status === 'blocked' && <Badge tone="gray">Not reached</Badge>}
+                        {status === 'pending' && <Badge tone="gray">Pending</Badge>}
+                      </div>
+                      {step.detail && (
+                        <p className={`text-xs mt-0.5 ${status === 'failed' ? 'text-red-600' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500'}`}>{step.detail}</p>
+                      )}
+                      {step.error && <p className="text-xs text-red-600 mt-0.5">Reason: {step.error}</p>}
+                      {step.key === 'shopify' && viewItem.syncPayload && (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                          Shopify response — Total: {viewItem.syncPayload.total} · Pushed: {viewItem.syncPayload.ok} · Failed: {viewItem.syncPayload.failed} · {viewItem.syncPayload.failed === 0 ? 'Status: OK' : 'Status: ERROR'}
+                        </p>
+                      )}
+                      {step.at && <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">✓ {formatDateTime(step.at)}</p>}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
+        )}
+      </Modal>
+
+      {/* Price Change Preview Modal */}
           <Modal
             open={previewOpen}
             title="Preview Price Changes"

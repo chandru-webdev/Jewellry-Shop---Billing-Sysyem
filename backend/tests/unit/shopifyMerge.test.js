@@ -14,7 +14,7 @@ test('shopifyImageUrls extracts non-empty image sources in order', () => {
 test('mergeImageUrls keeps store + ERP images, dedupes, preserves order', () => {
   const erp = ['https://cdn/erp-1.jpg', 'https://cdn/shared.jpg']
   const store = ['https://cdn/1.jpg', 'https://cdn/shared.jpg']
-  assert.deepEqual(shopifyService.mergeImageUrls(erp, store), [
+  assert.deepEqual(shopifyService.mergeImageUrls(store, erp), [
     'https://cdn/1.jpg',
     'https://cdn/shared.jpg',
     'https://cdn/erp-1.jpg',
@@ -23,5 +23,5 @@ test('mergeImageUrls keeps store + ERP images, dedupes, preserves order', () => 
 
 test('mergeImageUrls without store images keeps ERP list intact (non-destructive)', () => {
   const erp = ['https://cdn/erp-1.jpg']
-  assert.deepEqual(shopifyService.mergeImageUrls(erp, []), ['https://cdn/erp-1.jpg'])
+  assert.deepEqual(shopifyService.mergeImageUrls([], erp), ['https://cdn/erp-1.jpg'])
 })

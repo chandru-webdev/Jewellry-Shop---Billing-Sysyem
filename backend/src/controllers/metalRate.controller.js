@@ -15,6 +15,18 @@ const metalRateController = {
     success(res, 200, history, 'Rate history fetched')
   }),
 
+  // GET /api/metal-rates/report — day-wise update pipeline report
+  getReport: asyncHandler(async (req, res) => {
+    const report = await metalRateService.getReport({ days: req.query.days, limit: req.query.limit })
+    success(res, 200, report, 'Rate update report fetched')
+  }),
+
+  // POST /api/metal-rates/:id/retry-shopify — re-push prices for one change
+  retryShopify: asyncHandler(async (req, res) => {
+    const result = await metalRateService.retryShopify(Number(req.params.id), req.user.id)
+    success(res, 200, result, 'Shopify price sync retried')
+  }),
+
   // POST /api/metal-rates/preview
   preview: asyncHandler(async (req, res) => {
     const result = await metalRateService.preview(req.body.rate)

@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { NavLink, Link, useLocation } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, X, TrendingUp, TrendingDown } from 'lucide-react'
 import { navGroups } from '../../config/nav'
 import { cn } from '../../utils/cn'
 import { useAuth } from '../../context/AuthContext'
@@ -8,7 +8,7 @@ import { useSilverRate } from '../../hooks/useSilverRate'
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) {
   const location = useLocation()
   const { hasPermission } = useAuth()
-  const { currentRate, isLoading: rateLoading } = useSilverRate()
+  const { currentRate, changePct, trend, isLoading: rateLoading } = useSilverRate()
   const isCollapsed = collapsed
 
   // Filter nav groups and items based on user permissions
@@ -92,7 +92,11 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
 
         {/* Silver Rate Widget */}
         {!isCollapsed && (
-          <div className="mx-3 mt-3 px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08]">
+          <Link
+            to="/metal-rates"
+            title="Manage Silver Rate"
+            className="mx-3 mt-3 px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors block cursor-pointer"
+          >
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-gold-500/20 flex items-center justify-center">
                 <span className="text-gold-400 text-xs font-bold">Ag</span>
@@ -102,11 +106,23 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
                 {rateLoading ? (
                   <p className="text-sm font-bold text-gold-400 animate-pulse">₹... <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
                 ) : (
-                  <p className="text-sm font-bold text-gold-400">₹{currentRate.toFixed(2)} <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-sm font-bold text-gold-400">₹{currentRate.toFixed(2)} <span className="text-[10px] font-medium text-white/30">/ gm</span></p>
+                    {trend === 'up' && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-400">
+                        <TrendingUp size={11} />+{Math.abs(changePct).toFixed(2)}%
+                      </span>
+                    )}
+                    {trend === 'down' && (
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-red-400">
+                        <TrendingDown size={11} />-{Math.abs(changePct).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
-          </div>
+          </Link>
         )}
 
         {/* Nav */}

@@ -4,6 +4,7 @@ import {
   Menu, Bell, Search, Settings, HelpCircle, LogOut, ChevronDown,
   Command, X, Loader2, Package, FileText, ShoppingCart, User,
   Check, Clock, ExternalLink, BookOpen, Keyboard, MessageCircle,
+  TrendingUp, TrendingDown,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { searchApi } from '../../api/search'
@@ -51,7 +52,7 @@ const searchResultRoutes = {
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const { currentRate, isLoading: rateLoading } = useSilverRate()
+  const { currentRate, changePct, trend, isLoading: rateLoading } = useSilverRate()
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false)
@@ -287,7 +288,11 @@ export default function Topbar({ onMenuClick }) {
 
         <div className="flex items-center gap-1 shrink-0">
           {/* Silver Rate Widget */}
-          <div className="hidden lg:flex items-center gap-3 mr-3 px-3 py-1.5 rounded-lg bg-royal-50 dark:bg-white/5 border border-royal-100">
+          <button
+            onClick={() => navigate('/metal-rates')}
+            title="Manage Silver Rate"
+            className="hidden lg:flex items-center gap-3 mr-3 px-3 py-1.5 rounded-lg bg-royal-50 dark:bg-white/5 border border-royal-100 hover:bg-royal-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+          >
             <div className="text-center">
               <p className="text-[9px] text-royal-400 uppercase tracking-wider font-semibold">Silver Rate (92.5)</p>
               {rateLoading ? (
@@ -296,10 +301,20 @@ export default function Topbar({ onMenuClick }) {
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-sm font-bold text-royal-900">₹{currentRate.toFixed(2)}</span>
                   <span className="text-[10px] text-royal-400">/gm</span>
+                  {trend === 'up' && (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <TrendingUp size={11} />+{Math.abs(changePct).toFixed(2)}%
+                    </span>
+                  )}
+                  {trend === 'down' && (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-red-600 dark:text-red-400">
+                      <TrendingDown size={11} />-{Math.abs(changePct).toFixed(2)}%
+                    </span>
+                  )}
                 </div>
               )}
             </div>
-          </div>
+          </button>
 
           <div className="relative" ref={helpRef}>
             <button

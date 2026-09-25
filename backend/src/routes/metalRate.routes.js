@@ -11,9 +11,13 @@ router.use(authenticate)
 // Anyone logged in can view rates + history
 router.get('/', metalRateController.getCurrent)
 router.get('/history', metalRateController.getHistory)
+router.get('/report', metalRateController.getReport)
 
 // Only ADMIN can change the silver rate (it affects every price!)
 router.post('/preview', validate(rateSchema), metalRateController.preview)
 router.put('/silver', authorize('SUPER_ADMIN', 'MANAGER'), validate(rateSchema), metalRateController.updateSilver)
+
+// Managers/admins can re-run the Shopify price push for a failed rate change
+router.post('/:id/retry-shopify', authorize('SUPER_ADMIN', 'MANAGER'), metalRateController.retryShopify)
 
 module.exports = router

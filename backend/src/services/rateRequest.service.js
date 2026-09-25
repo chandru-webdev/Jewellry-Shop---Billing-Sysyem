@@ -92,11 +92,16 @@ const rateRequestService = {
 
         let updatedProducts = 0
         let historyCreated = false
+        let historyId = null
+        let stepRate = null
 
         if (!new Decimal(current.rate).equals(request.newRate)) {
-          await tx.metalRateHistory.create({
-            data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId },
+          const rateAt = new Date()
+          stepRate = { key: 'rate', label: 'Rate updated in ERP', status: 'DONE', at: rateAt.toISOString(), detail: `₹${current.rate} → ₹${request.newRate}/gm`, error: null }
+          const rec = await tx.metalRateHistory.create({
+            data: { metal: 'silver', oldRate: current.rate, newRate: request.newRate, changedById: userId, steps: [stepRate] },
           })
+          historyId = rec.id
           await tx.metalRate.update({
             where: { metal: 'silver' },
             data: { rate: request.newRate, updatedById: userId },
@@ -117,7 +122,7 @@ const rateRequestService = {
           data: { status: 'APPROVED', reviewedById: userId, reviewedAt: new Date() },
         })
 
-        return { historyCreated, currentRate: current.rate }
+        return { historyCreated, historyId, currentRate: current.rate, stepRate }
       })
 
       if (result.alreadyHandled) {
@@ -127,15 +132,71 @@ const rateRequestService = {
       // Heavy/slow work outside the transaction — fire-and-forget so Railway
       // proxy doesn't time out and the user doesn't retry.
       let updatedProducts = 0
+      let historyId = result.historyId
+      let stepReprice = null
       if (result.historyCreated) {
+        const repriceAt = new Date()
         updatedProducts = await recalculateAllProducts(request.newRate)
+        stepReprice = { key: 'reprice', label: 'Products repriced', status: 'DONE', at: repriceAt.toISOString(), detail: `${updatedProducts} products repriced`, error: null }
+        // Track pipeline status on the history row (mirrors metalRate.updateSilver).
+        if (historyId) {
+          await prisma.metalRateHistory.update({
+            where: { id: historyId },
+            data: { productsUpdated: updatedProducts, shopifyStatus: 'PENDING', steps: [result.stepRate, stepReprice].filter(Boolean) },
+          })
+        }
       }
 
       const shopifyPromise = (result.historyCreated
-        ? shopifyService.syncAllPrices(userId).catch(err => {
-            console.error('[RATE REQUEST] Shopify sync failed:', err.message)
-            return { ok: 0, failed: -1, error: err.message }
-          })
+        ? shopifyService.syncAllPrices(userId)
+            .then(syncResult => {
+              if (historyId) {
+                const ok = syncResult.failed === 0
+                const message = ok
+                  ? `${syncResult.ok} product prices synced to Shopify`
+                  : `${syncResult.failed} failed. ${syncResult.firstError || ''}`.trim()
+                const stepShopify = {
+                  key: 'shopify', label: 'Pushed to Shopify',
+                  status: ok ? 'DONE' : 'FAILED',
+                  at: new Date().toISOString(),
+                  detail: message,
+                  error: ok ? null : (syncResult.firstError || 'Shopify push failed'),
+                }
+                return prisma.metalRateHistory.update({
+                  where: { id: historyId },
+                  data: {
+                    shopifyStatus: ok ? 'SUCCESS' : 'FAILED',
+                    shopifyMessage: message,
+                    syncPayload: { total: syncResult.total ?? 0, ok: syncResult.ok ?? 0, failed: syncResult.failed ?? 0, firstError: syncResult.firstError || null },
+                    steps: [result.stepRate, stepReprice, stepShopify].filter(Boolean),
+                  },
+                })
+              }
+              return null
+            })
+            .catch(err => {
+              console.error('[RATE REQUEST] Shopify sync failed:', err.message)
+              if (historyId) {
+                const message = `Shopify sync error: ${err.message}`
+                const stepShopify = {
+                  key: 'shopify', label: 'Pushed to Shopify',
+                  status: 'FAILED',
+                  at: new Date().toISOString(),
+                  detail: message,
+                  error: err.message,
+                }
+                return prisma.metalRateHistory.update({
+                  where: { id: historyId },
+                  data: {
+                    shopifyStatus: 'FAILED',
+                    shopifyMessage: message,
+                    syncPayload: { total: 0, ok: 0, failed: -1, firstError: err.message },
+                    steps: [result.stepRate, stepReprice, stepShopify].filter(Boolean),
+                  },
+                }).catch(() => null)
+              }
+              return null
+            })
         : Promise.resolve(null)
       )
 

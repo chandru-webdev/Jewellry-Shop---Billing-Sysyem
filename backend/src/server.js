@@ -247,6 +247,39 @@ async function ensureSchema() {
     `)
     console.log('Order.source/shopifyOrderId + Invoice.salespersonId/discount/gstTotal/totalMakingCharge ensured.')
 
+    // ---------- MetalRateHistory pipeline status (rate update -> shopify sync) ----------
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "MetalRateHistory" ADD COLUMN "productsUpdated" INTEGER;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "MetalRateHistory" ADD COLUMN "shopifyStatus" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "MetalRateHistory" ADD COLUMN "shopifyMessage" TEXT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "MetalRateHistory" ADD COLUMN "steps" JSONB;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "MetalRateHistory" ADD COLUMN "syncPayload" JSONB;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    console.log('MetalRateHistory pipeline columns ensured.')
+
     // costPrice: COGS per unit for margin calculation.
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN

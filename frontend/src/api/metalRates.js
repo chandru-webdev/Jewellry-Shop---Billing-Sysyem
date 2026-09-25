@@ -3,6 +3,8 @@ import apiClient from './client'
 export const metalRatesApi = {
   getCurrent: () => apiClient.get('/metal-rates'),
   getHistory: (params) => apiClient.get('/metal-rates/history', { params }),
+  getReport: (params) => apiClient.get('/metal-rates/report', { params }),
+  retryShopify: (id) => apiClient.post(`/metal-rates/${id}/retry-shopify`),
   preview: (rate) => apiClient.post('/metal-rates/preview', { rate }),
   updateSilver: (rate) => apiClient.put('/metal-rates/silver', { rate }),
   // Rate approval workflow

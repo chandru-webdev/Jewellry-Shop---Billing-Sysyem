@@ -151,8 +151,8 @@ function ReceivablesWidget({ data }) {
   ]
 
   return (
-    <Card title="Receivable Summary" icon={Wallet}>
-      <div className="h-64">
+    <Card title="Receivable Summary" icon={Wallet} className="h-full">
+      <div className="h-96">
         {data?.invoiceCount ? (
           <div>
             <div className="flex items-center gap-4">

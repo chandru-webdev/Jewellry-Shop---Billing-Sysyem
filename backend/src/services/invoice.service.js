@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const inventoryService = require('./inventory.service')
 const notificationService = require('./notification.service')
+const settingService = require('./setting.service')
 const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
@@ -310,11 +311,16 @@ const invoiceService = {
   async create(data, userId) {
     const customer = await this.findOrCreateCustomer(data.customer)
 
-    // Next invoice number: INV-0001, INV-0002, ...
-    const prefixSetting = await prisma.setting.findUnique({ where: { key: 'invoicePrefix' } })
+    // Next invoice number: INV-0001, INV-0002, ... (prefix + zero-padded width
+    // both come from Settings so the format stays consistent).
+    const [prefixSetting, digitsSetting] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: 'invoicePrefix' } }),
+      prisma.setting.findUnique({ where: { key: 'invoiceNumberDigits' } }),
+    ])
     const prefix = prefixSetting?.value?.trim() || 'INV-'
+    const digits = Math.min(6, Math.max(2, Number(digitsSetting?.value ?? 4) || 4))
     const last = await prisma.invoice.findFirst({ orderBy: { id: 'desc' }, select: { id: true } })
-    const invoiceNumber = `${prefix}${String((last?.id ?? 0) + 1).padStart(4, '0')}`
+    const invoiceNumber = `${prefix}${String((last?.id ?? 0) + 1).padStart(digits, '0')}`
 
     const { itemsData, subtotal, gstTotal, finalTotal, totalWeight, totalMaking, productMap } =
       await this._buildItemsData(data.items)
@@ -377,21 +383,30 @@ const invoiceService = {
     // Create notification for new invoice
     const invoiceData = await this.getById(invoice.id)
     const custName = invoiceData.customer?.name || 'Walk-in'
-    await notificationService.createForAll({
-      type: 'INVOICE_CREATED',
-      title: 'New Invoice',
-      message: `Invoice ${invoiceData.invoiceNumber} for ${custName} — ₹${Number(invoiceData.grandTotal).toLocaleString('en-IN')}`,
-    })
+    if (await notificationService.isEnabled('INVOICE_CREATED')) {
+      await notificationService.createForAll({
+        type: 'INVOICE_CREATED',
+        title: 'New Invoice',
+        message: `Invoice ${invoiceData.invoiceNumber} for ${custName} — ₹${Number(invoiceData.grandTotal).toLocaleString('en-IN')}`,
+      })
+    }
 
-    // Check for low stock after invoice
+    // Check for low stock after invoice (global threshold is the fallback when
+    // a product has no per-item threshold).
+    const [lowStockEnabled, defaultThreshold] = await Promise.all([
+      notificationService.isEnabled('LOW_STOCK'),
+      settingService.getValue('lowStockThresholdDefault'),
+    ])
     const lowStockProducts = []
     for (const line of itemsData) {
       const product = productMap.get(line.productId)
-      if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
+      if (!product) continue
+      const threshold = product.lowStockThreshold != null ? product.lowStockThreshold : defaultThreshold
+      if ((product.inventory?.quantity ?? 0) <= threshold) {
         lowStockProducts.push(product)
       }
     }
-    if (lowStockProducts.length > 0) {
+    if (lowStockEnabled && lowStockProducts.length > 0) {
       await notificationService.createForAll({
         type: 'LOW_STOCK',
         title: 'Low Stock Alert',

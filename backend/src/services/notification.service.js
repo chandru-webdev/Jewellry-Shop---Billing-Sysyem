@@ -1,6 +1,26 @@
 const prisma = require('../prisma/client')
 
+// Event type -> settings key that can switch it off.
+const EVENT_SETTING_KEYS = {
+  INVOICE_CREATED: 'invoiceNotificationsEnabled',
+  ORDER_CREATED: 'orderNotificationsEnabled',
+  LOW_STOCK: 'lowStockNotificationsEnabled',
+}
+
 const notificationService = {
+  // Whether a business-event notification type is switched on in Settings.
+  // Types without a toggle default to on. Never throws.
+  async isEnabled(type) {
+    try {
+      const key = EVENT_SETTING_KEYS[type]
+      if (!key) return true
+      const row = await prisma.setting.findUnique({ where: { key }, select: { value: true } })
+      if (!row) return true
+      return row.value !== false && row.value !== 'false' && row.value !== 0
+    } catch {
+      return true
+    }
+  },
   // GET /api/notifications — notifications for the logged-in user only.
   // Broadcast events (createForAll) fan out one row per user, so scoping by
   // userId means each event appears exactly once instead of once per user.

@@ -11,14 +11,35 @@ const ApiError = require('../utils/ApiError')
 // Everything the Settings page can store. `type` drives validation.
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
 
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
+
 const SETTING_DEFS = {
   businessName: { type: 'string', default: 'OPAL LINE' },
   businessAddress: { type: 'string', default: '' },
   businessPhone: { type: 'string', default: '' },
   businessEmail: { type: 'string', default: '' },
   gstin: { type: 'string', default: '', validate: (v) => !v || GSTIN_REGEX.test(v) || 'GSTIN must be 15 characters: 2-digit state code + PAN + entity + Z + check digit' },
-  invoicePrefix: { type: 'string', default: 'INV' },
+  pan: { type: 'string', default: '', validate: (v) => !v || PAN_REGEX.test(v) || 'PAN must be 10 characters: 5 letters + 4 digits + 1 letter' },
+  // Data-URL of the business logo (resized client-side before upload).
+  businessLogo: { type: 'string', default: '' },
+  businessHours: { type: 'string', default: '' },
+  invoicePrefix: { type: 'string', default: 'INV-' },
+  invoiceNumberDigits: { type: 'number', default: 4 },
+  // Shown on the print/PDF invoice header: payment terms, footer note, terms & conditions.
+  paymentTerms: { type: 'string', default: 'Due on Receipt' },
   invoiceFooter: { type: 'string', default: 'Thank you for shopping with us!' },
+  invoiceTerms: { type: 'string', default: '' },
+  currency: { type: 'string', default: 'INR' },
+  // True = quoted prices already include GST (the current formula). False would
+  // mean items are priced pre-GST and GST is added at checkout.
+  taxInclusive: { type: 'boolean', default: true },
+  // Global fallback for LOW_STOCK notifications when a product has no per-item threshold.
+  lowStockThresholdDefault: { type: 'number', default: 5 },
+  invoiceNotificationsEnabled: { type: 'boolean', default: true },
+  orderNotificationsEnabled: { type: 'boolean', default: true },
+  lowStockNotificationsEnabled: { type: 'boolean', default: true },
+  // Idle minutes after which the app logs the user out. 0 = never.
+  sessionTimeoutMinutes: { type: 'number', default: 0 },
   // JSON configs used by the Pricing Rules and Tax/HSN settings pages.
   pricingRules: {
     type: 'json',
@@ -53,6 +74,29 @@ const SETTING_DEFS = {
   },
 }
 
+// Apply a setting's type coercion + default for any incoming/stored value.
+function coerce(def, raw) {
+  const value = raw !== undefined && raw !== null ? raw : def.default
+  if (def.type === 'boolean') {
+    return value === true || value === 'true' || value === 1 || value === '1'
+  }
+  if (def.type === 'number') {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : def.default
+  }
+  if (def.type === 'json') {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value)
+      } catch {
+        return def.default
+      }
+    }
+    return value
+  }
+  return value
+}
+
 const settingService = {
   // All settings as a flat { key: value } object, with defaults for
   // anything that hasn't been saved yet.
@@ -62,18 +106,35 @@ const settingService = {
 
     const out = {}
     for (const [key, def] of Object.entries(SETTING_DEFS)) {
-      const raw = map.get(key)
-      let value = raw !== undefined && raw !== null ? raw : def.default
-      if (def.type === 'json' && typeof value === 'string') {
-        try {
-          value = JSON.parse(value)
-        } catch {
-          value = def.default
-        }
-      }
-      out[key] = value
+      out[key] = coerce(def, map.has(key) ? map.get(key) : undefined)
     }
     return out
+  },
+
+  // Read a single setting, applying its default and type coercion.
+  // Used by services (invoice numbering, low-stock alerts, ...) without a
+  // full settings round-trip.
+  async getValue(key) {
+    const def = SETTING_DEFS[key]
+    const row = await prisma.setting.findUnique({ where: { key }, select: { value: true } })
+    return coerce(def, row?.value)
+  },
+
+  async getIntegrationStatus() {
+    return {
+      shopify: {
+        configured: Boolean(process.env.SHOPIFY_SHOP_DOMAIN && process.env.SHOPIFY_ACCESS_TOKEN),
+        shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || null,
+      },
+      smtp: {
+        configured: Boolean(process.env.SMTP_HOST),
+        host: process.env.SMTP_HOST || null,
+      },
+      paymentGateway: {
+        connected: false,
+        provider: null, // Razorpay integration not built yet
+      },
+    }
   },
 
   // PUT /api/settings — upsert the supplied whitelisted keys.
@@ -86,15 +147,14 @@ const settingService = {
 
     const normalized = entries.map(([key, value]) => {
       const def = SETTING_DEFS[key]
-      let parsed = value
+      let parsed = coerce(def, value)
+      if (def.type === 'boolean' && parsed !== true && parsed !== false) {
+        throw new ApiError(400, `${key} must be a boolean`)
+      }
+      if (def.type === 'number' && (Number.isNaN(parsed) || typeof parsed !== 'number')) {
+        throw new ApiError(400, `${key} must be a number`)
+      }
       if (def.type === 'json') {
-        if (typeof value === 'string') {
-          try {
-            parsed = JSON.parse(value)
-          } catch {
-            throw new ApiError(400, `${key} must be valid JSON`)
-          }
-        }
         if (!Array.isArray(parsed)) {
           throw new ApiError(400, `${key} must be an array`)
         }

@@ -9,6 +9,13 @@ const settingController = {
     success(res, 200, data, 'Settings fetched')
   }),
 
+  // GET /api/settings/integration-status — which integrations are configured
+  // (environment variables + live toggle state). Never returns secret values.
+  getIntegrationStatus: asyncHandler(async (req, res) => {
+    const data = await settingService.getIntegrationStatus()
+    success(res, 200, data, 'Integration status fetched')
+  }),
+
   // PUT /api/settings
   update: asyncHandler(async (req, res) => {
     const data = await settingService.update(req.body, req.user.id)

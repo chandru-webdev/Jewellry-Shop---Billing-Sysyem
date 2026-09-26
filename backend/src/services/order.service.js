@@ -3,6 +3,7 @@ const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const inventoryService = require('./inventory.service')
 const notificationService = require('./notification.service')
+const settingService = require('./setting.service')
 
 const Decimal = Prisma.Decimal
 
@@ -156,10 +157,14 @@ const orderService = {
     const isPaid = Boolean(data.paymentMethod)
 
     // Invoice number for the linked invoice (if this order is paid)
-    const prefixSetting = await prisma.setting.findUnique({ where: { key: 'invoicePrefix' } })
+    const [prefixSetting, digitsSetting] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: 'invoicePrefix' } }),
+      prisma.setting.findUnique({ where: { key: 'invoiceNumberDigits' } }),
+    ])
     const prefix = prefixSetting?.value?.trim() || 'INV-'
+    const digits = Math.min(6, Math.max(2, Number(digitsSetting?.value ?? 4) || 4))
     const lastInvoice = await prisma.invoice.findFirst({ orderBy: { id: 'desc' }, select: { id: true } })
-    const invoiceNumber = `${prefix}${String((lastInvoice?.id ?? 0) + 1).padStart(4, '0')}`
+    const invoiceNumber = `${prefix}${String((lastInvoice?.id ?? 0) + 1).padStart(digits, '0')}`
 
     const order = await prisma.$transaction(
       async (tx) => {
@@ -226,21 +231,29 @@ const orderService = {
     // Create notification for new order
     const orderData = await this.getById(order.ord.id)
     const customerName = orderData.customer?.name || 'Walk-in'
-    await notificationService.createForAll({
-      type: 'ORDER_CREATED',
-      title: 'New Order Created',
-      message: `Order ${orderData.orderNumber} from ${customerName} — ₹${Number(orderData.totalAmount).toLocaleString('en-IN')}`,
-    })
+    if (await notificationService.isEnabled('ORDER_CREATED')) {
+      await notificationService.createForAll({
+        type: 'ORDER_CREATED',
+        title: 'New Order Created',
+        message: `Order ${orderData.orderNumber} from ${customerName} — ₹${Number(orderData.totalAmount).toLocaleString('en-IN')}`,
+      })
+    }
 
-    // Check for low stock after order
+    // Check for low stock after order (global threshold is the fallback).
+    const [lowStockEnabled, defaultThreshold] = await Promise.all([
+      notificationService.isEnabled('LOW_STOCK'),
+      settingService.getValue('lowStockThresholdDefault'),
+    ])
     const lowStockProducts = []
     for (const line of orderItemsData) {
       const product = productMap.get(line.productId)
-      if (product && (product.inventory?.quantity ?? 0) <= product.lowStockThreshold) {
+      if (!product) continue
+      const threshold = product.lowStockThreshold != null ? product.lowStockThreshold : defaultThreshold
+      if ((product.inventory?.quantity ?? 0) <= threshold) {
         lowStockProducts.push(product)
       }
     }
-    if (lowStockProducts.length > 0) {
+    if (lowStockEnabled && lowStockProducts.length > 0) {
       await notificationService.createForAll({
         type: 'LOW_STOCK',
         title: 'Low Stock Alert',

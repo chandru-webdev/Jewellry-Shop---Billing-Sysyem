@@ -1,6 +1,7 @@
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
 const notificationService = require('./notification.service')
+const settingService = require('./setting.service')
 const shopifyService = require('./shopify.service')
 
 // ALL stock changes go through this one service.
@@ -201,14 +202,22 @@ const inventoryService = {
       },
     })
 
-    // Check for low stock after inventory change
+    // Check for low stock after inventory change. Uses the product's own
+    // threshold when set, otherwise the global default from Settings.
     const product = await prisma.product.findUnique({ where: { id: productId } })
-    if (product && newQuantity <= product.lowStockThreshold && newQuantity >= 0) {
-      await notificationService.createForAll({
-        type: 'LOW_STOCK',
-        title: 'Low Stock Alert',
-        message: `${product.name} (${product.sku}) has only ${newQuantity} units left — below threshold of ${product.lowStockThreshold}`,
-      })
+    if (product) {
+      const [lowStockEnabled, defaultThreshold] = await Promise.all([
+        notificationService.isEnabled('LOW_STOCK'),
+        settingService.getValue('lowStockThresholdDefault'),
+      ])
+      const threshold = product.lowStockThreshold != null ? product.lowStockThreshold : defaultThreshold
+      if (lowStockEnabled && newQuantity <= threshold && newQuantity >= 0) {
+        await notificationService.createForAll({
+          type: 'LOW_STOCK',
+          title: 'Low Stock Alert',
+          message: `${product.name} (${product.sku}) has only ${newQuantity} units left — below threshold of ${threshold}`,
+        })
+      }
     }
 
     return { previous: inv.quantity, quantity: newQuantity }

@@ -3,7 +3,7 @@ const { success, failure } = require('../utils/ApiResponse')
 const systemHealthService = require('../services/systemHealth.service')
 
 const systemHealthController = {
-  // GET /api/system-health — run all seven checks
+  // GET /api/system-health — run all eleven checks
   all: asyncHandler(async (req, res) => {
     const result = await systemHealthService.getAllChecks()
     success(res, 200, result, 'System health fetched')

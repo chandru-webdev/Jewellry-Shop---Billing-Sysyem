@@ -248,6 +248,8 @@ export default function Topbar({ onMenuClick }) {
       navigate('/invoices')
     } else if (notif.type === 'LOW_STOCK') {
       navigate('/inventory')
+    } else if (notif.type === 'SYSTEM_DOWN' || notif.type === 'SYSTEM_DEGRADED' || notif.type === 'SYSTEM_RECOVERED') {
+      navigate('/system-health')
     }
   }
 

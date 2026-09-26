@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle2, Mail, AlertTriangle, TrendingUp, Users, Package } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Mail, AlertTriangle, TrendingUp, Users, Package, XCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -12,6 +12,8 @@ const statusColor = { SUCCESS: 'green', FAILED: 'red', WARNING: 'orange' }
 
 function deriveStatus(type = '') {
   const t = type.toUpperCase()
+  if (t.includes('DOWN')) return 'FAILED'
+  if (t.includes('RECOVERED')) return 'SUCCESS'
   if (t.includes('FAILED')) return 'FAILED'
   if (t.includes('SUCCESS')) return 'SUCCESS'
   return 'WARNING'
@@ -29,6 +31,8 @@ function getEntityLabel(type = '') {
 
 function getTypeIcon(type) {
   switch (type) {
+    case 'SYSTEM_DOWN': return XCircle
+    case 'SYSTEM_RECOVERED': return CheckCircle2
     case 'ORDER_SYNC': return Package
     case 'PAYMENT_FAILED': return Mail
     case 'RATE_CHANGED': return TrendingUp

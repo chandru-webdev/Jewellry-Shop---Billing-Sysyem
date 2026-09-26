@@ -75,6 +75,33 @@ const notificationService = {
       })),
     })
   },
+
+  // Create notifications for users who can view the System Health page
+  // (SUPER_ADMIN role or a role holding the "users:manage" permission).
+  // Used by the System Health monitor for down/degraded/recovered alerts.
+  async createForAdmins({ type, title, message, excludeUserId = null }) {
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+        OR: [
+          { role: { name: 'SUPER_ADMIN' } },
+          { role: { permissions: { array_contains: 'users:manage' } } },
+        ],
+      },
+      select: { id: true },
+    })
+    if (users.length === 0) return
+
+    return prisma.notification.createMany({
+      data: users.map((u) => ({
+        userId: u.id,
+        type,
+        title,
+        message,
+      })),
+    })
+  },
 }
 
 module.exports = notificationService

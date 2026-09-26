@@ -4,6 +4,13 @@ export const shopifyApi = {
   // Latest sync status for each type (product / price / inventory / order)
   getSyncStatus: () => apiClient.get('/shopify/status'),
 
+  // Integration config (store connection) — SUPER_ADMIN only
+  getConfig: () => apiClient.get('/shopify/config'),
+  saveConfig: (data) => apiClient.put('/shopify/config', data),
+  clearConfig: () => apiClient.delete('/shopify/config'),
+  testConnection: () => apiClient.post('/shopify/test-connection'),
+  registerWebhooks: () => apiClient.post('/shopify/webhooks/register'),
+
   // Manual sync jobs
   syncProduct: (id) => apiClient.post(`/shopify/sync/products/${id}`),
   syncAllProducts: () => apiClient.post('/shopify/sync/all-products'),

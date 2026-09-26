@@ -9,9 +9,9 @@
 // =============================================================
 const crypto = require('crypto')
 const ApiError = require('../utils/ApiError')
-const env = require('../config/env')
+const { credentials } = require('../integrations/shopify/shopifyConfig')
 
-function verifyShopifyWebhook(req, res, next) {
+async function verifyShopifyWebhook(req, res, next) {
   const hmac = req.headers['x-shopify-hmac-sha256']
   const topic = req.headers['x-shopify-topic']
 
@@ -19,13 +19,15 @@ function verifyShopifyWebhook(req, res, next) {
     throw new ApiError(401, 'Missing Shopify webhook headers')
   }
 
-  const secret = env.shopify.webhookSecret
-  if (!secret) {
-    throw new ApiError(500, 'SHOPIFY_WEBHOOK_SECRET is not configured')
+  // Resolve the secret the same way the rest of the API does — the store is
+  // configured either in Settings > Integrations (DB) or via env vars.
+  const { webhookSecret } = await credentials()
+  if (!webhookSecret) {
+    throw new ApiError(500, 'Shopify webhook secret is not configured. Set it in Settings > Integrations > Shopify or in backend/.env')
   }
 
   // Re-compute the signature over the raw request body
-  const digest = crypto.createHmac('sha256', secret).update(req.body).digest('base64')
+  const digest = crypto.createHmac('sha256', webhookSecret).update(req.body).digest('base64')
 
   // timingSafeEqual avoids leaking info via response timing
   const a = Buffer.from(digest)

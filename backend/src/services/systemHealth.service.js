@@ -17,6 +17,7 @@
 const prisma = require('../prisma/client')
 const env = require('../config/env')
 const { request } = require('../integrations/shopify/client')
+const { credentials } = require('../integrations/shopify/shopifyConfig')
 const { REQUIRED_TOPICS, webhookCallbackUrl } = require('./webhookRegister.service')
 
 // A silver rate older than this is treated as stale (manual-entry data feed).
@@ -57,7 +58,7 @@ function sanitizeError(text, max = 500) {
 // Build the per-webhook coverage list shared by the Shopify + syncs checks.
 // Known identifier list only — addresses are webhook DB URLs, never secrets.
 async function getWebhookCoverage() {
-  const { shopDomain, accessToken } = env.shopify
+  const { shopDomain, accessToken } = await credentials()
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) return null
   let existing = []
   try {
@@ -163,7 +164,7 @@ async function checkDatabase() {
 }
 
 async function checkShopify({ withDetail } = {}) {
-  const { shopDomain, accessToken } = env.shopify
+  const { shopDomain, accessToken } = await credentials()
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) {
     return { status: 'warn', message: 'Shopify not configured', details: { configured: false } }
   }
@@ -196,7 +197,7 @@ async function checkShopify({ withDetail } = {}) {
 }
 
 async function checkStorefront() {
-  const { shopDomain } = env.shopify
+  const { shopDomain } = await credentials()
   if (!shopDomain || shopDomain.startsWith('PASTE')) {
     return { status: 'warn', message: 'Storefront not configured', details: { configured: false } }
   }

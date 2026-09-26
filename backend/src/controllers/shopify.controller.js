@@ -1,9 +1,40 @@
 const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
 const shopifyService = require('../services/shopify.service')
+const shopifyConfigService = require('../services/shopifyConfig.service')
 const prisma = require('../prisma/client')
 
 const shopifyController = {
+  // GET /api/shopify/config — masked connection details for Settings
+  getConfig: asyncHandler(async (req, res) => {
+    const data = await shopifyConfigService.getMasked()
+    success(res, 200, data, 'Shopify config fetched')
+  }),
+
+  // PUT /api/shopify/config — save store credentials, test, register webhooks
+  saveConfig: asyncHandler(async (req, res) => {
+    const data = await shopifyConfigService.save(req.body, req.user.id)
+    success(res, 200, data, 'Shopify connected')
+  }),
+
+  // DELETE /api/shopify/config — drop stored credentials (fall back to env)
+  clearConfig: asyncHandler(async (req, res) => {
+    const data = await shopifyConfigService.clear(req.user.id)
+    success(res, 200, data, 'Shopify credentials removed')
+  }),
+
+  // POST /api/shopify/test-connection — live probe against current credentials
+  testConnection: asyncHandler(async (req, res) => {
+    const data = await shopifyConfigService.testConnection()
+    success(res, 200, data, 'Connection test passed')
+  }),
+
+  // POST /api/shopify/webhooks/register — ensure required webhooks are subscribed
+  ensureWebhooks: asyncHandler(async (req, res) => {
+    const data = await shopifyConfigService.ensureWebhooks()
+    success(res, 200, data, 'Webhook check complete')
+  }),
+
   // POST /api/shopify/sync/products — push one product
   syncOneProduct: asyncHandler(async (req, res) => {
     const result = await shopifyService.syncProduct(req.params.id)

@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ThemeToggle from '../components/ui/ThemeToggle'
+import ShopifyConnect from '../components/integrations/ShopifyConnect'
 import { useTheme } from '../context/ThemeContext'
 import { settingsApi } from '../api/settings'
 
@@ -151,11 +152,6 @@ export default function Settings() {
 
   const integrationRows = integration
     ? [
-        {
-          label: 'Shopify',
-          ok: integration.shopify?.configured,
-          detail: integration.shopify?.configured ? integration.shopify.shopDomain : 'Not configured — credentials are set via server environment variables',
-        },
         {
           label: 'Email (SMTP)',
           ok: integration.smtp?.configured,
@@ -366,20 +362,29 @@ export default function Settings() {
 
         {/* Integrations */}
         <Card title="Integrations" icon={Plug}>
-          <div className="space-y-2">
-            {integrationRows.length ? integrationRows.map((row) => (
-              <div key={row.label} className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${row.ok ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{row.label} <span className={`text-xs font-normal ${row.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>{row.ok ? 'Connected' : 'Not connected'}</span></p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{row.detail}</p>
+          <div className="space-y-3">
+            <ShopifyConnect onToast={showToast} />
+
+            <div className="h-px bg-gray-200 dark:bg-gray-700" />
+
+            <div className="space-y-2">
+              {integrationRows.length ? integrationRows.map((row) => (
+                <div key={row.label} className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${row.ok ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{row.label} <span className={`text-xs font-normal ${row.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>{row.ok ? 'Connected' : 'Not connected'}</span></p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{row.detail}</p>
+                  </div>
                 </div>
-              </div>
-            )) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Checking configured integrations...</p>
-            )}
+              )) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Checking configured integrations...</p>
+              )}
+            </div>
+
             <div className="pt-1">
-              <Button variant="outline" size="sm" onClick={() => navigate('/shopify-dashboard')}>Open Shopify Dashboard</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/shopify')}>
+                <ExternalLink size={14} /> Open Shopify Dashboard
+              </Button>
             </div>
           </div>
         </Card>

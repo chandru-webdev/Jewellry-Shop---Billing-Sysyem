@@ -9,6 +9,13 @@ const router = express.Router()
 router.use(authenticate)
 router.use(authorize('SUPER_ADMIN', 'MANAGER'))
 
+// ---- Integration configuration — ADMIN only (holds secrets) ----
+router.get('/config', authorize('SUPER_ADMIN'), shopifyController.getConfig)
+router.put('/config', authorize('SUPER_ADMIN'), shopifyController.saveConfig)
+router.delete('/config', authorize('SUPER_ADMIN'), shopifyController.clearConfig)
+router.post('/test-connection', authorize('SUPER_ADMIN'), shopifyController.testConnection)
+router.post('/webhooks/register', authorize('SUPER_ADMIN'), shopifyController.ensureWebhooks)
+
 // GET /api/shopify/status — latest sync results (any logged-in user)
 router.get('/status', shopifyController.status)
 

@@ -18,6 +18,7 @@ const { request, graphql, throttle, ShopifyApiError } = require('../integrations
 const { getSilverRate } = require('./pricing.service')
 const { normalizeSKU } = require('../utils/sku')
 const env = require('../config/env')
+const { credentials } = require('../integrations/shopify/shopifyConfig')
 
 const Decimal = Prisma.Decimal
 
@@ -950,7 +951,8 @@ const shopifyService = {
     )
     const latest = {}
     types.forEach((type, i) => { latest[type.toLowerCase()] = logs[i] })
-    latest.shopDomain = env.shopify?.shopDomain || null
+    const { shopDomain } = await credentials()
+    latest.shopDomain = shopDomain || null
     return latest
   },
 

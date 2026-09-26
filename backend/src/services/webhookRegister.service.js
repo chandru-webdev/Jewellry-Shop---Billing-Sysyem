@@ -9,7 +9,7 @@
 // so a fresh Railway deploy always has order delivery wired up.
 // =============================================================
 const prisma = require('../prisma/client')
-const env = require('../config/env')
+const { credentials } = require('../integrations/shopify/shopifyConfig')
 const { request, ShopifyApiError } = require('../integrations/shopify/client')
 
 // Topics we must never miss (order sync + product/image sync depend on these).
@@ -34,18 +34,23 @@ function webhookCallbackUrl(topic) {
 }
 
 // Register all required webhooks. Idempotent — never duplicates.
-// Safe to call on every startup.
+// Safe to call on every startup. Resolves credentials the same way the
+// rest of the API does (DB config first, env fallback) so a store wired
+// up from Settings > Integrations is registered too.
+//
+// Returns an array of per-topic results so the UI can show exactly what
+// happened instead of just logging to the console.
 async function registerWebhooks() {
-  const { shopDomain, accessToken, webhookSecret } = env.shopify
+  const { shopDomain, accessToken, webhookSecret } = await credentials()
 
   // Skip silently in demo mode (credentials not configured).
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) {
     console.log('[WEBHOOKS] Shopify credentials not configured — skipping webhook registration.')
-    return
+    return []
   }
   if (!webhookSecret) {
     console.warn('[WEBHOOKS] SHOPIFY_WEBHOOK_SECRET not set — skipping webhook registration.')
-    return
+    return []
   }
 
   // Fetch existing webhook subscriptions (we must load them via GraphQL
@@ -56,7 +61,7 @@ async function registerWebhooks() {
     existing = res.webhooks || []
   } catch (err) {
     console.error('[WEBHOOKS] Could not list existing webhooks:', err.message)
-    return
+    throw err
   }
 
   const existingByTopic = new Map()
@@ -65,28 +70,38 @@ async function registerWebhooks() {
     existingByTopic.get(wh.topic).push(wh)
   }
 
+  const results = []
   for (const topic of REQUIRED_TOPICS) {
     const targetUrl = webhookCallbackUrl(topic)
     const already = (existingByTopic.get(topic) || []).find((wh) => wh.address === targetUrl)
 
-    if (already) continue
+    if (already) {
+      results.push({ topic, status: 'already', address: targetUrl })
+      continue
+    }
 
-    console.log(`[WEBHOOKS] Registering ${topic} -> ${targetUrl}`)
-    await request('/webhooks.json', {
-      method: 'POST',
-      body: {
-        webhook: {
-          topic,
-          address: targetUrl,
-          format: 'json',
+    try {
+      await request('/webhooks.json', {
+        method: 'POST',
+        body: {
+          webhook: {
+            topic,
+            address: targetUrl,
+            format: 'json',
+          },
         },
-      },
-    }).catch((err) => {
-      console.error(`[WEBHOOKS] Failed to register ${topic}:`, err.message)
-    })
+      })
+      results.push({ topic, status: 'created', address: targetUrl })
+    } catch (err) {
+      const message = err instanceof ShopifyApiError ? `${err.status} ${err.message}` : err.message
+      results.push({ topic, status: 'failed', address: targetUrl, message })
+    }
   }
 
-  console.log(`[WEBHOOKS] Registration complete. ${REQUIRED_TOPICS.length} topics ensured.`)
+  const created = results.filter((r) => r.status === 'created').length
+  const failed = results.filter((r) => r.status === 'failed').length
+  console.log(`[WEBHOOKS] Registration complete. ${created} created, ${failed} failed, ${REQUIRED_TOPICS.length - created - failed} already present.`)
+  return results
 }
 
 module.exports = { registerWebhooks, REQUIRED_TOPICS, webhookCallbackUrl }

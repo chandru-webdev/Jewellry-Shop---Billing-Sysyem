@@ -6,7 +6,7 @@
 // Shopify rate-limits REST calls (~2 per second for custom apps),
 // so bulk loops use a short delay — see services/shopify.service.js
 // =============================================================
-const env = require('../../config/env')
+const { credentials } = require('./shopifyConfig')
 
 const API_VERSION = '2025-01'
 
@@ -20,10 +20,10 @@ class ShopifyApiError extends Error {
 
 // GET or POST (or any method) to /admin/api/2025-01/<path>
 async function request(path, { method = 'GET', body } = {}) {
-  const { shopDomain, accessToken } = env.shopify
+  const { shopDomain, accessToken } = await credentials()
 
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) {
-    throw new ShopifyApiError(503, 'Shopify credentials are not configured. Add them to backend/.env')
+    throw new ShopifyApiError(503, 'Shopify credentials are not configured. Add them in Settings > Integrations > Shopify, or to backend/.env')
   }
 
   const url = `https://${shopDomain}/admin/api/${API_VERSION}${path}`
@@ -57,10 +57,10 @@ async function request(path, { method = 'GET', body } = {}) {
 // Returns { data, errors } — `errors` here is the transport-level GraphQL
 // errors array; field-level failures come back as userErrors in `data`.
 async function graphql(query, variables = {}) {
-  const { shopDomain, accessToken } = env.shopify
+  const { shopDomain, accessToken } = await credentials()
 
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) {
-    throw new ShopifyApiError(503, 'Shopify credentials are not configured. Add them to backend/.env')
+    throw new ShopifyApiError(503, 'Shopify credentials are not configured. Add them in Settings > Integrations > Shopify, or to backend/.env')
   }
 
   const url = `https://${shopDomain}/admin/api/${API_VERSION}/graphql.json`

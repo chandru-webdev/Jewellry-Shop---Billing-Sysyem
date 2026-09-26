@@ -7,6 +7,7 @@
 // =============================================================
 const prisma = require('../prisma/client')
 const ApiError = require('../utils/ApiError')
+const { credentials } = require('../integrations/shopify/shopifyConfig')
 
 // Everything the Settings page can store. `type` drives validation.
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/
@@ -121,10 +122,12 @@ const settingService = {
   },
 
   async getIntegrationStatus() {
+    const { shopDomain, accessToken, source } = await credentials()
     return {
       shopify: {
-        configured: Boolean(process.env.SHOPIFY_SHOP_DOMAIN && process.env.SHOPIFY_ACCESS_TOKEN),
-        shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || null,
+        configured: Boolean(shopDomain && accessToken),
+        shopDomain: shopDomain || null,
+        source: source || null, // 'db' = app-configured, 'env' = server vars
       },
       smtp: {
         configured: Boolean(process.env.SMTP_HOST),

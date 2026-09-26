@@ -334,8 +334,8 @@ const shopifyService = {
 
   // Pull customers FROM Shopify into the ERP database. Customers are matched
   // by email, then by phone; when neither matches an existing record a new
-  // customer is created. No CUSTOMER sync-log type exists yet, so the result
-  // counts are returned for the UI instead of being written to ShopifySyncLog.
+  // customer is created. The pull is recorded in ShopifySyncLog (type CUSTOMER)
+  // so the sync logs / system health show the last customer sync status.
   async pullCustomersFromShopify(userId) {
     let total = 0
     let created = 0
@@ -400,6 +400,13 @@ const shopifyService = {
 
       sinceId = customers[customers.length - 1].id
       await throttle()
+    }
+
+    // Only write a sync log when there was real work to record (a customer
+    // actually imported/updated or an API failure). Repeated no-op pulls would
+    // otherwise spam the log with identical "All items synced" rows.
+    if (total > 0 || failed > 0 || firstError) {
+      await this.logSync('CUSTOMER', total, failed, firstError, userId)
     }
 
     return {
@@ -937,7 +944,7 @@ const shopifyService = {
 
   // Latest sync result per type (for the dashboard widget)
   async syncStatus() {
-    const types = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER']
+    const types = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER', 'CUSTOMER']
     const logs = await Promise.all(
       types.map((type) => prisma.shopifySyncLog.findFirst({ where: { type }, orderBy: { id: 'desc' } }))
     )
@@ -963,6 +970,7 @@ const shopifyService = {
       PRICE: () => this.syncAllPrices(userId),
       INVENTORY: () => this.syncAllInventory(userId),
       ORDER: () => this.pullOrdersFromShopify(userId),
+      CUSTOMER: () => this.pullCustomersFromShopify(userId),
     }
 
     const types = [...new Set(failed.map((l) => l.type))]

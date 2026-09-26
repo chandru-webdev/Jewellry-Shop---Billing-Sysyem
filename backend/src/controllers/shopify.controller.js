@@ -62,7 +62,7 @@ const shopifyController = {
   // GET /api/shopify/sync-logs — list sync log entries
   syncLogs: asyncHandler(async (req, res) => {
     const { type, status, limit: queryLimit } = req.query
-    const allowedTypes = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER']
+    const allowedTypes = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER', 'CUSTOMER']
     const allowedStatuses = ['SUCCESS', 'FAILED', 'PENDING']
     const where = {}
     if (type && allowedTypes.includes(type)) where.type = type

@@ -8,11 +8,11 @@ import Badge from '../components/ui/Badge'
 import { shopifyApi } from '../api/shopify'
 
 const statusColor = { SUCCESS: 'green', FAILED: 'red', PENDING: 'orange' }
-const typeColor = { PRODUCT: 'blue', PRICE: 'purple', INVENTORY: 'gold', ORDER: 'green' }
+const typeColor = { PRODUCT: 'blue', PRICE: 'purple', INVENTORY: 'gold', ORDER: 'green', CUSTOMER: 'gray' }
 const statusIcon = { SUCCESS: CheckCircle2, FAILED: XCircle, PENDING: Clock }
-const typeLabel = { PRODUCT: 'Products', PRICE: 'Prices', INVENTORY: 'Inventory', ORDER: 'Orders' }
+const typeLabel = { PRODUCT: 'Products', PRICE: 'Prices', INVENTORY: 'Inventory', ORDER: 'Orders', CUSTOMER: 'Customers' }
 
-const entityOptions = ['All', 'PRODUCT', 'PRICE', 'INVENTORY', 'ORDER']
+const entityOptions = ['All', 'PRODUCT', 'PRICE', 'INVENTORY', 'ORDER', 'CUSTOMER']
 const statusOptions = ['All', 'SUCCESS', 'FAILED', 'PENDING']
 
 export default function SyncLogs() {
@@ -41,7 +41,7 @@ export default function SyncLogs() {
     entityLabel: typeLabel[l.type] || l.type || 'Unknown',
     shopifyId: l.shopifyId || l.entityId || '—',
     entityName: l.entityName || l.message || '—',
-    direction: l.direction || (l.type === 'ORDER' ? 'Shopify → ERP' : 'ERP → Shopify'),
+    direction: l.direction || (l.type === 'ORDER' || l.type === 'CUSTOMER' ? 'Shopify → ERP' : 'ERP → Shopify'),
     action: l.action || l.type || 'Sync',
     time: l.createdAt,
     duration: l.duration || '—',
@@ -64,6 +64,7 @@ export default function SyncLogs() {
         PRICE: () => shopifyApi.syncAllPrices(),
         INVENTORY: () => shopifyApi.syncAllInventory(),
         ORDER: () => shopifyApi.pullOrders(),
+        CUSTOMER: () => shopifyApi.pullCustomers(),
       }
       const job = jobs[log.type]
       if (!job) {

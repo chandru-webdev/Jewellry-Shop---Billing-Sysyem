@@ -105,6 +105,7 @@ export const navGroups = [
     permission: 'users:manage',
     items: [
       { to: '/users', label: 'User Management', icon: Users, permission: 'users:manage' },
+      { to: '/system-health', label: 'System Health', icon: Activity, permission: 'users:manage' },
       { to: '/metal-rates', label: 'Silver Rate', icon: Coins, permission: 'metal-rates:view' },
       { to: '/rate-approvals', label: 'Rate Approvals', icon: AlertTriangle, permission: 'metal-rates:manage' },
       { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText, permission: 'users:manage' },

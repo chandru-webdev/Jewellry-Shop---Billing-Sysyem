@@ -5,6 +5,23 @@ const { registerWebhooks } = require('./services/webhookRegister.service')
 
 async function ensureSchema() {
   try {
+    // Newest enum value for ShopifySyncLog.type. This MUST run before the fast
+    // path returns below, because a database that already has the marker column
+    // would otherwise skip past it and customers syncs could never be logged.
+    // Safe to add on every boot: IF NOT EXISTS is a no-op once added.
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TYPE "SyncType" ADD VALUE IF NOT EXISTS 'CUSTOMER'`)
+    } catch {
+      // Older Postgres (<12) has no IF NOT EXISTS for enum values — use a
+      // guarded DO block instead.
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TYPE "SyncType" ADD VALUE 'CUSTOMER';
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+      `).catch(() => {})
+    }
+
     // Fast path: if the newest schema marker column already exists, every
     // <CREATE ... IF NOT EXISTS / EXCEPTION> check below is a no-op. Skipping
     // them drops cold boot from ~25s to ~1s, which matters on the Free plan:

@@ -5,6 +5,7 @@ const router = express.Router()
 // Every API group is mounted here under /api.
 // Future phases add their own: products, inventory, metal-rates...
 router.use('/health', require('./health.routes'))
+router.use('/system-health', require('./systemHealth.routes'))
 router.use('/auth', require('./auth.routes'))
 router.use('/products', require('./product.routes'))
 router.use('/categories', require('./category.routes'))

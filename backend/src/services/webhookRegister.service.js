@@ -89,4 +89,4 @@ async function registerWebhooks() {
   console.log(`[WEBHOOKS] Registration complete. ${REQUIRED_TOPICS.length} topics ensured.`)
 }
 
-module.exports = { registerWebhooks }
+module.exports = { registerWebhooks, REQUIRED_TOPICS, webhookCallbackUrl }

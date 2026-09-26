@@ -69,6 +69,7 @@ enum SyncType {
   PRICE
   INVENTORY
   ORDER
+  CUSTOMER
 }
 
 enum SyncStatus {

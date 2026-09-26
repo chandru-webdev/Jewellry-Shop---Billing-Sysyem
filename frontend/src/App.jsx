@@ -36,6 +36,7 @@ import CustomersSync from './pages/CustomersSync'
 import PriceSync from './pages/PriceSync'
 import SyncLogs from './pages/SyncLogs'
 import Users from './pages/Users'
+import SystemHealth from './pages/SystemHealth'
 import Roles from './pages/Roles'
 import AuditLogs from './pages/AuditLogs'
 import Settings from './pages/Settings'
@@ -108,6 +109,7 @@ function App() {
 
         {/* System — SUPER_ADMIN only */}
         <Route path="/users" element={<ProtectedRoute permission="users:manage"><Users /></ProtectedRoute>} />
+        <Route path="/system-health" element={<ProtectedRoute permission="users:manage"><SystemHealth /></ProtectedRoute>} />
         <Route path="/roles" element={<ProtectedRoute permission="users:manage"><Roles /></ProtectedRoute>} />
         <Route path="/metal-rates" element={<MetalRates />} />
         <Route path="/metal-rates/history" element={<PriceHistory />} />

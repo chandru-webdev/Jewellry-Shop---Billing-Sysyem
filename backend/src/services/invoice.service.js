@@ -7,29 +7,37 @@ const { escapeLike } = require('../utils/sanitizeSearch')
 
 const Decimal = Prisma.Decimal
 
+// Single source of truth for the invoice filters. Used by both the list query
+// (feeds the Sales table) and the analytics aggregation, so every chart/card on
+// the Sales page always reflects exactly the same filtered dataset as the table.
+function buildWhere(filters = {}) {
+  const where = {}
+  if (filters.status) where.status = filters.status
+  if (filters.paymentMethod) where.paymentMethod = filters.paymentMethod
+  if (filters.customerId) where.customerId = Number(filters.customerId)
+  if (filters.dateFrom || filters.dateTo) {
+    where.date = {}
+    if (filters.dateFrom) where.date.gte = new Date(filters.dateFrom)
+    if (filters.dateTo) {
+      const end = new Date(filters.dateTo)
+      end.setHours(23, 59, 59, 999)
+      where.date.lte = end
+    }
+  }
+  if (filters.search) {
+    const q = escapeLike(filters.search)
+    where.OR = [
+      { invoiceNumber: { contains: q, mode: 'insensitive' } },
+      { customer: { name: { contains: q, mode: 'insensitive' } } },
+      { customer: { phone: { contains: q } } },
+    ]
+  }
+  return where
+}
+
 const invoiceService = {
    async list(filters = {}) {
-    const where = {}
-    if (filters.status) where.status = filters.status
-    if (filters.paymentMethod) where.paymentMethod = filters.paymentMethod
-    if (filters.customerId) where.customerId = Number(filters.customerId)
-    if (filters.dateFrom || filters.dateTo) {
-      where.date = {}
-      if (filters.dateFrom) where.date.gte = new Date(filters.dateFrom)
-      if (filters.dateTo) {
-        const end = new Date(filters.dateTo)
-        end.setHours(23, 59, 59, 999)
-        where.date.lte = end
-      }
-    }
-    if (filters.search) {
-      const q = escapeLike(filters.search)
-      where.OR = [
-        { invoiceNumber: { contains: q, mode: 'insensitive' } },
-        { customer: { name: { contains: q, mode: 'insensitive' } } },
-        { customer: { phone: { contains: q } } },
-      ]
-    }
+    const where = buildWhere(filters)
 
     const invoices = await prisma.invoice.findMany({
       where,
@@ -49,6 +57,156 @@ const invoiceService = {
       totalQuantity: inv.items.reduce((sum, it) => sum + it.quantity, 0),
       items: undefined,
     }))
+  },
+
+  // Aggregations over the SAME filtered dataset as list(). Unlike the list
+  // (which is capped at 50 rows for the table), every matching invoice is
+  // counted so the KPIs/charts are exact.
+  async analytics(filters = {}) {
+    const where = buildWhere(filters)
+
+    const invoices = await prisma.invoice.findMany({
+      where,
+      select: {
+        id: true,
+        date: true,
+        grandTotal: true,
+        paymentMethod: true,
+        status: true,
+        customerId: true,
+        customer: { select: { id: true, name: true } },
+        order: { select: { source: true } },
+        items: { select: { quantity: true } },
+      },
+      orderBy: { date: 'asc' },
+    })
+
+    let totalSales = new Decimal(0)
+    let totalItems = 0
+    const payments = new Map() // method -> { count, total }
+    const statuses = new Map() // status -> { count, total }
+    const customers = new Map() // customerId -> { name, orders, total }
+    let shopify = { count: 0, total: new Decimal(0) }
+    let direct = { count: 0, total: new Decimal(0) }
+
+    for (const inv of invoices) {
+      const total = new Decimal(inv.grandTotal)
+      totalSales = totalSales.plus(total)
+      totalItems += inv.items.reduce((sum, it) => sum + it.quantity, 0)
+
+      const pay = inv.paymentMethod || 'OTHER'
+      const payAgg = payments.get(pay) || { count: 0, total: new Decimal(0) }
+      payAgg.count += 1
+      payAgg.total = payAgg.total.plus(total)
+      payments.set(pay, payAgg)
+
+      const st = inv.status || 'DRAFT'
+      const stAgg = statuses.get(st) || { count: 0, total: new Decimal(0) }
+      stAgg.count += 1
+      stAgg.total = stAgg.total.plus(total)
+      statuses.set(st, stAgg)
+
+      if (inv.customer) {
+        const custId = inv.customer.id
+        const custAgg = customers.get(custId) || { name: inv.customer.name, orders: 0, total: new Decimal(0) }
+        custAgg.orders += 1
+        custAgg.total = custAgg.total.plus(total)
+        customers.set(custId, custAgg)
+      }
+
+      const isShopify = inv.order?.source === 'SHOPIFY'
+      if (isShopify) {
+        shopify.count += 1
+        shopify.total = shopify.total.plus(total)
+      } else {
+        direct.count += 1
+        direct.total = direct.total.plus(total)
+      }
+    }
+
+    const count = invoices.length
+    const avgOrderValue = count > 0 ? totalSales.div(count) : new Decimal(0)
+
+    // Trend: bucket revenue per day and adapt the granularity to the range span.
+    const from = filters.dateFrom ? new Date(filters.dateFrom) : invoices[0]?.date || new Date()
+    const to = filters.dateTo ? new Date(filters.dateTo) : invoices.at(-1)?.date || from
+    const spanDays = Math.max(1, Math.round((to - from) / 86400000) + 1)
+    const stepDays = spanDays <= 31 ? 1 : spanDays <= 180 ? 7 : 30
+    const granularity = stepDays === 1 ? 'daily' : stepDays === 7 ? 'weekly' : 'monthly'
+
+    const pointKey = (d) => {
+      const t = new Date(d)
+      const start = new Date(Date.UTC(0, 0, 1))
+      const day = Math.floor((t - start) / 86400000)
+      return Math.floor(day / stepDays)
+    }
+    const bucketStart = (key) => {
+      const b = new Date(Date.UTC(0, 0, 1))
+      b.setUTCDate(1 + key * stepDays)
+      return b
+    }
+
+    const buckets = new Map()
+    for (const inv of invoices) {
+      const key = pointKey(inv.date)
+      const agg = buckets.get(key) || { revenue: new Decimal(0), orders: 0 }
+      agg.revenue = agg.revenue.plus(new Decimal(inv.grandTotal))
+      agg.orders += 1
+      buckets.set(key, agg)
+    }
+
+    const points = []
+    const firstKey = pointKey(from)
+    const lastKey = pointKey(to)
+    for (let key = firstKey; key <= lastKey; key++) {
+      const start = bucketStart(key)
+      const label =
+        stepDays >= 30
+          ? start.toISOString().slice(0, 7)
+          : start.toISOString().slice(0, 10)
+      const agg = buckets.get(key)
+      points.push({
+        label,
+        revenue: Number((agg?.revenue || new Decimal(0)).toDecimalPlaces(2)),
+        orders: agg?.orders || 0,
+      })
+    }
+
+    const toSeries = (map) =>
+      [...map.entries()]
+        .map(([label, agg]) => ({
+          label,
+          count: agg.count,
+          total: Number(agg.total.toDecimalPlaces(2)),
+        }))
+        .sort((a, b) => b.total - a.total)
+
+    const topCustomers = [...customers.entries()]
+      .map(([customerId, agg]) => ({
+        customerId,
+        name: agg.name,
+        orders: agg.orders,
+        total: Number(agg.total.toDecimalPlaces(2)),
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8)
+
+    return {
+      kpis: {
+        totalSales: Number(totalSales.toDecimalPlaces(2)),
+        orderCount: count,
+        avgOrderValue: Number(avgOrderValue.toDecimalPlaces(2)),
+        totalItems,
+      },
+      trend: { granularity, points },
+      payments: toSeries(payments),
+      statuses: toSeries(statuses),
+      topCustomers,
+      source: {
+        shopify: { count: shopify.count, total: Number(shopify.total.toDecimalPlaces(2)) },
+        direct: { count: direct.count, total: Number(direct.total.toDecimalPlaces(2)) },
+      },
+    }
   },
 
   async getById(id) {

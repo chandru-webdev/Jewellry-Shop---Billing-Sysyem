@@ -9,6 +9,7 @@ const router = express.Router()
 router.use(authenticate)
 
 router.get('/', invoiceController.list)
+router.get('/analytics', invoiceController.analytics)
 router.get('/:id', invoiceController.getById)
 
 // MANAGER, STAFF and ADMIN can create invoices (billing)

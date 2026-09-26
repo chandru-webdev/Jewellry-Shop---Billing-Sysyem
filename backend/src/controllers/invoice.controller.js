@@ -8,6 +8,11 @@ const invoiceController = {
     success(res, 200, invoices, 'Invoices fetched')
   }),
 
+  analytics: asyncHandler(async (req, res) => {
+    const analytics = await invoiceService.analytics(req.query)
+    success(res, 200, analytics, 'Invoice analytics fetched')
+  }),
+
   getById: asyncHandler(async (req, res) => {
     const invoice = await invoiceService.getById(req.params.id)
     success(res, 200, invoice, 'Invoice fetched')

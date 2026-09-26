@@ -32,6 +32,7 @@ import {
   CustomerFormModal,
   InvoiceEditModal,
 } from '../components/sales'
+import SalesAnalytics from '../components/sales/SalesAnalytics'
 import { useInvoiceEditor } from '../components/sales/useInvoiceEditor'
 import ExportControls from '../components/ui/ExportControls'
 
@@ -67,13 +68,20 @@ export default function Sales() {
     },
   })
 
-  const { data: invoices, isLoading } = useQuery({
+  const { data: invoiceData, isLoading } = useQuery({
     queryKey: ['invoices', search, filterStatus, filterPayment, dateFrom, dateTo],
-    queryFn: () =>
-      invoicesApi.list({ search, status: filterStatus, paymentMethod: filterPayment, dateFrom, dateTo }).then(
-        (r) => r.data.data
-      ),
+    queryFn: async () => {
+      const params = { search, status: filterStatus, paymentMethod: filterPayment, dateFrom, dateTo }
+      const [listRes, analyticsRes] = await Promise.all([
+        invoicesApi.list(params),
+        invoicesApi.analytics(params),
+      ])
+      return { list: listRes.data.data, analytics: analyticsRes.data.data }
+    },
   })
+
+  const invoices = invoiceData?.list
+  const salesAnalytics = invoiceData?.analytics
 
   const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ['orders', search],
@@ -305,6 +313,7 @@ export default function Sales() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'invoices' && <SalesAnalytics data={salesAnalytics} isLoading={isLoading} />}
       <Card className="p-0 overflow-hidden">
         {activeTab === 'invoices' && (
           <SalesInvoicesTable

@@ -47,7 +47,9 @@ async function getSilverRate() {
 async function previewRecalculation(newRate) {
   const products = await prisma.product.findMany({ where: { isActive: true } })
 
-  const sample = products.slice(0, 10).map((p) => {
+  // All (not a sample) — the admin approves this preview, so every affected
+  // product must be visible in the list.
+  const sample = products.map((p) => {
     const price = calculatePrice({
       silverRate: newRate,
       weight: p.weight,

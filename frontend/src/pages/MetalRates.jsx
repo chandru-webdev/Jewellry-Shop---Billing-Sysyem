@@ -699,6 +699,7 @@ export default function MetalRates() {
           <Modal
             open={previewOpen}
             title="Preview Price Changes"
+            size="xl"
             onClose={() => { setPreviewOpen(false); previewMutation.reset() }}
             footer={
               <>
@@ -833,10 +834,10 @@ function RateRequestsTab() {
       ) : (requestsData || []).length === 0 ? (
         <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">No requests found</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-white/[0.08]">
+<div className="overflow-x-auto overflow-y-auto max-h-[30rem]">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-[#1a1025]">
                 <th className="text-left py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Requested By</th>
                 <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">Old Rate</th>
                 <th className="text-right py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500">New Rate</th>

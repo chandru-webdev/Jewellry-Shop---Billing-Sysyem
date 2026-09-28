@@ -23,10 +23,34 @@ const REQUIRED_TOPICS = [
   'products/update',
 ]
 
-// The public URL Shopify calls. In production this must be the Railway
-// domain; in development it can be a tunnelled URL (ngrok etc).
+// The base URL Shopify is told to call. In production PUBLIC_API_URL must be
+// the deployed Railway domain; with no value we fall back to localhost (dev).
+function publicCallbackBase() {
+  return String(process.env.PUBLIC_API_URL || '').replace(/\/$/, '') || `http://localhost:${process.env.PORT || 5000}`
+}
+
+// Guard against pointing a live store at a machine that Shopify can never
+// reach (localhost / private ranges). Webhook registration and the health
+// "missing webhook" verdict only make sense against a public base.
+function isPublicBase(baseUrl) {
+  const base = String(baseUrl || '').replace(/\/$/, '')
+  let host
+  try {
+    const u = new URL(base)
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false
+    host = u.hostname
+  } catch {
+    return false
+  }
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i.test(host)) return false
+  if (/^(10\.|192\.168\.|169\.254\.)/.test(host)) return false
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false
+  return true
+}
+
+// The URL Shopify calls for a given topic.
 function webhookCallbackUrl(topic) {
-  const base = process.env.PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:5000'
+  const base = publicCallbackBase()
   let path = '/api/webhooks/shopify/orders'
   if (topic.startsWith('refunds')) path = '/api/webhooks/shopify/refunds'
   else if (topic.startsWith('products')) path = '/api/webhooks/shopify/products'
@@ -51,6 +75,19 @@ async function registerWebhooks() {
   if (!webhookSecret) {
     console.warn('[WEBHOOKS] SHOPIFY_WEBHOOK_SECRET not set — skipping webhook registration.')
     return []
+  }
+
+  // Never point a live store at a local/private machine — that would register
+  // webhooks Shopify can never deliver to. Requires a public PUBLIC_API_URL.
+  const base = publicCallbackBase()
+  if (!isPublicBase(base)) {
+    console.warn(`[WEBHOOKS] Skipping registration: callback base "${base}" is not a public URL. Set PUBLIC_API_URL to your deployed domain.`)
+    return REQUIRED_TOPICS.map((topic) => ({
+      topic,
+      status: 'skipped',
+      address: webhookCallbackUrl(topic),
+      message: 'PUBLIC_API_URL is not a public URL — refusing to point the store at it',
+    }))
   }
 
   // Fetch existing webhook subscriptions (we must load them via GraphQL
@@ -104,4 +141,4 @@ async function registerWebhooks() {
   return results
 }
 
-module.exports = { registerWebhooks, REQUIRED_TOPICS, webhookCallbackUrl }
+module.exports = { registerWebhooks, REQUIRED_TOPICS, webhookCallbackUrl, publicCallbackBase, isPublicBase }

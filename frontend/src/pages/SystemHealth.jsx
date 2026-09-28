@@ -94,7 +94,7 @@ function DetailList({ items }) {
   )
 }
 
-function SyncsDetail({ byType, webhooksRegistered, webhooksRequired }) {
+function SyncsDetail({ byType, webhooksRegistered, webhooksRequired, coverageLimited }) {
   const types = Object.keys(byType || {})
   return (
     <div className="mt-3 border-t border-gray-100 dark:border-white/[0.06] pt-3">
@@ -112,6 +112,7 @@ function SyncsDetail({ byType, webhooksRegistered, webhooksRequired }) {
       </div>
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
         Webhooks: {webhooksRegistered === null ? 'not verified' : `${webhooksRegistered}/${webhooksRequired || 0} topics registered`}
+        {coverageLimited && webhooksRegistered === webhooksRequired ? ' · delivery URL not verifiable from this environment' : ''}
       </p>
       <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
         Age of last log per type — {types.map((t) => `${syncLabel[t] || t}: ${timeAgo(byType[t]?.lastRun)}`).join(' · ')}
@@ -206,36 +207,59 @@ function EmptyNote({ children }) {
   return <p className="my-2 text-xs text-gray-400 dark:text-gray-500">{children}</p>
 }
 
-function WebhookTable({ webhooks }) {
+function WebhookTable({ webhooks, limited }) {
   if (!webhooks) return <EmptyNote>Webhooks could not be verified against the store.</EmptyNote>
   if (!webhooks.length) return <EmptyNote>No required webhooks found.</EmptyNote>
+  const showAddress = webhooks.some((w) => w.address)
   return (
-    <div className="mt-1 overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.08]">
-      <table className="w-full text-xs">
-        <thead className="bg-gray-50 dark:bg-white/[0.04] text-left text-gray-500 dark:text-gray-400">
-          <tr>
-            <th className="px-3 py-2 font-medium">Topic</th>
-            <th className="px-3 py-2 font-medium">Registered</th>
-            <th className="px-3 py-2 font-medium">Last delivery</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50 dark:divide-white/[0.04]">
-          {webhooks.map((w) => (
-            <tr key={w.topic}>
-              <td className="px-3 py-2 font-mono text-[11px] text-gray-700 dark:text-gray-300">{w.topic}</td>
-              <td className="px-3 py-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className={`h-1.5 w-1.5 rounded-full ${w.registered ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  <span className={w.registered ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                    {w.registered ? 'yes' : 'missing'}
-                  </span>
-                </span>
-              </td>
-              <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{w.lastDelivery ? niceDate(w.lastDelivery) : '—'}</td>
+    <div>
+      {limited && (
+        <p className="mt-1 mb-2 text-[11px] text-amber-600 dark:text-amber-400">
+          This environment has no public PUBLIC_API_URL, so delivery addresses can&apos;t be verified — registration status is per topic.
+        </p>
+      )}
+      <div className="mt-1 overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.08]">
+        <table className="w-full text-xs">
+          <thead className="bg-gray-50 dark:bg-white/[0.04] text-left text-gray-500 dark:text-gray-400">
+            <tr>
+              <th className="px-3 py-2 font-medium">Topic</th>
+              <th className="px-3 py-2 font-medium">Registered</th>
+              {showAddress && <th className="hidden md:table-cell px-3 py-2 font-medium">Delivery address</th>}
+              <th className="px-3 py-2 font-medium">Last delivery</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-50 dark:divide-white/[0.04]">
+            {webhooks.map((w) => (
+              <tr key={w.topic}>
+                <td className="px-3 py-2 font-mono text-[11px] text-gray-700 dark:text-gray-300">{w.topic}</td>
+                <td className="px-3 py-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${w.registered ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span className={w.registered ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
+                      {w.registered ? 'yes' : 'missing'}
+                    </span>
+                  </span>
+                  {w.registered && !w.matchesExpected && (
+                    <span className="ml-1.5 text-[11px] text-amber-600 dark:text-amber-400" title="A subscription exists, but its address differs from this environment's configured callback URL">
+                      (addr differs)
+                    </span>
+                  )}
+                </td>
+                {showAddress && (
+                  <td className="hidden md:table-cell px-3 py-2">
+                    <span className="block max-w-[260px] truncate font-mono text-[11px] text-gray-500 dark:text-gray-400" title={w.address || ''}>
+                      {w.address || '—'}
+                    </span>
+                  </td>
+                )}
+                <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                  {w.lastDelivery ? niceDate(w.lastDelivery) : <span className="text-gray-400 dark:text-gray-500">awaiting first delivery</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -335,7 +359,7 @@ function ShopifyDetail({ check }) {
       <Row label="Latency">{d.latencyMs !== undefined ? `${d.latencyMs}ms` : '—'}</Row>
       {d.sanitizedError && <Code>{d.sanitizedError}</Code>}
       <Sec title="Webhook registrations" />
-      <WebhookTable webhooks={d.webhooks} />
+      <WebhookTable webhooks={d.webhooks} limited={d.webhooksCoverageLimited} />
     </div>
   )
 }
@@ -433,9 +457,9 @@ function SyncsDetailModal({ check }) {
   const d = check.details || {}
   return (
     <div>
-      <SyncsDetail byType={d.byType} webhooksRegistered={d.webhooksRegistered} webhooksRequired={d.webhooksRequired} />
+      <SyncsDetail byType={d.byType} webhooksRegistered={d.webhooksRegistered} webhooksRequired={d.webhooksRequired} coverageLimited={d.webhooksCoverageLimited} />
       <Sec title="Webhook registrations" />
-      <WebhookTable webhooks={d.webhooks} />
+      <WebhookTable webhooks={d.webhooks} limited={d.webhooksCoverageLimited} />
       {d.history && (
         <Sec title="Sync history (last 10 runs per type)" />
       )}

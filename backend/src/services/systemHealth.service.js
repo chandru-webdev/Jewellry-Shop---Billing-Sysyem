@@ -18,7 +18,7 @@ const prisma = require('../prisma/client')
 const env = require('../config/env')
 const { request } = require('../integrations/shopify/client')
 const { credentials } = require('../integrations/shopify/shopifyConfig')
-const { REQUIRED_TOPICS, webhookCallbackUrl } = require('./webhookRegister.service')
+const { REQUIRED_TOPICS, webhookCallbackUrl, publicCallbackBase, isPublicBase } = require('./webhookRegister.service')
 
 // A silver rate older than this is treated as stale (manual-entry data feed).
 const STALE_RATE_DAYS = 7
@@ -56,7 +56,14 @@ function sanitizeError(text, max = 500) {
 }
 
 // Build the per-webhook coverage list shared by the Shopify + syncs checks.
-// Known identifier list only — addresses are webhook DB URLs, never secrets.
+//
+// A topic counts as REGISTERED when the store has any subscription for it.
+// The old code demanded an *exact* address match against this environment's
+// callback URL — but when PUBLIC_API_URL is unset locally the app can't know
+// the deployed domain, so a fully-registered store was falsely reported as
+// "all webhooks missing" (and could even lull someone into re-registering,
+// which would point the store at http://localhost). Exact-match info is still
+// surfaced via `address` / `matchesExpected` so drift is visible.
 async function getWebhookCoverage() {
   const { shopDomain, accessToken } = await credentials()
   if (!shopDomain || !accessToken || shopDomain.startsWith('PASTE')) return null
@@ -74,16 +81,35 @@ async function getWebhookCoverage() {
   } catch {
     // last-delivery times are best-effort only
   }
-  return REQUIRED_TOPICS.map((topic) => {
-    const wh = existing.find((w) => w.topic === topic && w.address === webhookCallbackUrl(topic))
-    return {
+
+  const byTopic = new Map()
+  for (const wh of existing) {
+    if (!byTopic.has(wh.topic)) byTopic.set(wh.topic, [])
+    byTopic.get(wh.topic).push(wh)
+  }
+
+  const covered = []
+  for (const topic of REQUIRED_TOPICS) {
+    const subs = byTopic.get(topic) || []
+    const expected = webhookCallbackUrl(topic)
+    const exact = subs.find((w) => w.address === expected)
+    covered.push({
       topic,
       required: true,
-      registered: Boolean(wh),
-      address: wh?.address || null,
+      registered: subs.length > 0,
+      address: (exact || subs[0])?.address || null,
+      matchesExpected: Boolean(exact),
       lastDelivery: lastDelivery[topic] || null,
-    }
-  })
+    })
+  }
+  return covered
+}
+
+// True when this environment's callback base can't be the live store's target
+// (no PUBLIC_API_URL / localhost / private network) — used to avoid false
+// "missing webhook" verdicts and to explain the check in the UI.
+function coverageIsLocal() {
+  return !isPublicBase(publicCallbackBase())
 }
 
 function extractTitle(html) {
@@ -184,6 +210,7 @@ async function checkShopify({ withDetail } = {}) {
         shopDomain: shop.myshopify_domain || shopDomain,
         latencyMs: Date.now() - startedAt,
         webhooks: detail || null,
+        webhooksCoverageLimited: detail ? coverageIsLocal() : undefined,
       },
     }
   } catch (err) {
@@ -353,6 +380,9 @@ async function checkSyncs({ withDetail } = {}) {
   const webhookList = await getWebhookCoverage()
   const webhooksRegistered = webhookList ? webhookList.filter((w) => w.registered).length : null
   const webhooksRequired = REQUIRED_TOPICS.length
+  // A topic is "ok" when it is registered at all; the exact-address match can
+  // legitimately differ when this environment has no PUBLIC_API_URL.
+  const webhooksOk = webhookList === null || webhookList.every((w) => w.registered)
 
   let history = null
   if (withDetail) {
@@ -377,7 +407,6 @@ async function checkSyncs({ withDetail } = {}) {
   const anyFailed = values.some((v) => v.status === 'FAILED')
   const anyPending = values.some((v) => v.status === 'PENDING')
   const anyNever = values.some((v) => v.status === 'NEVER')
-  const webhooksOk = webhooksRegistered === null || webhooksRegistered === webhooksRequired
 
   let status = 'ok'
   if (anyFailed || !webhooksOk) status = 'down'
@@ -390,6 +419,12 @@ async function checkSyncs({ withDetail } = {}) {
   if (!webhooksOk && webhooksRegistered !== null) {
     message += ` — ${webhooksRegistered}/${webhooksRequired} webhooks registered`
   }
+  // When this environment has no public URL, exact address matching is not
+  // possible — say so instead of implying webhooks are misconfigured.
+  const coverageLimited = webhookList !== null && coverageIsLocal()
+  if (coverageLimited && webhooksRegistered === webhooksRequired) {
+    message += ' — webhook delivery URL not verifiable from this environment'
+  }
 
   return {
     status,
@@ -399,6 +434,7 @@ async function checkSyncs({ withDetail } = {}) {
       webhooksRegistered,
       webhooksRequired,
       webhooksOk,
+      webhooksCoverageLimited: coverageLimited,
       webhooks: webhookList || null,
       history,
     },

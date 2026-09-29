@@ -602,8 +602,11 @@ const shopifyService = {
     }
   },
 
-  // Update an existing Shopify product's details + price (and stock)
-  async updateProductOnShopify(product) {
+  // Update an existing Shopify product's details + price (and stock).
+  // Optional onProgress(stepKey, status, message) streams each step to the
+  // product update page. When omitted the function behaves exactly as before.
+  async updateProductOnShopify(product, { onProgress = null } = {}) {
+    const progress = onProgress || (() => {})
     const shopifyStatus = product.shopifyStatus || (product.isActive ? 'active' : 'draft')
     const shopifyProduct = {
       id: Number(product.shopifyProductId),
@@ -619,11 +622,14 @@ const shopifyService = {
     // Fetch the store's CURRENT images and merge, so ERP-side updates APPEND
     // images instead of wiping store-only ones (two-way image ownership).
     let storeImages = []
+    progress('shopifyImages', 'running', 'Reading store images…')
     try {
       const res = await request(`/products/${product.shopifyProductId}.json?fields=images`)
       storeImages = (res.product?.images || []).map((img) => img.src).filter(Boolean)
+      progress('shopifyImages', 'done', `${storeImages.length} store image(s)`)
     } catch (err) {
       // If we can't read the store product, fall back to a plain image update
+      progress('shopifyImages', 'done', 'Could not read store images — merging local only')
     }
 
     const erpImages = Array.isArray(product.imageUrls) && product.imageUrls.length
@@ -637,10 +643,17 @@ const shopifyService = {
       shopifyProduct.images = mergedImages.map((src) => ({ src }))
     }
 
-    await request(`/products/${product.shopifyProductId}.json`, {
-      method: 'PUT',
-      body: { product: shopifyProduct },
-    })
+    progress('shopifyProduct', 'running', 'Updating product details…')
+    try {
+      await request(`/products/${product.shopifyProductId}.json`, {
+        method: 'PUT',
+        body: { product: shopifyProduct },
+      })
+      progress('shopifyProduct', 'done', 'Product details updated')
+    } catch (err) {
+      progress('shopifyProduct', 'failed', err.message)
+      throw err
+    }
 
     const variantUpdate = {
       id: Number(product.shopifyVariantId),
@@ -655,26 +668,57 @@ const shopifyService = {
       variantUpdate.compare_at_price = null
     }
 
-    await request(`/variants/${product.shopifyVariantId}.json`, {
-      method: 'PUT',
-      body: { variant: variantUpdate },
-    })
+    progress('shopifyVariant', 'running', 'Updating variant & price…')
+    try {
+      await request(`/variants/${product.shopifyVariantId}.json`, {
+        method: 'PUT',
+        body: { variant: variantUpdate },
+      })
+      progress('shopifyVariant', 'done', `Price ₹${Number(product.sellingPrice || 0).toFixed(2)}`)
+    } catch (err) {
+      progress('shopifyVariant', 'failed', err.message)
+      throw err
+    }
 
     if (product.shopifyInventoryItemId && product.trackInventory !== false) {
-      await this.setInventoryLevel(Number(product.shopifyInventoryItemId), product.inventory?.quantity ?? 0)
+      progress('shopifyInventory', 'running', 'Syncing inventory…')
+      try {
+        await this.setInventoryLevel(Number(product.shopifyInventoryItemId), product.inventory?.quantity ?? 0)
+        progress('shopifyInventory', 'done', `${product.inventory?.quantity ?? 0} in stock`)
+      } catch (err) {
+        progress('shopifyInventory', 'failed', err.message)
+        throw err
+      }
+    } else {
+      progress('shopifyInventory', 'skipped', 'Inventory not tracked on Shopify')
     }
 
     // Refresh the storefront product-details / price-breakup metafields.
-    await this.pushProductMetafields(product)
+    progress('shopifyMetafields', 'running', 'Pushing storefront details…')
+    try {
+      await this.pushProductMetafields(product)
+      progress('shopifyMetafields', 'done', 'Storefront details updated')
+    } catch (err) {
+      progress('shopifyMetafields', 'failed', err.message)
+      throw err
+    }
 
     // Upload videos to Shopify product media (new videos only — existing stay)
     const videoUrls = (product.imageUrls || []).filter(u => u && (u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov')))
-    for (const videoUrl of videoUrls) {
-      try {
-        await this.uploadVideoToShopify(product, videoUrl)
-      } catch (err) {
-        console.error(`Failed to upload video ${videoUrl} to Shopify:`, err.message)
+    if (videoUrls.length) {
+      progress('shopifyMedia', 'running', `Uploading ${videoUrls.length} video(s)…`)
+      let ok = 0
+      for (const videoUrl of videoUrls) {
+        try {
+          await this.uploadVideoToShopify(product, videoUrl)
+          ok++
+        } catch (err) {
+          console.error(`Failed to upload video ${videoUrl} to Shopify:`, err.message)
+        }
       }
+      progress('shopifyMedia', 'done', ok === videoUrls.length ? 'Media up to date' : `${ok}/${videoUrls.length} video(s) uploaded`)
+    } else {
+      progress('shopifyMedia', 'skipped', 'No new videos')
     }
   },
 
@@ -798,7 +842,9 @@ const shopifyService = {
   },
 
   // Push ONE ERP product to Shopify (create if needed, else update)
-  async syncProduct(productId) {
+  // onProgress(stepKey, status, message) forwards the inner Shopify steps
+  // (used by the bulk sync jobs to show which step a product is on).
+  async syncProduct(productId, { onProgress = null } = {}) {
     const product = await prisma.product.findUnique({
       where: { id: Number(productId) },
       include: { category: true, inventory: true },
@@ -824,7 +870,7 @@ const shopifyService = {
 
     // Linked but the Shopify product was deleted there: recreate it.
     try {
-      await this.updateProductOnShopify(product)
+      await this.updateProductOnShopify(product, onProgress ? { onProgress } : {})
     } catch (err) {
       if (!(err instanceof ShopifyApiError) || err.status !== 404) throw err
       ids = await this.createProductOnShopify(product)
@@ -845,7 +891,9 @@ const shopifyService = {
   // ---------- bulk jobs (recorded in ShopifySyncLog) ----------
 
   // Push every active product (create missing + update existing)
-  async syncAllProducts(userId) {
+  // onBulk(key, label, status, message) streams one row per product so the
+  // "Sync All" button can show live, colour-coded progress.
+  async syncAllProducts(userId, { onBulk = null } = {}) {
     const products = await prisma.product.findMany({
       where: { isActive: true },
       include: { category: true, inventory: true },
@@ -856,12 +904,20 @@ const shopifyService = {
     let firstError = null
 
     for (const product of products) {
+      const key = String(product.id)
+      onBulk?.(key, product.name, 'running', 'Starting…')
       try {
-        await this.syncProduct(product.id)
+        await this.syncProduct(product.id, {
+          onProgress: (step, status, message) => {
+            if (status === 'running') onBulk?.(key, product.name, 'running', message || 'Syncing…')
+          },
+        })
         ok++
+        onBulk?.(key, product.name, 'done', 'Synced')
       } catch (err) {
         failed++
         if (!firstError) firstError = err.message
+        onBulk?.(key, product.name, 'failed', err.message)
       }
       await throttle()
     }
@@ -871,7 +927,7 @@ const shopifyService = {
   },
 
   // Re-publish every product price to Shopify (after a rate change)
-  async syncAllPrices(userId) {
+  async syncAllPrices(userId, { onBulk = null } = {}) {
     const products = await prisma.product.findMany({
       where: { isActive: true, shopifyVariantId: { not: null } },
     })
@@ -881,6 +937,9 @@ const shopifyService = {
     let firstError = null
 
     for (const product of products) {
+      const key = String(product.id)
+      const price = Number(product.sellingPrice).toFixed(2)
+      onBulk?.(key, product.name, 'running', `Pushing price ₹${price}…`)
       try {
         await request(`/variants/${product.shopifyVariantId}.json`, {
           method: 'PUT',
@@ -893,9 +952,11 @@ const shopifyService = {
         })
         await this.pushProductMetafields(product)
         ok++
+        onBulk?.(key, product.name, 'done', `₹${price}`)
       } catch (err) {
         failed++
         if (!firstError) firstError = err.message
+        onBulk?.(key, product.name, 'failed', err.message)
       }
       await throttle()
     }
@@ -905,7 +966,7 @@ const shopifyService = {
   },
 
   // Push every product's current stock to Shopify
-  async syncAllInventory(userId) {
+  async syncAllInventory(userId, { onBulk = null } = {}) {
     const products = await prisma.product.findMany({
       where: { shopifyInventoryItemId: { not: null } },
       include: { inventory: true },
@@ -916,12 +977,17 @@ const shopifyService = {
     let firstError = null
 
     for (const product of products) {
+      const key = String(product.id)
+      const qty = product.inventory?.quantity ?? 0
+      onBulk?.(key, product.name, 'running', `Syncing ${qty} in stock…`)
       try {
-        await this.setInventoryLevel(Number(product.shopifyInventoryItemId), product.inventory?.quantity ?? 0)
+        await this.setInventoryLevel(Number(product.shopifyInventoryItemId), qty)
         ok++
+        onBulk?.(key, product.name, 'done', `${qty} in stock`)
       } catch (err) {
         failed++
         if (!firstError) firstError = err.message
+        onBulk?.(key, product.name, 'failed', err.message)
       }
       await throttle()
     }

@@ -19,5 +19,7 @@ router.post('/:id/approve-import', authorize('SUPER_ADMIN', 'MANAGER'), productC
 router.post('/:id/discard-import', authorize('SUPER_ADMIN', 'MANAGER'), productController.discardImport)
 router.put('/:id', authorize('SUPER_ADMIN', 'MANAGER'), validate(updateProductSchema), productController.update)
 router.delete('/:id', authorize('SUPER_ADMIN', 'MANAGER'), productController.remove)
+router.get('/:id/sync-progress', productController.getSyncProgress)
+router.get('/:id/sync-progress/stream', productController.getSyncProgressStream)
 
 module.exports = router

@@ -2,7 +2,26 @@ const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
 const shopifyService = require('../services/shopify.service')
 const shopifyConfigService = require('../services/shopifyConfig.service')
+const syncProgress = require('../services/syncProgress.service')
+const pipeProgressStream = require('../utils/progressStream')
 const prisma = require('../prisma/client')
+
+// Kick off a bulk sync in the background and stream its progress. The POST
+// returns immediately with a jobId; the frontend opens the SSE stream for that
+// jobId to see live, colour-coded per-product progress. `countQuery` resolves
+// the number of items and `run` is the job function (reads r.ok/r.failed).
+async function startBulkJob({ title, countQuery, run }) {
+  const total = await countQuery()
+  const jobId = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  syncProgress.startBulk(jobId, { title, total })
+  run()
+    .then((r) => syncProgress.finishBulk(jobId, 'success', { ok: r.ok, failed: r.failed, total: r.total }))
+    .catch((err) => {
+      console.error(`Bulk sync ${jobId} failed:`, err.message)
+      syncProgress.finishBulk(jobId, 'failed', { message: (err && err.message) || 'Sync failed' })
+    })
+  return jobId
+}
 
 const shopifyController = {
   // GET /api/shopify/config — masked connection details for Settings
@@ -43,20 +62,49 @@ const shopifyController = {
 
   // POST /api/shopify/sync/all-products — push every active product
   syncAllProducts: asyncHandler(async (req, res) => {
-    const result = await shopifyService.syncAllProducts(req.user.id)
-    success(res, 200, result, 'Products synced to Shopify')
+    const jobId = await startBulkJob({
+      title: 'Syncing products to Shopify',
+      countQuery: () => prisma.product.count({ where: { isActive: true } }),
+      run: () => shopifyService.syncAllProducts(req.user.id, {
+        onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
+      }),
+    })
+    success(res, 202, { jobId }, 'Product sync started')
   }),
 
   // POST /api/shopify/sync/prices
   syncAllPrices: asyncHandler(async (req, res) => {
-    const result = await shopifyService.syncAllPrices(req.user.id)
-    success(res, 200, result, 'Prices synced to Shopify')
+    const jobId = await startBulkJob({
+      title: 'Syncing prices to Shopify',
+      countQuery: () => prisma.product.count({ where: { isActive: true, shopifyVariantId: { not: null } } }),
+      run: () => shopifyService.syncAllPrices(req.user.id, {
+        onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
+      }),
+    })
+    success(res, 202, { jobId }, 'Price sync started')
   }),
 
   // POST /api/shopify/sync/inventory
   syncAllInventory: asyncHandler(async (req, res) => {
-    const result = await shopifyService.syncAllInventory(req.user.id)
-    success(res, 200, result, 'Inventory synced to Shopify')
+    const jobId = await startBulkJob({
+      title: 'Syncing inventory to Shopify',
+      countQuery: () => prisma.product.count({ where: { shopifyInventoryItemId: { not: null } } }),
+      run: () => shopifyService.syncAllInventory(req.user.id, {
+        onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
+      }),
+    })
+    success(res, 202, { jobId }, 'Inventory sync started')
+  }),
+
+  // GET /api/shopify/sync-progress/:jobId — current snapshot of a bulk job
+  getBulkProgress: asyncHandler(async (req, res) => {
+    const data = syncProgress.getSnapshot(req.params.jobId)
+    success(res, 200, data, 'Sync progress fetched')
+  }),
+
+  // GET /api/shopify/sync-progress/:jobId/stream — live SSE stream (raw frames)
+  getBulkProgressStream: asyncHandler(async (req, res) => {
+    pipeProgressStream(req, res, req.params.jobId)
   }),
 
   // GET /api/shopify/status

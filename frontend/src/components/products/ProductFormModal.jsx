@@ -5,6 +5,7 @@ import { Input, Select, Label, Textarea } from '../ui/FormControls'
 import { Plus, X, Lock, Upload } from 'lucide-react'
 import { formatINR } from '../../utils/format'
 import apiClient from '../../api/client'
+import ProductUpdateProgress from './ProductUpdateProgress'
 
 // Real ERP SKUs look like SLR-001 / SLV-RNG-00001 (letters, hyphen, digits).
 const SKU_PATTERN = /^[A-Z]{2,}(?:-[A-Z]{2,})?-\d{3,}$/
@@ -120,6 +121,8 @@ export default function ProductFormModal({
   submitting,
   existingSkus = [],
   submitError = '',
+  syncProduct = null,
+  onSyncComplete,
 }) {
   const [form, setForm] = useState(() => buildForm(product, silverRate))
   const [skuError, setSkuError] = useState('')
@@ -299,17 +302,24 @@ export default function ProductFormModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? `Edit ${product.name}` : 'Add New Product'}
+      title={syncProduct ? 'Updating Product' : isEdit ? `Edit ${product.name}` : 'Add New Product'}
       onClose={onClose}
       footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" form="product-form" disabled={submitting}>
-            {submitting ? 'Saving...' : isEdit ? 'Save Changes' : form.pushToShopify ? 'Create & Push to Shopify' : 'Create Product'}
-          </Button>
-        </>
+        syncProduct ? (
+          <Button variant="ghost" onClick={onClose}>Close</Button>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" form="product-form" disabled={submitting}>
+              {submitting ? 'Saving...' : isEdit ? 'Save Changes' : form.pushToShopify ? 'Create & Push to Shopify' : 'Create Product'}
+            </Button>
+          </>
+        )
       }
     >
+      {syncProduct ? (
+        <ProductUpdateProgress product={syncProduct} onComplete={onSyncComplete} />
+      ) : (
       <form id="product-form" onSubmit={handleSubmit} className="space-y-5">
         {submitError && (
           <div className="text-xs text-red-700 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-lg px-3 py-2">
@@ -577,7 +587,8 @@ export default function ProductFormModal({
             <p className="text-xs text-gray-500">Saved as a billing-software-only product. Nothing is pushed to Shopify.</p>
           )}
         </div>
-      </form>
+        </form>
+      )}
     </Modal>
   )
 }

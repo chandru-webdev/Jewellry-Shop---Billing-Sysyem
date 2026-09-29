@@ -52,4 +52,8 @@ router.post('/sync/all-products', shopifyController.syncAllProducts)
 router.post('/sync/prices', shopifyController.syncAllPrices)
 router.post('/sync/inventory', shopifyController.syncAllInventory)
 
+// GET /api/shopify/sync-progress/:jobId — snapshot + SSE stream for bulk jobs
+router.get('/sync-progress/:jobId', shopifyController.getBulkProgress)
+router.get('/sync-progress/:jobId/stream', shopifyController.getBulkProgressStream)
+
 module.exports = router

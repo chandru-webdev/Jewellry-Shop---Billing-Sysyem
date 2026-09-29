@@ -1,4 +1,5 @@
 import apiClient from './client'
+import { streamSse } from './sse'
 
 export const shopifyApi = {
   // Latest sync status for each type (product / price / inventory / order)
@@ -11,7 +12,8 @@ export const shopifyApi = {
   testConnection: () => apiClient.post('/shopify/test-connection'),
   registerWebhooks: () => apiClient.post('/shopify/webhooks/register'),
 
-  // Manual sync jobs
+  // Manual bulk sync jobs — return immediately with { jobId }; stream that
+  // jobId via syncProgress()/streamSyncProgress() for live progress.
   syncProduct: (id) => apiClient.post(`/shopify/sync/products/${id}`),
   syncAllProducts: () => apiClient.post('/shopify/sync/all-products'),
   syncAllPrices: () => apiClient.post('/shopify/sync/prices'),
@@ -19,6 +21,13 @@ export const shopifyApi = {
   pullProducts: () => apiClient.post('/shopify/pull-products'),
   pullOrders: () => apiClient.post('/shopify/pull-orders'),
   pullCustomers: () => apiClient.post('/shopify/pull-customers'),
+
+  // Bulk sync progress: snapshot + live SSE stream for a jobId.
+  syncProgress: (jobId) => apiClient.get(`/shopify/sync-progress/${jobId}`),
+  streamSyncProgress: async (jobId, { onEvent, signal } = {}) => {
+    const demo = await streamSse(`/shopify/sync-progress/${jobId}/stream`, { onEvent, signal })
+    if (demo) onEvent?.({ status: 'none', message: 'Demo mode — sync skipped', steps: [], total: 0, done: 0 })
+  },
 
   // Fetch products from Shopify (preview/listing only, no import)
   fetchProducts: (params) => apiClient.get('/shopify/products', { params }),

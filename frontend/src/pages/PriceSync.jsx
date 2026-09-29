@@ -7,6 +7,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
 import { shopifyApi } from '../api/shopify'
+import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
 
 const statusTone = {
   Synced: 'green',
@@ -15,6 +16,7 @@ const statusTone = {
 
 export default function PriceSync() {
   const queryClient = useQueryClient()
+  const [syncJob, setSyncJob] = useState(null)
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopify-price-comparison'],
@@ -23,8 +25,22 @@ export default function PriceSync() {
 
   const syncAllMutation = useMutation({
     mutationFn: () => shopifyApi.syncAllPrices(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] }),
+    onSuccess: (res) => {
+      const jobId = res.data?.data?.jobId
+      if (!jobId) {
+        queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] })
+      } else {
+        setSyncJob({ jobId, title: 'Syncing Prices to Shopify' })
+      }
+    },
   })
+
+  // Fired by the live progress modal once the bulk price sync finishes.
+  const handleSyncJobComplete = () => {
+    setSyncJob(null)
+    queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+  }
 
   const total = items.length
   const inSync = items.filter((i) => i.match).length
@@ -34,8 +50,8 @@ export default function PriceSync() {
     <div>
       <PageHeader title="Price Sync" subtitle="Sync product prices between ERP and Shopify" actions={
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatches === 0}>
-            <RefreshCw size={14} className={syncAllMutation.isPending ? 'animate-spin' : ''} /> Sync All Prices
+          <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatches === 0 || Boolean(syncJob)}>
+            <RefreshCw size={14} className={syncAllMutation.isPending || syncJob ? 'animate-spin' : ''} /> Sync All Prices
           </Button>
           <Button variant="secondary" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] })}>
             <RefreshCw size={14} /> Refresh
@@ -122,6 +138,15 @@ export default function PriceSync() {
           </table>
         </div>
       </Card>
+
+      <BulkSyncProgress
+        key={syncJob?.jobId}
+        open={Boolean(syncJob)}
+        jobId={syncJob?.jobId}
+        title={syncJob?.title}
+        onClose={() => setSyncJob(null)}
+        onComplete={handleSyncJobComplete}
+      />
     </div>
   )
 }

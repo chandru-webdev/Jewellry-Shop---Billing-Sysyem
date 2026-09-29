@@ -6,9 +6,11 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { shopifyApi } from '../api/shopify'
+import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
 
 export default function InventorySync() {
   const queryClient = useQueryClient()
+  const [syncJob, setSyncJob] = useState(null)
 
   const { data: inventory = [], isLoading } = useQuery({
     queryKey: ['shopify-inventory-comparison'],
@@ -17,10 +19,22 @@ export default function InventorySync() {
 
   const syncAllMutation = useMutation({
     mutationFn: () => shopifyApi.syncAllInventory(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
+    onSuccess: (res) => {
+      const jobId = res.data?.data?.jobId
+      if (!jobId) {
+        queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
+      } else {
+        setSyncJob({ jobId, title: 'Syncing Inventory to Shopify' })
+      }
     },
   })
+
+  // Fired by the live progress modal once the bulk inventory sync finishes.
+  const handleSyncJobComplete = () => {
+    setSyncJob(null)
+    queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+  }
 
   const total = inventory.length
   const inSync = inventory.filter((i) => i.match).length
@@ -30,8 +44,8 @@ export default function InventorySync() {
     <div>
       <PageHeader title="Inventory Sync" subtitle="Sync stock levels between ERP and Shopify" actions={
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatched === 0}>
-            <ArrowUpDown size={14} className={syncAllMutation.isPending ? 'animate-pulse' : ''} /> Sync All
+          <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatched === 0 || Boolean(syncJob)}>
+            <ArrowUpDown size={14} className={syncAllMutation.isPending || syncJob ? 'animate-pulse' : ''} /> Sync All
           </Button>
           <Button variant="secondary" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })}>
             <RefreshCw size={14} /> Refresh
@@ -141,6 +155,15 @@ export default function InventorySync() {
           </div>
         </div>
       </Card>
+
+      <BulkSyncProgress
+        key={syncJob?.jobId}
+        open={Boolean(syncJob)}
+        jobId={syncJob?.jobId}
+        title={syncJob?.title}
+        onClose={() => setSyncJob(null)}
+        onComplete={handleSyncJobComplete}
+      />
     </div>
   )
 }

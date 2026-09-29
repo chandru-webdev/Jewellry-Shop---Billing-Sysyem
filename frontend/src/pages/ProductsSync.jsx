@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import { formatINR, formatDateTime } from '../utils/format'
 import { shopifyApi } from '../api/shopify'
 import { productsApi } from '../api/products'
+import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
 
 const statusColor = { active: 'green', draft: 'gray', archived: 'gray' }
 
@@ -25,6 +26,7 @@ export default function ProductsSync() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
+  const [syncJob, setSyncJob] = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -105,12 +107,27 @@ export default function ProductsSync() {
   const pushMutation = useMutation({
     mutationFn: () => shopifyApi.syncAllProducts(),
     onSuccess: (res) => {
-      const r = res.data.data
-      showToast(`Synced ${r.ok ?? 0} products to Shopify${r.failed ? `, failed ${r.failed}` : ''}`)
-      refreshAll()
+      const jobId = res.data?.data?.jobId
+      if (jobId) {
+        setSyncJob({ jobId, title: 'Syncing Products to Shopify' })
+      } else {
+        showToast('Products synced to Shopify')
+        refreshAll()
+      }
     },
     onError: (err) => showToast(err.response?.data?.message || err.message || 'Push failed', 'error'),
   })
+
+  // Fired by the live progress modal once the bulk sync job finishes.
+  const handleSyncJobComplete = (status, summary) => {
+    setSyncJob(null)
+    refreshAll()
+    if (status === 'success') {
+      showToast(`Synced ${summary?.ok ?? 0} products to Shopify${summary?.failed ? `, failed ${summary.failed}` : ''}`)
+    } else {
+      showToast(`Sync failed: ${summary?.message || 'Shopify sync failed'}`, 'error')
+    }
+  }
 
   const syncMutation = useMutation({
     mutationFn: (erpId) => shopifyApi.syncProduct(erpId),
@@ -141,14 +158,14 @@ export default function ProductsSync() {
   const active = products.filter((p) => p.status === 'active').length
   const mapped = products.filter((p) => p.erpMapped).length
   const unmapped = total - mapped
-  const busy = pullMutation.isPending || pushMutation.isPending
+  const busy = pullMutation.isPending || pushMutation.isPending || Boolean(syncJob)
 
   return (
     <div>
       <PageHeader title="Products Sync" subtitle="Manage Shopify product sync with ERP inventory" badge={<Badge tone="purple">{erpQuery.isLoading ? '…' : (erpQuery.data || []).filter((p) => p.isActive).length} Available</Badge>} actions={
         <div className="flex gap-2">
           <Button variant="primary" size="sm" onClick={() => pushMutation.mutate()} disabled={busy}>
-            {pushMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><Upload size={14} /> Sync All</>}
+            {pushMutation.isPending || syncJob ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><Upload size={14} /> Sync All</>}
           </Button>
           <Button variant="outline" size="sm" onClick={() => pullMutation.mutate()} disabled={busy}>
             {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><Download size={14} /> Pull from Shopify</>}
@@ -268,6 +285,15 @@ export default function ProductsSync() {
           </table>
         </div>
       </Card>
+
+      <BulkSyncProgress
+        key={syncJob?.jobId}
+        open={Boolean(syncJob)}
+        jobId={syncJob?.jobId}
+        title={syncJob?.title}
+        onClose={() => setSyncJob(null)}
+        onComplete={handleSyncJobComplete}
+      />
     </div>
   )
 }

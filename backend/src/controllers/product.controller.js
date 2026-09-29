@@ -2,6 +2,8 @@ const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
 const productService = require('../services/product.service')
 const { recalculateMissingSilverRate } = require('../services/pricing.service')
+const syncProgress = require('../services/syncProgress.service')
+const pipeProgressStream = require('../utils/progressStream')
 
 const productController = {
   list: asyncHandler(async (req, res) => {
@@ -47,6 +49,18 @@ const productController = {
   repairPricing: asyncHandler(async (req, res) => {
     const result = await recalculateMissingSilverRate({ userId: req.user.id, reason: 'PRICING_FIX_MISSING_SILVER_RATE' })
     success(res, 200, result, 'Pricing repaired')
+  }),
+
+  // Current snapshot of a product's in-flight sync (steps + statuses).
+  getSyncProgress: asyncHandler(async (req, res) => {
+    const data = syncProgress.getSnapshot(req.params.id)
+    success(res, 200, data, 'Sync progress fetched')
+  }),
+
+  // Server-Sent Events stream — pushes each step update in real time and
+  // closes once the job finishes. No success() envelope; it's raw SSE frames.
+  getSyncProgressStream: asyncHandler(async (req, res) => {
+    pipeProgressStream(req, res, req.params.id)
   }),
 }
 

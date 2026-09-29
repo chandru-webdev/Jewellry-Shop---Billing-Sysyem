@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import ProductFormModal from '../components/products/ProductFormModal'
 import ProductViewModal from '../components/products/ProductViewModal'
 import ProductImageModal from '../components/products/ProductImageModal'
+import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
 import { productsApi } from '../api/products'
 import { categoriesApi } from '../api/categories'
 import { collectionsApi } from '../api/collections'
@@ -26,6 +27,8 @@ export default function Products() {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalKey, setModalKey] = useState(0)
   const [editing, setEditing] = useState(null)
+  const [syncProduct, setSyncProduct] = useState(null)
+  const [syncJob, setSyncJob] = useState(null)
   const [viewing, setViewing] = useState(null)
   const [imageProduct, setImageProduct] = useState(null)
   const [error, setError] = useState('')
@@ -99,17 +102,35 @@ export default function Products() {
         : productsApi.create(payload),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
-      setModalOpen(false)
-      setEditing(null)
-      setError('')
       const saved = res.data?.data
-      if (saved?.shopifyError) {
-        showToast(`Saved locally — Shopify push failed: ${saved.shopifyError}`, 'warn')
+      setError('')
+      if (editing && saved) {
+        // Keep the modal open and stream the Shopify push steps live.
+        setSyncProduct(saved)
       } else {
-        showToast(editing ? 'Product updated successfully' : 'Product created successfully')
+        setModalOpen(false)
+        setEditing(null)
+        if (saved?.shopifyError) {
+          showToast(`Saved locally — Shopify push failed: ${saved.shopifyError}`, 'warn')
+        } else {
+          showToast('Product created successfully')
+        }
       }
     },
   })
+
+  // Called by the live progress stepper once the update + Shopify push finish.
+  const handleSyncComplete = (status, message) => {
+    setModalOpen(false)
+    setEditing(null)
+    setSyncProduct(null)
+    setModalKey((k) => k + 1)
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    showToast(
+      status === 'success' ? message || 'Product updated' : message || 'Product saved, but Shopify sync failed',
+      status === 'success' ? 'success' : 'warn'
+    )
+  }
 
   const toggleMutation = useMutation({
     mutationFn: (product) =>
@@ -200,12 +221,29 @@ export default function Products() {
   const syncShopifyMutation = useMutation({
     mutationFn: () => shopifyApi.syncAllProducts(),
     onSuccess: (res) => {
-      const r = res.data?.data || {}
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      showToast(`Synced ${r.ok ?? 0} products to Shopify${r.failed ? `, failed ${r.failed}` : ''}`)
+      const jobId = res.data?.data?.jobId
+      if (jobId) {
+        setSyncJob({ jobId, title: 'Syncing Products to Shopify' })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['products'] })
+        showToast('Products synced to Shopify')
+      }
     },
     onError: (err) => setError(err.response?.data?.message || err.message || 'Sync failed'),
   })
+
+  // Fired by the live progress modal once a bulk "Sync Shopify" job finishes.
+  const handleSyncJobComplete = (status, summary) => {
+    setSyncJob(null)
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-logs'] })
+    if (status === 'success') {
+      showToast(`Synced ${summary?.ok ?? 0} products to Shopify${summary?.failed ? `, failed ${summary.failed}` : ''}`)
+    } else {
+      showToast(`Sync failed: ${summary?.message || 'Shopify sync failed'}`, 'warn')
+    }
+  }
 
   const filtered = (products || []).filter((p) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.sku?.toLowerCase().includes(search.toLowerCase())) return false
@@ -240,7 +278,7 @@ export default function Products() {
                 {importMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <><Upload size={14} /> Import</>}
               </Button>
               <ExportControls onExport={handleExport} />
-              <Button variant="outline" size="sm" onClick={() => syncShopifyMutation.mutate()} disabled={syncShopifyMutation.isPending}>{syncShopifyMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <><RefreshCw size={14} /> Sync Shopify</>}</Button>
+              <Button variant="outline" size="sm" onClick={() => syncShopifyMutation.mutate()} disabled={syncShopifyMutation.isPending || Boolean(syncJob)}>{syncShopifyMutation.isPending || syncJob ? <Loader2 size={14} className="animate-spin" /> : <><RefreshCw size={14} /> Sync Shopify</>}</Button>
               <Button size="sm" onClick={() => { setEditing(null); setModalKey((k) => k + 1); setModalOpen(true) }}>
                 <Plus size={14} /> Add Product
               </Button>
@@ -467,7 +505,7 @@ export default function Products() {
       <ProductFormModal
         key={modalKey}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setSyncProduct(null) }}
         product={editing}
         categories={categories || []}
         collections={collections || []}
@@ -477,6 +515,8 @@ export default function Products() {
         submitError={saveMutation.isError ? saveMutation.error?.response?.data?.message || saveMutation.error?.message || 'Failed to save product' : ''}
         onSubmit={(payload) => saveMutation.mutate(payload)}
         submitting={saveMutation.isPending}
+        syncProduct={syncProduct}
+        onSyncComplete={handleSyncComplete}
       />
 
       <ProductViewModal
@@ -497,6 +537,15 @@ export default function Products() {
         product={imageProduct}
         onSave={(urls) => imageMutation.mutate({ id: imageProduct.id, data: { imageUrls: urls } })}
         submitting={imageMutation.isPending}
+      />
+
+      <BulkSyncProgress
+        key={syncJob?.jobId}
+        open={Boolean(syncJob)}
+        jobId={syncJob?.jobId}
+        title={syncJob?.title}
+        onClose={() => setSyncJob(null)}
+        onComplete={handleSyncJobComplete}
       />
     </div>
   )

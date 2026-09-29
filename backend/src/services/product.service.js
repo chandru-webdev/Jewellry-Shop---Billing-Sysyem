@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError')
 const { calculatePrice, getSilverRate } = require('./pricing.service')
 const shopifyService = require('./shopify.service')
 const inventoryService = require('./inventory.service')
+const syncProgress = require('./syncProgress.service')
 const { escapeLike } = require('../utils/sanitizeSearch')
 const { normalizeSKU } = require('../utils/sku')
 
@@ -172,6 +173,10 @@ const productService = {
   async update(id, data, userId) {
     const existing = await this.getById(id)
 
+    // Live progress job streamed to the update page while this runs.
+    syncProgress.start(id)
+    syncProgress.report(id, 'save', 'running', 'Saving product…')
+
     if (data.sku && data.sku !== existing.sku) {
       const duplicate = await prisma.product.findUnique({ where: { sku: data.sku } })
       if (duplicate) throw new ApiError(400, `SKU "${data.sku}" already exists`)
@@ -244,6 +249,9 @@ const productService = {
       include: { category: true, inventory: true, collection: true, supplier: true },
     })
 
+    syncProgress.report(id, 'save', 'done', 'Saved locally')
+    syncProgress.report(id, 'price', 'done', `Selling price ₹${new Decimal(product.sellingPrice).toDecimalPlaces(2).toString()}`)
+
     // Record price history if selling price changed
     const oldSelling = new Decimal(existing.sellingPrice)
     const newSelling = new Decimal(product.sellingPrice)
@@ -277,13 +285,30 @@ const productService = {
       })
     }
 
-    // Push to Shopify if price-relevant fields changed OR status changed
+    // Push to Shopify if price-relevant fields changed OR status changed.
+    // This runs in the background (the PUT response is returned immediately)
+    // while the update page streams each step live via sync-progress.
     const isActiveChanged = data.isActive !== undefined && data.isActive !== existing.isActive
     const shopifyStatusChanged = data.shopifyStatus !== undefined && data.shopifyStatus !== existing.shopifyStatus
     const chargeTaxChanged = data.chargeTax !== undefined && data.chargeTax !== existing.chargeTax
     const imageChanged = imageUrlListSupplied(data.imageUrls) || data.shopifyImageUrl !== undefined
-    if (product.shopifyVariantId && (data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.colour !== undefined || data.purity !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || shopifyStatusChanged || chargeTaxChanged || imageChanged)) {
-      shopifyService.updateProductOnShopify(product).catch(() => {})
+    const priceFieldChanged = data.weight !== undefined || data.netWeight !== undefined || data.grossWeight !== undefined || data.stoneWeight !== undefined || data.stoneType !== undefined || data.stonePieces !== undefined || data.stoneValue !== undefined || data.colour !== undefined || data.purity !== undefined || data.makingCharge !== undefined || data.gstPercent !== undefined || data.sellingPrice !== undefined || data.compareAtPrice !== undefined || isActiveChanged || shopifyStatusChanged || chargeTaxChanged || imageChanged
+
+    if (product.shopifyVariantId && product.pushToShopify !== false && priceFieldChanged) {
+      shopifyService
+        .updateProductOnShopify(product, {
+          onProgress: (step, status, message) => syncProgress.report(id, step, status, message),
+        })
+        .then(() => {
+          syncProgress.finish(id, 'success', 'Product synced to Shopify')
+        })
+        .catch((err) => {
+          console.error(`Product ${id} Shopify sync failed:`, err.message)
+          syncProgress.finish(id, 'failed', (err && err.message) || 'Shopify sync failed')
+        })
+    } else {
+      syncProgress.skipShopifySteps(id, product.shopifyVariantId ? 'No Shopify changes to push' : 'Not linked to Shopify')
+      syncProgress.finish(id, 'success', 'Saved locally')
     }
 
     // Handle stock update via inventory

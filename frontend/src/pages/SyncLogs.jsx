@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2, AlertTriangle } from 'lucide-react'
+import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2, AlertTriangle, Eye, ChevronDown, ChevronUp } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -21,6 +21,7 @@ export default function SyncLogs() {
   const [filterStatus, setFilterStatus] = useState('All')
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState(null)
+  const [expandedLogId, setExpandedLogId] = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -45,6 +46,7 @@ export default function SyncLogs() {
     action: l.action || l.type || 'Sync',
     time: l.createdAt,
     duration: l.duration || '—',
+    failures: Array.isArray(l.failures) ? l.failures : [],
   }))
 
   const synced = logs.filter((l) => l.status === 'SUCCESS').length
@@ -211,28 +213,60 @@ export default function SyncLogs() {
               )}
               {!isFetching && filtered.map((log, i) => {
                 const StatusIcon = statusIcon[log.status] || Clock
+                const isOpen = expandedLogId === log.id
                 return (
-                  <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors`}>
-                    <td className="px-4 py-2.5"><Badge tone={typeColor[log.type] || 'gray'}>{log.entityLabel}</Badge></td>
-                    <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300 text-xs">{log.id}</td>
-                    <td className="px-4 py-2.5 font-medium text-royal-950 dark:text-white text-xs max-w-52 truncate">{log.entityName}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{log.direction}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.itemsProcessed ?? '—'}</td>
-                    <td className="px-4 py-2.5">
-                      <Badge tone={statusColor[log.status]}>
-                        <StatusIcon size={11} className="mr-1" /> {log.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{new Date(log.time).toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-right">
-                      {log.status === 'FAILED' && (
-                        <Button variant="ghost" size="sm" onClick={() => retryMutation.mutate(log)} disabled={retryMutation.isPending}>
-                          <RefreshCw size={12} className={retryMutation.isPending ? 'animate-spin' : ''} /> Retry
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors`}>
+                      <td className="px-4 py-2.5"><Badge tone={typeColor[log.type] || 'gray'}>{log.entityLabel}</Badge></td>
+                      <td className="px-4 py-2.5 font-mono font-semibold text-royal-700 dark:text-gray-300 text-xs">{log.id}</td>
+                      <td className="px-4 py-2.5 font-medium text-royal-950 dark:text-white text-xs max-w-52 truncate">{log.entityName}</td>
+                      <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{log.direction}</td>
+                      <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.action}</td>
+                      <td className="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{log.itemsProcessed ?? '—'}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge tone={statusColor[log.status]}>
+                          <StatusIcon size={11} className="mr-1" /> {log.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{new Date(log.time).toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        {log.status === 'FAILED' && (
+                          <div className="flex items-center justify-end gap-2">
+                            {log.failures.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                              >
+                                {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                <Eye size={12} className="ml-1" /> {isOpen ? 'Hide' : 'View'} ({log.failures.length})
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => retryMutation.mutate(log)} disabled={retryMutation.isPending}>
+                              <RefreshCw size={12} className={retryMutation.isPending ? 'animate-spin' : ''} /> Retry
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                    {isOpen && log.failures.length > 0 && (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-3 bg-red-50 dark:bg-red-950/30 border-t border-red-100 dark:border-red-900/40">
+                          <div className="space-y-2">
+                            {log.failures.map((f, fi) => (
+                              <div key={fi} className="rounded-lg bg-white dark:bg-[#1a1025] border border-red-200 dark:border-red-800 p-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-semibold text-red-800 dark:text-red-300 min-w-0">{f.name || 'Unknown product'}</span>
+                                  {f.sku && <span className="text-[11px] font-mono text-red-500 dark:text-red-400">({f.sku})</span>}
+                                </div>
+                                {f.message && <p className="text-xs text-red-600 dark:text-red-400 mt-1 break-words">{f.message}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 )
               })}
               {!isFetching && filtered.length === 0 && (

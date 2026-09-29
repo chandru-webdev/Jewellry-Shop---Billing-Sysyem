@@ -14,13 +14,37 @@ const fs = require('fs')
 const path = require('path')
 const prisma = require('../prisma/client')
 const { Prisma } = require('@prisma/client')
-const { request, graphql, throttle, ShopifyApiError } = require('../integrations/shopify/client')
+const { request, graphql, throttle, ShopifyApiError, withRetry } = require('../integrations/shopify/client')
 const { getSilverRate } = require('./pricing.service')
 const { normalizeSKU } = require('../utils/sku')
 const env = require('../config/env')
 const { credentials } = require('../integrations/shopify/shopifyConfig')
 
 const Decimal = Prisma.Decimal
+
+// History is kept for 3 days, then pruned (see pruneSyncHistory below).
+const HISTORY_RETENTION_MS = 3 * 24 * 60 * 60 * 1000
+
+// How many products a bulk job may process at the same time. Calls are still
+// paced by the shared Shopify rate limiter (client.js), so several products
+// can be in flight without blowing Shopify's ~2 req/s sustained cap.
+const BULK_CONCURRENCY = 4
+
+// Run `worker(item, index)` over every item with at most `concurrency` in
+// flight at once. Each worker must return (not throw) its own outcome so one
+// failing item never stalls or rejects the rest of the pool.
+async function runPool(items, concurrency, worker) {
+  const results = new Array(items.length)
+  let next = 0
+  const runners = Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, async () => {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await worker(items[i], i)
+    }
+  })
+  await Promise.all(runners)
+  return results
+}
 
 const shopifyService = {
 
@@ -319,7 +343,7 @@ const shopifyService = {
     // the log with identical "All items synced" rows that look like the order
     // syncing again.
     if (created > 0 || failed > 0 || firstError) {
-      await this.logSync('ORDER', ok, failed, firstError, userId)
+      await this.logSync('ORDER', ok, failed, firstError, userId, scannedOrders)
     }
 
     return {
@@ -511,25 +535,29 @@ const shopifyService = {
     const levels = await request(`/inventory_levels.json?inventory_item_ids=${inventoryItemId}`)
     for (const lvl of levels.inventory_levels || []) {
       if (lvl.location_id !== locationId) {
-        await request('/inventory_levels/set.json', {
-          method: 'POST',
-          body: {
-            location_id: lvl.location_id,
-            inventory_item_id: inventoryItemId,
-            available: 0,
-          },
-        })
+        await withRetry(() =>
+          request('/inventory_levels/set.json', {
+            method: 'POST',
+            body: {
+              location_id: lvl.location_id,
+              inventory_item_id: inventoryItemId,
+              available: 0,
+            },
+          })
+        )
       }
     }
 
-    return request('/inventory_levels/set.json', {
-      method: 'POST',
-      body: {
-        location_id: locationId,
-        inventory_item_id: inventoryItemId,
-        available: quantity,
-      },
-    })
+    return withRetry(() =>
+      request('/inventory_levels/set.json', {
+        method: 'POST',
+        body: {
+          location_id: locationId,
+          inventory_item_id: inventoryItemId,
+          available: quantity,
+        },
+      })
+    )
   },
 
   // Create a brand-new product on Shopify. Returns the Shopify ids.
@@ -568,10 +596,12 @@ const shopifyService = {
       shopifyProduct.images = imageUrls.map((src) => ({ src }))
     }
 
-    const res = await request('/products.json', {
-      method: 'POST',
-      body: { product: shopifyProduct },
-    })
+    const res = await withRetry(() =>
+      request('/products.json', {
+        method: 'POST',
+        body: { product: shopifyProduct },
+      })
+    )
 
     const p = res.product
     const createdVariant = p.variants[0]
@@ -639,16 +669,26 @@ const shopifyService = {
         : []
     const mergedImages = this.mergeImageUrls(storeImages, erpImages)
 
-    if (mergedImages.length) {
+    // Only rewrite Shopify images when the merged set actually changed. Sending
+    // the full image array on every sync re-triggers Shopify's async image
+    // processing, which keeps the product "currently being modified" (409) and
+    // can surface as 500 errors on the product write.
+    const storeSet = new Set(storeImages.map((src) => this.normalizeImageUrl(src)))
+    const mergedSet = new Set(mergedImages.map((src) => this.normalizeImageUrl(src)))
+    const imagesChanged =
+      storeSet.size !== mergedSet.size || [...mergedSet].some((url) => !storeSet.has(url))
+    if (imagesChanged && mergedImages.length) {
       shopifyProduct.images = mergedImages.map((src) => ({ src }))
     }
 
     progress('shopifyProduct', 'running', 'Updating product details…')
     try {
-      await request(`/products/${product.shopifyProductId}.json`, {
-        method: 'PUT',
-        body: { product: shopifyProduct },
-      })
+      await withRetry(() =>
+        request(`/products/${product.shopifyProductId}.json`, {
+          method: 'PUT',
+          body: { product: shopifyProduct },
+        })
+      )
       progress('shopifyProduct', 'done', 'Product details updated')
     } catch (err) {
       progress('shopifyProduct', 'failed', err.message)
@@ -670,10 +710,12 @@ const shopifyService = {
 
     progress('shopifyVariant', 'running', 'Updating variant & price…')
     try {
-      await request(`/variants/${product.shopifyVariantId}.json`, {
-        method: 'PUT',
-        body: { variant: variantUpdate },
-      })
+      await withRetry(() =>
+        request(`/variants/${product.shopifyVariantId}.json`, {
+          method: 'PUT',
+          body: { variant: variantUpdate },
+        })
+      )
       progress('shopifyVariant', 'done', `Price ₹${Number(product.sellingPrice || 0).toFixed(2)}`)
     } catch (err) {
       progress('shopifyVariant', 'failed', err.message)
@@ -758,13 +800,15 @@ const shopifyService = {
     )
 
     const ownerId = `gid://shopify/Product/${product.shopifyProductId}`
-    const res = await graphql(
-      `mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+    const res = await withRetry(() =>
+      graphql(
+        `mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) {
           userErrors { field message }
         }
       }`,
-      { metafields: validMetafields.map((m) => ({ ...m, ownerId })) }
+        { metafields: validMetafields.map((m) => ({ ...m, ownerId })) }
+      )
     )
 
     const userErrors = res?.data?.metafieldsSet?.userErrors || []
@@ -899,31 +943,32 @@ const shopifyService = {
       include: { category: true, inventory: true },
     })
 
-    let ok = 0
-    let failed = 0
-    let firstError = null
-
-    for (const product of products) {
+    const results = await runPool(products, BULK_CONCURRENCY, async (product) => {
       const key = String(product.id)
-      onBulk?.(key, product.name, 'running', 'Starting…')
       try {
+        onBulk?.(key, product.name, 'running', 'Starting…')
         await this.syncProduct(product.id, {
           onProgress: (step, status, message) => {
             if (status === 'running') onBulk?.(key, product.name, 'running', message || 'Syncing…')
           },
         })
-        ok++
         onBulk?.(key, product.name, 'done', 'Synced')
+        return { ok: true }
       } catch (err) {
-        failed++
-        if (!firstError) firstError = err.message
         onBulk?.(key, product.name, 'failed', err.message)
+        return { ok: false, message: err.message }
       }
-      await throttle()
-    }
+    })
 
-    await this.logSync('PRODUCT', ok, failed, firstError, userId)
-    return { total: products.length, ok, failed, firstError }
+    const ok = results.filter((r) => r.ok).length
+    const failed = products.length - ok
+    const firstError = results.find((r) => !r.ok)?.message || null
+    const failures = products
+      .map((p, i) => (results[i].ok ? null : { id: p.id, sku: p.sku, name: p.name, message: results[i].message }))
+      .filter(Boolean)
+
+    await this.logSync('PRODUCT', ok, failed, firstError, userId, products.length, failures)
+    return { total: products.length, ok, failed, firstError, failures }
   },
 
   // Re-publish every product price to Shopify (after a rate change)
@@ -932,37 +977,40 @@ const shopifyService = {
       where: { isActive: true, shopifyVariantId: { not: null } },
     })
 
-    let ok = 0
-    let failed = 0
-    let firstError = null
-
-    for (const product of products) {
+    const results = await runPool(products, BULK_CONCURRENCY, async (product) => {
       const key = String(product.id)
       const price = Number(product.sellingPrice).toFixed(2)
-      onBulk?.(key, product.name, 'running', `Pushing price ₹${price}…`)
       try {
-        await request(`/variants/${product.shopifyVariantId}.json`, {
-          method: 'PUT',
-          body: {
-            variant: {
-              id: Number(product.shopifyVariantId),
-              price: Number(product.sellingPrice).toFixed(2),
+        onBulk?.(key, product.name, 'running', `Pushing price ₹${price}…`)
+        await withRetry(() =>
+          request(`/variants/${product.shopifyVariantId}.json`, {
+            method: 'PUT',
+            body: {
+              variant: {
+                id: Number(product.shopifyVariantId),
+                price: Number(product.sellingPrice).toFixed(2),
+              },
             },
-          },
-        })
+          })
+        )
         await this.pushProductMetafields(product)
-        ok++
         onBulk?.(key, product.name, 'done', `₹${price}`)
+        return { ok: true }
       } catch (err) {
-        failed++
-        if (!firstError) firstError = err.message
         onBulk?.(key, product.name, 'failed', err.message)
+        return { ok: false, message: err.message }
       }
-      await throttle()
-    }
+    })
 
-    await this.logSync('PRICE', ok, failed, firstError, userId)
-    return { total: products.length, ok, failed, firstError }
+    const ok = results.filter((r) => r.ok).length
+    const failed = products.length - ok
+    const firstError = results.find((r) => !r.ok)?.message || null
+    const failures = products
+      .map((p, i) => (results[i].ok ? null : { id: p.id, sku: p.sku, name: p.name, message: results[i].message }))
+      .filter(Boolean)
+
+    await this.logSync('PRICE', ok, failed, firstError, userId, products.length, failures)
+    return { total: products.length, ok, failed, firstError, failures }
   },
 
   // Push every product's current stock to Shopify
@@ -972,40 +1020,64 @@ const shopifyService = {
       include: { inventory: true },
     })
 
-    let ok = 0
-    let failed = 0
-    let firstError = null
-
-    for (const product of products) {
+    const results = await runPool(products, BULK_CONCURRENCY, async (product) => {
       const key = String(product.id)
       const qty = product.inventory?.quantity ?? 0
-      onBulk?.(key, product.name, 'running', `Syncing ${qty} in stock…`)
       try {
+        onBulk?.(key, product.name, 'running', `Syncing ${qty} in stock…`)
         await this.setInventoryLevel(Number(product.shopifyInventoryItemId), qty)
-        ok++
         onBulk?.(key, product.name, 'done', `${qty} in stock`)
+        return { ok: true }
       } catch (err) {
-        failed++
-        if (!firstError) firstError = err.message
         onBulk?.(key, product.name, 'failed', err.message)
+        return { ok: false, message: err.message }
       }
-      await throttle()
-    }
+    })
 
-    await this.logSync('INVENTORY', ok, failed, firstError, userId)
-    return { total: products.length, ok, failed, firstError }
+    const ok = results.filter((r) => r.ok).length
+    const failed = products.length - ok
+    const firstError = results.find((r) => !r.ok)?.message || null
+    const failures = products
+      .map((p, i) => (results[i].ok ? null : { id: p.id, sku: p.sku, name: p.name, message: results[i].message }))
+      .filter(Boolean)
+
+    await this.logSync('INVENTORY', ok, failed, firstError, userId, products.length, failures)
+    return { total: products.length, ok, failed, firstError, failures }
   },
 
-  // Write one row in ShopifySyncLog so the dashboard can show status
-  async logSync(type, ok, failed, firstError, userId) {
+  // Write one row in ShopifySyncLog so the dashboard can show status.
+  // `total` is the number of items the job tried (products in the sync scope);
+  // `ok`/`failed` split that total, `pending` = items still not processed.
+  // `failures` (optional) is the per-item failure detail [ { id, name, sku, message } ]
+  // so the UI can show WHICH products failed and WHY.
+  async logSync(type, ok, failed, firstError, userId, total, failures) {
+    await this.pruneSyncHistory()
+
+    const pending = Math.max((total ?? 0) - ok - failed, 0)
+    const failureDetail = Array.isArray(failures) ? failures.slice(0, 100) : []
     await prisma.shopifySyncLog.create({
       data: {
         type,
-        status: failed === 0 ? 'SUCCESS' : failed > 0 && ok > 0 ? 'FAILED' : 'FAILED',
+        status: failed === 0 ? 'SUCCESS' : 'FAILED',
         itemsProcessed: ok,
         message: failed === 0 ? 'All items synced' : `${failed} failed. ${firstError || ''}`.trim(),
-        payload: { ok, failed, userId },
+        payload: {
+          total: total ?? ok,
+          ok,
+          failed,
+          pending,
+          userId,
+          ...(failureDetail.length ? { failures: failureDetail } : {}),
+        },
       },
+    })
+  },
+
+  // History is only kept for 3 days — drop anything older. Runs on every sync
+  // log write and every history/sync-logs read so old rows can't accumulate.
+  async pruneSyncHistory() {
+    await prisma.shopifySyncLog.deleteMany({
+      where: { createdAt: { lt: new Date(Date.now() - HISTORY_RETENTION_MS) } },
     })
   },
 

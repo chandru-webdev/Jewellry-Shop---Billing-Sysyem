@@ -138,7 +138,8 @@ const shopifyController = {
     success(res, 200, result, 'Products fetched from Shopify')
   }),
 
-  // GET /api/shopify/sync-logs — list sync log entries
+  // GET /api/shopify/sync-logs — list sync history (kept for 3 days).
+  // Each row carries derived counts: total/ok/failed/pending.
   syncLogs: asyncHandler(async (req, res) => {
     const { type, status, limit: queryLimit } = req.query
     const allowedTypes = ['PRODUCT', 'PRICE', 'INVENTORY', 'ORDER', 'CUSTOMER']
@@ -146,12 +147,25 @@ const shopifyController = {
     const where = {}
     if (type && allowedTypes.includes(type)) where.type = type
     if (status && allowedStatuses.includes(status)) where.status = status
+
+    await shopifyService.pruneSyncHistory()
+
     const logs = await prisma.shopifySyncLog.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: Math.min(Number(queryLimit) || 50, 200),
+      take: Math.min(Number(queryLimit) || 100, 200),
     })
-    success(res, 200, logs, 'Sync logs fetched')
+
+    const shaped = logs.map((l) => {
+      const payload = l.payload && typeof l.payload === 'object' ? l.payload : {}
+      const ok = typeof payload.ok === 'number' ? payload.ok : l.itemsProcessed
+      const failed = typeof payload.failed === 'number' ? payload.failed : 0
+      const total = typeof payload.total === 'number' ? payload.total : ok + failed
+      const pending = typeof payload.pending === 'number' ? payload.pending : Math.max(total - ok - failed, 0)
+      const failures = Array.isArray(payload.failures) ? payload.failures : []
+      return { ...l, total, ok, failed, pending, failures }
+    })
+    success(res, 200, shaped, 'Sync logs fetched')
   }),
 
   // GET /api/shopify/inventory-comparison — ERP vs Shopify stock

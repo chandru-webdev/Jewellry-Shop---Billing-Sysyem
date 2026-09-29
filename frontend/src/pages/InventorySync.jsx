@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Boxes, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
+import { RefreshCw, Boxes, AlertTriangle, CheckCircle2, ArrowUpDown, History as HistoryIcon } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { shopifyApi } from '../api/shopify'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 
 export default function InventorySync() {
   const queryClient = useQueryClient()
   const [syncJob, setSyncJob] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data: inventory = [], isLoading } = useQuery({
     queryKey: ['shopify-inventory-comparison'],
@@ -44,6 +46,9 @@ export default function InventorySync() {
     <div>
       <PageHeader title="Inventory Sync" subtitle="Sync stock levels between ERP and Shopify" actions={
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <HistoryIcon size={14} /> History
+          </Button>
           <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatched === 0 || Boolean(syncJob)}>
             <ArrowUpDown size={14} className={syncAllMutation.isPending || syncJob ? 'animate-pulse' : ''} /> Sync All
           </Button>
@@ -163,6 +168,12 @@ export default function InventorySync() {
         title={syncJob?.title}
         onClose={() => setSyncJob(null)}
         onComplete={handleSyncJobComplete}
+      />
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="INVENTORY"
       />
     </div>
   )

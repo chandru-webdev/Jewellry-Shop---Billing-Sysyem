@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Upload, Download, Search, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react'
+import { RefreshCw, Upload, Download, Search, CheckCircle2, Loader2, AlertTriangle, History } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -9,6 +9,7 @@ import { formatINR, formatDateTime } from '../utils/format'
 import { shopifyApi } from '../api/shopify'
 import { productsApi } from '../api/products'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 
 const statusColor = { active: 'green', draft: 'gray', archived: 'gray' }
 
@@ -27,6 +28,7 @@ export default function ProductsSync() {
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
   const [syncJob, setSyncJob] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -164,6 +166,9 @@ export default function ProductsSync() {
     <div>
       <PageHeader title="Products Sync" subtitle="Manage Shopify product sync with ERP inventory" badge={<Badge tone="purple">{erpQuery.isLoading ? '…' : (erpQuery.data || []).filter((p) => p.isActive).length} Available</Badge>} actions={
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <History size={14} /> History
+          </Button>
           <Button variant="primary" size="sm" onClick={() => pushMutation.mutate()} disabled={busy}>
             {pushMutation.isPending || syncJob ? <><Loader2 size={14} className="animate-spin" /> Syncing...</> : <><Upload size={14} /> Sync All</>}
           </Button>
@@ -293,6 +298,12 @@ export default function ProductsSync() {
         title={syncJob?.title}
         onClose={() => setSyncJob(null)}
         onComplete={handleSyncJobComplete}
+      />
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="PRODUCT"
       />
     </div>
   )

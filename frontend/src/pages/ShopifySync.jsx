@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag, Search, Loader2 } from 'lucide-react'
+import { Store, RefreshCw, Package, DollarSign, Boxes, AlertCircle, CheckCircle2, XCircle, Clock, RotateCw, CreditCard, Download, ShoppingBag, Search, Loader2, History as HistoryIcon } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 import { shopifyApi } from '../api/shopify'
 import { formatINR } from '../utils/format'
 
@@ -30,6 +31,7 @@ export default function ShopifySync() {
   const [tab, setTab] = useState('dashboard')
   const [productSearch, setProductSearch] = useState('')
   const [retrying, setRetrying] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const syncQuery = useQuery({
@@ -112,6 +114,9 @@ export default function ShopifySync() {
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={() => pullMutation.mutate()} disabled={pullMutation.isPending}><RefreshCw size={14} /> Force Sync All</Button>
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <HistoryIcon size={14} /> History
+            </Button>
           </div>
         }
       />
@@ -303,6 +308,13 @@ export default function ShopifySync() {
           </div>
         </Card>
       )}
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="ALL"
+        title="Shopify Sync History"
+      />
     </div>
   )
 }

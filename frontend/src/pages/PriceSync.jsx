@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DollarSign, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react'
+import { DollarSign, RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle, History as HistoryIcon } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
 import { shopifyApi } from '../api/shopify'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 
 const statusTone = {
   Synced: 'green',
@@ -17,6 +18,7 @@ const statusTone = {
 export default function PriceSync() {
   const queryClient = useQueryClient()
   const [syncJob, setSyncJob] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopify-price-comparison'],
@@ -50,6 +52,9 @@ export default function PriceSync() {
     <div>
       <PageHeader title="Price Sync" subtitle="Sync product prices between ERP and Shopify" actions={
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <HistoryIcon size={14} /> History
+          </Button>
           <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()} disabled={syncAllMutation.isPending || mismatches === 0 || Boolean(syncJob)}>
             <RefreshCw size={14} className={syncAllMutation.isPending || syncJob ? 'animate-spin' : ''} /> Sync All Prices
           </Button>
@@ -146,6 +151,12 @@ export default function PriceSync() {
         title={syncJob?.title}
         onClose={() => setSyncJob(null)}
         onComplete={handleSyncJobComplete}
+      />
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="PRICE"
       />
     </div>
   )

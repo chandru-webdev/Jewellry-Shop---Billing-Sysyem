@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2, XCircle } from 'lucide-react'
+import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2, XCircle, History as HistoryIcon } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 import { shopifyApi } from '../api/shopify'
 import { ordersApi } from '../api/orders'
 import { formatINR, formatDateTime } from '../utils/format'
@@ -52,6 +53,7 @@ export default function ShopifyDashboard() {
   const statusKey = { queryKey: ['shopify-status'] }
   const logsKey = { queryKey: ['shopify-logs'] }
   const ordersKey = { queryKey: ['orders', 'shopify'] }
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data: syncStatus = {}, refetch } = useQuery({
     queryKey: ['shopify-status'],
@@ -153,6 +155,9 @@ export default function ShopifyDashboard() {
               <XCircle size={14} /> Clear Failures ({failedCount})
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+            <HistoryIcon size={14} /> History
+          </Button>
           <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
             {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><RefreshCw size={14} /> Sync All</>}
           </Button>
@@ -252,6 +257,13 @@ export default function ShopifyDashboard() {
           ))}
         </div>
       </Card>
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="ALL"
+        title="Shopify Sync History"
+      />
     </div>
   )
 }

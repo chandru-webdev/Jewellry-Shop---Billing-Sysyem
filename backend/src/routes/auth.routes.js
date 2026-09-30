@@ -1,6 +1,6 @@
 const express = require('express')
 const authController = require('../controllers/auth.controller')
-const { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetCodeSchema } = require('../validators/auth.validator')
+const { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetCodeSchema, verifyAdminPasswordSchema } = require('../validators/auth.validator')
 const validate = require('../middleware/validate')
 const { authenticate } = require('../middleware/auth')
 
@@ -26,5 +26,8 @@ router.post('/verify-reset-code', validate(verifyResetCodeSchema), authControlle
 
 // POST /api/auth/reset-password  (public)
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword)
+
+// POST /api/auth/verify-admin-password  (protected) - verify current user's password for sensitive operations
+router.post('/verify-admin-password', authenticate, validate(verifyAdminPasswordSchema), authController.verifyAdminPassword)
 
 module.exports = router

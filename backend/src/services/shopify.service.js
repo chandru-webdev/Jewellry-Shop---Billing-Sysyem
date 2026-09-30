@@ -780,6 +780,7 @@ const shopifyService = {
       { namespace: 'silver', key: 'gross_weight', value: String(Number(product.grossWeight ?? netWeight)), type: 'number_decimal' },
       { namespace: 'silver', key: 'colour', value: String(product.colour || ''), type: 'single_line_text_field' },
       { namespace: 'pricing', key: 'making_charge', value: String(Number(product.makingCharge ?? 0)), type: 'number_decimal' },
+      { namespace: 'pricing', key: 'base_amount', value: String(Number(product.baseAmount ?? 0)), type: 'number_decimal' },
       { namespace: 'pricing', key: 'gst_amount', value: String(Number(product.gstAmount ?? 0)), type: 'number_decimal' },
       { namespace: 'pricing', key: 'grand_total', value: String(Number(product.sellingPrice ?? 0)), type: 'number_decimal' },
     ]

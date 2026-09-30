@@ -24,6 +24,7 @@
   {% assign st_rate = st_value | divided_by: st_grams %}
 {% endif %}
 {% assign pc_making   = product.metafields.pricing.making_charge.value | plus: 0 %}
+{% assign pc_base     = product.metafields.pricing.base_amount.value | plus: 0 %}
 {% assign pc_gst      = product.metafields.pricing.gst_amount.value | plus: 0 %}
 {% assign pc_total    = product.metafields.pricing.grand_total.value | plus: 0 %}
 {% assign has_stone   = false %}
@@ -171,7 +172,13 @@
 
         <div class="opal-pd__row">
           <dt>Sub Total</dt>
-          <dd class="opal-pd__money">{{ subtotal | round: 2 }}</dd>
+          <dd class="opal-pd__money">
+            {% if pc_base > 0 %}
+            {{ pc_base | round: 2 }}
+            {% else %}
+            {{ subtotal | round: 2 }}
+            {% endif %}
+          </dd>
         </div>
 
         <div class="opal-pd__row">

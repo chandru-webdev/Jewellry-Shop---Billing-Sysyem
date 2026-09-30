@@ -26,6 +26,7 @@ const DEFINITIONS = [
   { namespace: 'stone',    key: 'pieces',       type: 'number_integer',         name: 'Number of stones' },
   { namespace: 'stone',    key: 'value',        type: 'number_decimal',         name: 'Stone value (₹)' },
   { namespace: 'pricing',  key: 'making_charge',type: 'number_decimal',         name: 'Making charges per gram' },
+  { namespace: 'pricing',  key: 'base_amount',  type: 'number_decimal',         name: 'Base amount (₹)' },
   { namespace: 'pricing',  key: 'gst_amount',   type: 'number_decimal',         name: 'GST amount (₹)' },
   { namespace: 'pricing',  key: 'grand_total',  type: 'number_decimal',         name: 'Grand total (₹)' },
 ]

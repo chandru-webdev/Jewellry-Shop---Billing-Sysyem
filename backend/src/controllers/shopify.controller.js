@@ -38,7 +38,7 @@ const shopifyController = {
 
   // DELETE /api/shopify/config — drop stored credentials (fall back to env)
   clearConfig: asyncHandler(async (req, res) => {
-    const data = await shopifyConfigService.clear(req.user.id)
+    const data = await shopifyConfigService.clear(req.user.id, req.body?.adminPassword)
     success(res, 200, data, 'Shopify credentials removed')
   }),
 

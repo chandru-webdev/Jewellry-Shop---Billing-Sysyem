@@ -48,6 +48,13 @@ const authController = {
     const result = await authService.resetPassword(email, code, newPassword)
     success(res, 200, null, result.message)
   }),
+
+  // POST /api/auth/verify-admin-password  ->  verify current user's password for sensitive ops
+  verifyAdminPassword: asyncHandler(async (req, res) => {
+    const { password } = req.body
+    await authService.verifyAdminPassword(req.user.id, password)
+    success(res, 200, null, 'Admin password verified')
+  }),
 }
 
 module.exports = authController

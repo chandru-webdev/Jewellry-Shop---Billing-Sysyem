@@ -8,7 +8,7 @@ export const shopifyApi = {
   // Integration config (store connection) — SUPER_ADMIN only
   getConfig: () => apiClient.get('/shopify/config'),
   saveConfig: (data) => apiClient.put('/shopify/config', data),
-  clearConfig: () => apiClient.delete('/shopify/config'),
+  clearConfig: (data) => apiClient.delete('/shopify/config', { data }),
   testConnection: () => apiClient.post('/shopify/test-connection'),
   registerWebhooks: () => apiClient.post('/shopify/webhooks/register'),
 

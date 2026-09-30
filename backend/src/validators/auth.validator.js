@@ -30,4 +30,9 @@ const verifyResetCodeSchema = z.object({
   code: z.string().min(4, 'Reset code is required'),
 })
 
-module.exports = { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetCodeSchema }
+// Verify admin password for sensitive operations
+const verifyAdminPasswordSchema = z.object({
+  password: z.string().min(1, 'Admin password is required'),
+})
+
+module.exports = { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyResetCodeSchema, verifyAdminPasswordSchema }

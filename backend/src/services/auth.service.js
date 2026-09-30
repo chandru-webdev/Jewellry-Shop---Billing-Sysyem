@@ -174,6 +174,19 @@ const authService = {
 
     return { message: 'Password reset successfully' }
   },
+
+  // Verify admin password for sensitive operations (Shopify config, etc.)
+  // Returns the user if valid, throws if invalid
+  async verifyAdminPassword(userId, password) {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) throw new ApiError(404, 'User not found')
+    if (!user.isActive) throw new ApiError(403, 'Your account is disabled.')
+
+    const valid = await bcrypt.compare(password, user.password)
+    if (!valid) throw new ApiError(400, 'Invalid admin password')
+
+    return this.safeUser(user)
+  },
 }
 
 module.exports = authService

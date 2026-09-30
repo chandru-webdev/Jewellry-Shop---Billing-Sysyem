@@ -18,7 +18,8 @@ const {
   saveConfig,
   clearConfig,
 } = require('../integrations/shopify/shopifyConfig')
-const { registerWebhooks, webhookCallbackUrl, REQUIRED_TOPICS } = require('./webhookRegister.service')
+const { registerWebhooks, webhookCallbackUrl, REQUIRED_TOPICS, publicCallbackBase } = require('./webhookRegister.service')
+const authService = require('./auth.service')
 
 const API_VERSION = '2025-01'
 
@@ -54,6 +55,8 @@ const shopifyConfigService = {
       hasWebhookSecret: Boolean(creds.webhookSecret),
       apiVersion: API_VERSION,
       webhookUrl: webhookCallbackUrl('orders/create'),
+      callbackBase: publicCallbackBase(),
+      requiredTopics: REQUIRED_TOPICS,
     }
   },
 
@@ -73,7 +76,14 @@ const shopifyConfigService = {
 
   // Validate + persist a config, then verify it live and (when a webhook
   // secret is supplied) ensure the required webhooks are registered.
+  // Requires adminPassword in data for sensitive operation confirmation.
   async save(data, userId) {
+    // Verify admin password for this sensitive operation
+    if (!data?.adminPassword) {
+      throw new ApiError(400, 'Admin password is required to save Shopify configuration')
+    }
+    await authService.verifyAdminPassword(userId, data.adminPassword)
+
     const shopDomain = normalizeDomain(data.shopDomain)
     if (!shopDomain || !DOMAIN_RE.test(shopDomain)) {
       throw new ApiError(400, 'Enter a valid shop domain, e.g. your-store.myshopify.com')
@@ -114,7 +124,11 @@ const shopifyConfigService = {
   },
 
   // Remove the stored config so the app falls back to env credentials.
-  async clear(userId) {
+  async clear(userId, adminPassword) {
+    if (!adminPassword) {
+      throw new ApiError(400, 'Admin password is required to disconnect the Shopify store')
+    }
+    await authService.verifyAdminPassword(userId, adminPassword)
     await clearConfig()
     return this.getMasked()
   },

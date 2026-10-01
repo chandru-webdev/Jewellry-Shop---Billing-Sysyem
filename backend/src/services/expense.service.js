@@ -59,7 +59,7 @@ function toPatch(data) {
 
 const expenseService = {
   // GET /api/expenses — searchable list, newest first
-  async list({ search, status, category, paymentMethod, limit = 100 } = {}) {
+  async list({ search, status, category, paymentMethod, limit = 100000 } = {}) {
     const where = {}
     if (status && EXPENSE_STATUSES.includes(status)) where.status = status
     if (category) where.category = category
@@ -77,7 +77,7 @@ const expenseService = {
       where,
       include: includeRelations,
       orderBy: { date: 'desc' },
-      take: Math.min(Number(limit) || 100, 100000),
+      take: Math.min(Number(limit) || 100000, 100000),
     })
   },
 

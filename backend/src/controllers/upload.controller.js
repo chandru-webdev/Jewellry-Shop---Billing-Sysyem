@@ -20,12 +20,38 @@ const storage = multer.diskStorage({
   }
 })
 
+// Images: JPEG, PNG, WebP, GIF, AVIF, HEIC/HEIF (iPhone photos often arrive as
+// HEIC and would otherwise be rejected with a confusing 400).
+// Documents: PDF. Video: MP4, WebM, MOV.
+const IMAGE_MIMES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+]
+const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime']
+const DOCUMENT_MIMES = ['application/pdf']
+
+const ALLOWED_MIMES = [...IMAGE_MIMES, ...VIDEO_MIMES, ...DOCUMENT_MIMES]
+const ALLOWED_EXTENSIONS = [
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif',
+  '.heic', '.heif', '.pdf', '.mp4', '.webm', '.mov', '.qt',
+]
+
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf']
-  if (allowedTypes.includes(file.mimetype)) {
+  const mimetype = (file.mimetype || '').toLowerCase()
+  const ext = path.extname(file.originalname || '').toLowerCase()
+  // Trust the extension as a fallback: some clients (Safari/iOS) send an
+  // unhelpful or empty mimetype for HEIC uploads.
+  if (ALLOWED_MIMES.includes(mimetype) || ALLOWED_EXTENSIONS.includes(ext)) {
     cb(null, true)
   } else {
-    cb(new ApiError(400, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV, PDF'), false)
+    cb(new ApiError(400, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, AVIF, HEIC, PDF, MP4, WebM, MOV'), false)
   }
 }
 
@@ -43,7 +69,9 @@ const uploadController = {
         if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ success: false, message: 'File too large (max 50MB)' })
         return res.status(400).json({ success: false, message: err.message })
       }
-      if (err) return res.status(err.status || 400).json({ success: false, message: err.message })
+      // ApiError carries `statusCode`; MulterError carries `status`. Read both
+      // so a rejected upload reports the real reason instead of a blanket 400.
+      if (err) return res.status(err.statusCode || err.status || 400).json({ success: false, message: err.message })
       if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' })
 
       const baseUrl = `${req.protocol}://${req.get('host')}`
@@ -54,3 +82,5 @@ const uploadController = {
 }
 
 module.exports = uploadController
+module.exports.ALLOWED_MIMES = ALLOWED_MIMES
+module.exports.ALLOWED_EXTENSIONS = ALLOWED_EXTENSIONS

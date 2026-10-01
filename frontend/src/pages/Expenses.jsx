@@ -13,12 +13,35 @@ import { formatINR, formatDate } from '../utils/format'
 import { exportExpensesExcel, inRange } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
 import { useAuth } from '../context/AuthContext'
-import apiClient from '../api/client'
+import uploadApi from '../api/upload'
 
 const statusTone = { PAID: 'green', PENDING: 'orange', CANCELLED: 'red' }
 const categoryTone = { Rent: 'blue', Salaries: 'purple', Utilities: 'emerald', Marketing: 'orange', Maintenance: 'red', 'Office Supplies': 'gray', Insurance: 'indigo' }
 const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'UPI', 'Credit Card', 'Debit Card', 'Cheque']
 const RECURRING = ['None', 'Weekly', 'Monthly']
+
+const MAX_UPLOAD_MB = 50
+
+const vendorName = (e) => e.vendor || e.supplier?.name
+
+// Label + value row for the details drawer, with a divider between rows.
+function DetailRow({ label, children }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-100 dark:border-white/[0.06] last:border-b-0">
+      <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium shrink-0 pt-0.5">{label}</span>
+      <span className="text-sm text-gray-900 dark:text-gray-100 text-right font-medium min-w-0 break-words">{children}</span>
+    </div>
+  )
+}
+
+function DetailSection({ title, children }) {
+  return (
+    <section>
+      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-royal-600 dark:text-royal-400 mb-1">{title}</h4>
+      <div className="border-t border-royal-100 dark:border-white/10">{children}</div>
+    </section>
+  )
+}
 
 const initialForm = () => ({
   category: '',
@@ -52,12 +75,13 @@ export default function Expenses() {
   const [editing, setEditing] = useState(null)
   const [formData, setFormData] = useState(initialForm)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   const queryClient = useQueryClient()
 
   const { data: apiExpenses } = useQuery({
     queryKey: ['expenses'],
-    queryFn: () => expensesApi.list().then((r) => r.data.data),
+    queryFn: () => expensesApi.list({ limit: 100000 }).then((r) => r.data.data),
     retry: false,
   })
 
@@ -165,21 +189,26 @@ export default function Expenses() {
   const thisMonth = expenses.filter(e => e.date.startsWith(thisMonthKey)).reduce((s, e) => s + Number(e.amount), 0)
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
     if (!file) return
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      alert(`File is too large. Maximum size is ${MAX_UPLOAD_MB}MB.`)
+      input.value = ''
+      return
+    }
     setUploading(true)
+    setUploadError('')
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await apiClient.post('/upload/media', formData)
+      const res = await uploadApi.uploadMedia(file)
       const url = res.data?.data?.url
       if (url) setFormData((f) => ({ ...f, attachmentUrl: url }))
-      else alert('Upload failed: no URL returned')
+      else setUploadError('Upload failed: the server did not return a file URL.')
     } catch (err) {
-      alert('Upload failed: ' + (err.response?.data?.message || err.message))
+      setUploadError('Upload failed: ' + (err.response?.data?.message || err.message))
     } finally {
       setUploading(false)
-      e.target.value = ''
+      input.value = ''
     }
   }
 
@@ -215,8 +244,6 @@ export default function Expenses() {
       createMutation.mutate(payload)
     }
   }
-
-  const vendorName = (e) => e.vendor || e.supplier?.name
 
   return (
     <div>
@@ -275,6 +302,11 @@ export default function Expenses() {
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Pending</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Method</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Bank A/c</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">GST</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Recurring</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Due</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">File</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Reference</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>
               </tr>
@@ -295,6 +327,33 @@ export default function Expenses() {
                   <td className="px-4 py-3 text-right font-semibold text-amber-600">{e.status === 'PENDING' ? formatINR(e.pendingAmount) : '—'}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{e.paymentMethod}</Badge></td>
                   <td className="px-4 py-3 text-center"><Badge tone={statusTone[e.status]}>{e.status}</Badge></td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    {e.bankAccount ? e.bankAccount.name : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-emerald-600 dark:text-emerald-400">
+                    {e.gstApplicable ? formatINR(e.gstAmount) : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-center text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    {e.recurring && e.recurring !== 'None' ? e.recurring : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    {e.dueDate ? formatDate(e.dueDate) : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {e.attachmentUrl ? (
+                      <a
+                        href={e.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Open attachment"
+                        className="inline-flex text-royal-600 dark:text-royal-400 hover:text-royal-800 dark:hover:text-royal-300"
+                      >
+                        <Paperclip size={13} />
+                      </a>
+                    ) : (
+                      <span className="text-gray-300 dark:text-gray-600">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500">{e.reference}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
@@ -311,42 +370,82 @@ export default function Expenses() {
 
       <Modal open={viewOpen} title="Expense Details" onClose={() => { setViewOpen(false); setSelected(null) }} footer={<Button variant="ghost" onClick={() => { setViewOpen(false); setSelected(null) }}>Close</Button>}>
         {selected && (
-          <div className="space-y-4 text-sm">
+          <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Amount</p><p className="font-bold text-red-600 text-xl">{formatINR(selected.amount)}</p></div>
-              <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Status</p><Badge tone={statusTone[selected.status]}>{selected.status}</Badge></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Category</p><Badge tone={categoryTone[selected.category] || 'gray'}> {selected.category}</Badge></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Payment Method</p><p className="font-medium">{selected.paymentMethod}</p></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Vendor / Payee</p><p className="font-medium">{vendorName(selected) || '—'}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Date</p><p className="font-medium">{formatDate(selected.date)}</p></div>
-            </div>
-            {selected.dueDate && (
-              <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Due Date</p><p className="font-medium flex items-center gap-1"><CalendarClock size={13} /> {formatDate(selected.dueDate)}</p></div>
-                <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Recurring</p><p className="font-medium">{selected.recurring || 'None'}</p></div>
+              <div className="bg-royal-50/60 dark:bg-white/[0.03] rounded-lg p-4">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-1">Amount</p>
+                <p className="font-bold text-red-600 text-2xl">{formatINR(selected.amount)}</p>
+                {selected.status === 'PENDING' && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">Pending: {formatINR(selected.pendingAmount || selected.amount)}</p>
+                )}
               </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Reference</p><p className="font-mono text-xs text-gray-600 dark:text-gray-400 dark:text-gray-500">{selected.reference || '—'}</p></div>
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Added By</p><p className="font-medium">{selected.createdBy?.name || '—'}</p></div>
+              <div className="bg-royal-50/60 dark:bg-white/[0.03] rounded-lg p-4 flex flex-col justify-center">
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-1.5">Status</p>
+                <div><Badge tone={statusTone[selected.status]}>{selected.status}</Badge></div>
+              </div>
             </div>
-            {selected.gstApplicable && (
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">GST (Input / ITC)</p><p className="font-medium text-emerald-600">{formatINR(selected.gstAmount)}</p></div>
-            )}
-            {selected.bankAccount && (
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Bank Account</p><p className="font-medium">{selected.bankAccount.name} ({selected.bankAccount.bank})</p></div>
-            )}
-            {selected.attachmentUrl && (
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Attachment</p><a href={selected.attachmentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-royal-600 dark:text-royal-400 font-medium"><Paperclip size={13} /> View receipt / bill</a></div>
-            )}
-            {selected.notes && (
-              <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Notes</p><p className="font-medium mt-1 whitespace-pre-wrap">{selected.notes}</p></div>
-            )}
-            <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Description</p><p className="font-medium mt-1">{selected.description}</p></div>
+
+            <DetailSection title="Expense">
+              <DetailRow label="Category">
+                <Badge tone={categoryTone[selected.category] || 'gray'}>{selected.category}</Badge>
+              </DetailRow>
+              <DetailRow label="Description">{selected.description}</DetailRow>
+              <DetailRow label="Date">{formatDate(selected.date)}</DetailRow>
+              <DetailRow label="Reference">
+                <span className="font-mono text-xs">{selected.reference || '—'}</span>
+              </DetailRow>
+            </DetailSection>
+
+            <DetailSection title="Payment">
+              <DetailRow label="Payment Method">{selected.paymentMethod}</DetailRow>
+              <DetailRow label="Vendor / Payee">{vendorName(selected) || '—'}</DetailRow>
+              <DetailRow label="Supplier">
+                {selected.supplier?.name || '—'}
+              </DetailRow>
+              <DetailRow label="Bank Account">
+                {selected.bankAccount ? `${selected.bankAccount.name} (${selected.bankAccount.bank})` : '—'}
+              </DetailRow>
+              <DetailRow label="GST (Input / ITC)">
+                {selected.gstApplicable ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">{formatINR(selected.gstAmount)}</span>
+                ) : (
+                  'Not applicable'
+                )}
+              </DetailRow>
+            </DetailSection>
+
+            <DetailSection title="Schedule">
+              <DetailRow label="Recurring">{selected.recurring || 'None'}</DetailRow>
+              <DetailRow label="Due Date">
+                {selected.dueDate ? (
+                  <span className="inline-flex items-center gap-1"><CalendarClock size={13} /> {formatDate(selected.dueDate)}</span>
+                ) : (
+                  '—'
+                )}
+              </DetailRow>
+            </DetailSection>
+
+            <DetailSection title="Attachment">
+              {selected.attachmentUrl ? (
+                <div className="py-2.5">
+                  <a href={selected.attachmentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-royal-600 dark:text-royal-400 font-medium hover:underline">
+                    <Paperclip size={14} /> View receipt / bill
+                  </a>
+                </div>
+              ) : (
+                <DetailRow label="Attachment">No file attached</DetailRow>
+              )}
+            </DetailSection>
+
+            <DetailSection title="Notes">
+              <div className="py-2.5 text-sm font-medium whitespace-pre-wrap break-words">
+                {selected.notes || <span className="text-gray-400 dark:text-gray-500">No notes</span>}
+              </div>
+            </DetailSection>
+
+            <div className="pt-4 border-t border-gray-100 dark:border-white/[0.08] text-[11px] text-gray-400 dark:text-gray-500">
+              Added By <span className="font-medium text-gray-600 dark:text-gray-300">{selected.createdBy?.name || '—'}</span>
+            </div>
           </div>
         )}
       </Modal>
@@ -457,6 +556,10 @@ export default function Expenses() {
                   </span>
                 )}
               </div>
+              {uploadError && (
+                <p className="mt-2 text-xs text-red-600 dark:text-red-400">{uploadError}</p>
+              )}
+              <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">JPEG, PNG, WebP, GIF, AVIF, HEIC or PDF up to {MAX_UPLOAD_MB}MB.</p>
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reference</label>

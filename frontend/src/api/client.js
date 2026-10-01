@@ -1,8 +1,11 @@
 import axios from 'axios'
 
+// Do NOT set a default Content-Type here. A global 'application/json' makes
+// axios serialize FormData bodies as JSON instead of multipart (see axios
+// transformRequest), which silently breaks every file upload. Axios sets
+// application/json automatically for plain-object payloads.
 const apiClient = axios.create({
   baseURL: (import.meta.env.VITE_API_URL || '') + '/api',
-  headers: { 'Content-Type': 'application/json' },
 })
 
 apiClient.interceptors.request.use((config) => {

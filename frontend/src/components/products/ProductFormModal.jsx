@@ -4,7 +4,7 @@ import Button from '../ui/Button'
 import { Input, Select, Label, Textarea } from '../ui/FormControls'
 import { Plus, X, Lock, Upload } from 'lucide-react'
 import { formatINR } from '../../utils/format'
-import apiClient from '../../api/client'
+import uploadApi from '../../api/upload'
 import ProductUpdateProgress from './ProductUpdateProgress'
 
 // Real ERP SKUs look like SLR-001 / SLV-RNG-00001 (letters, hyphen, digits).
@@ -269,12 +269,11 @@ export default function ProductFormModal({
   const addMedia = () => setForm((cur) => cur.shopifyMedia.length < MAX_MEDIA ? { ...cur, shopifyMedia: [...cur.shopifyMedia, { type: 'image', url: '' }] } : cur)
 
   const uploadMediaAt = (i) => async (e) => {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
     if (!file) return
-    const formData = new FormData()
-    formData.append('file', file)
     try {
-      const res = await apiClient.post('/upload/media', formData)
+      const res = await uploadApi.uploadMedia(file)
       const url = res.data.data?.url
       if (url) {
         setForm((cur) => ({ ...cur, shopifyMedia: cur.shopifyMedia.map((m, j) => j === i ? { ...m, url, type: file.type.startsWith('video/') ? 'video' : 'image' } : m) }))
@@ -283,7 +282,7 @@ export default function ProductFormModal({
       console.error('Upload failed:', err)
       alert('Upload failed: ' + (err.response?.data?.message || err.message))
     } finally {
-      e.target.value = ''
+      input.value = ''
     }
   }
 

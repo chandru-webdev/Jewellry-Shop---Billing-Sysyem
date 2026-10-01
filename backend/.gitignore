@@ -10,6 +10,10 @@ node_modules/
 dist/
 build/
 
+# Runtime uploads (local disk storage) — never commit receipts/media
+uploads/
+test-upload.*
+
 # Logs
 *.log
 npm-debug.log*

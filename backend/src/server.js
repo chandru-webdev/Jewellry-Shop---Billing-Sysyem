@@ -3,6 +3,7 @@ const prisma = require('./prisma/client')
 const app = require('./app')
 const { registerWebhooks } = require('./services/webhookRegister.service')
 const { start: startSystemHealthMonitor } = require('./services/systemHealthMonitor.service')
+const expenseService = require('./services/expense.service')
 
 async function ensureSchema() {
   try {
@@ -594,6 +595,46 @@ async function ensureSchema() {
     `)
     console.log('Payment.pendingAmount / Expense.pendingAmount columns ensured.')
 
+    // Expense advanced fields: vendor/supplier, attachment, GST, bank account,
+    // recurrence, due date, notes (+ indexes / FKs). Safe in any environment.
+    const expenseColumns = [
+      ['vendor', 'TEXT'],
+      ['supplierId', 'INTEGER'],
+      ['attachmentUrl', 'TEXT'],
+      ['gstApplicable', 'BOOLEAN NOT NULL DEFAULT false'],
+      ['gstAmount', 'DECIMAL(12,2) NOT NULL DEFAULT 0'],
+      ['bankAccountId', 'INTEGER'],
+      ['recurring', 'TEXT NOT NULL DEFAULT \'None\''],
+      ['dueDate', 'TIMESTAMP(3)'],
+      ['notes', 'TEXT'],
+    ]
+    for (const [col, type] of expenseColumns) {
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TABLE "Expense" ADD COLUMN "${col}" ${type};
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+      `)
+    }
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_supplierId_idx" ON "Expense"("supplierId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_bankAccountId_idx" ON "Expense"("bankAccountId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_createdById_idx" ON "Expense"("createdById")`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_supplierId_fkey"
+          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_bankAccountId_fkey"
+          FOREIGN KEY ("bankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    console.log('Expense advanced fields ensured.')
+
     // ---------- Backup / Restore history model ----------
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Backup" (
@@ -683,5 +724,13 @@ ensureSchema()
       // System Health monitor: probes every check on boot + every 10 min while
       // awake and notifies admins on down/degraded/recovered transitions.
       startSystemHealthMonitor()
+      // Recurring expenses: check hourly while awake and auto-generate due
+      // occurrences (Weekly/Monthly) so templates advance one period at a time.
+      const RECURRING_EXPENSE_MS = 60 * 60 * 1000
+      setInterval(() => {
+        expenseService.processRecurring().catch((err) => {
+          console.error('[RECURRING EXPENSES] Auto-processing failed:', err.message)
+        })
+      }, RECURRING_EXPENSE_MS)
     })
   })

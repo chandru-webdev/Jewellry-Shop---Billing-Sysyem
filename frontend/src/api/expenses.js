@@ -8,4 +8,5 @@ export const expensesApi = {
   create: (data) => apiClient.post('/expenses', data),
   update: (id, data) => apiClient.put(`/expenses/${id}`, data),
   delete: (id) => apiClient.delete(`/expenses/${id}`),
+  processRecurring: () => apiClient.post('/expenses/recurring/process'),
 }

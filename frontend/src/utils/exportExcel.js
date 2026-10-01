@@ -324,10 +324,18 @@ export function exportExpensesExcel(expenses) {
     Date: fmtDate(e.date),
     Category: e.category || '',
     Description: e.description || '',
+    Vendor: e.vendor || e.supplier?.name || '',
     'Amount (INR)': num(e.amount),
     'Payment Method': e.paymentMethod || '',
     Status: e.status || '',
     Reference: e.reference || '',
+    'Due Date': e.dueDate ? fmtDate(e.dueDate) : '',
+    Recurring: e.recurring || 'None',
+    'GST Applicable': e.gstApplicable ? 'Yes' : 'No',
+    'GST Amount (INR)': num(e.gstAmount),
+    'Bank Account': e.bankAccount ? `${e.bankAccount.name} (${e.bankAccount.bank})` : '',
+    'Added By': e.createdBy?.name || '',
+    Notes: e.notes || '',
   }))
   const out = wb()
   sheet(out, 'Expenses', rows)

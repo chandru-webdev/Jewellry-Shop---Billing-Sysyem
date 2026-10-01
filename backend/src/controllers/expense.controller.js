@@ -27,6 +27,12 @@ const expenseController = {
     success(res, 200, result, 'Expense fetched')
   }),
 
+  // POST /api/expenses/recurring/process
+  processRecurring: asyncHandler(async (req, res) => {
+    const result = await expenseService.processRecurring()
+    success(res, 200, result, 'Recurring expenses processed')
+  }),
+
   // POST /api/expenses
   create: asyncHandler(async (req, res) => {
     const result = await expenseService.create(req.body, req.user.id)

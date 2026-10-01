@@ -121,6 +121,8 @@ model User {
   purchaseInvoicesCreated PurchaseInvoice[]  @relation("PurchaseInvoiceCreator")
   purchaseInvoicePaymentsCreated PurchaseInvoicePayment[] @relation("PurchaseInvoicePaymentCreator")
 
+  expenses              Expense[]
+
   @@index([roleId])
 }
 
@@ -295,6 +297,7 @@ model Supplier {
   purchaseReturns   PurchaseReturn[]
   purchaseInvoices  PurchaseInvoice[]
   products          Product[]
+  expenses          Expense[]
 }
 
 // ---------- ORDERS (POS + Shopify) ----------
@@ -550,6 +553,8 @@ model BankAccount {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  expenses        Expense[]
+
   @@index([isActive])
 }
 
@@ -712,22 +717,42 @@ model PurchaseInvoicePayment {
 // ---------- EXPENSES ----------
 
 model Expense {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   category      String
   description   String
-  amount        Decimal  @db.Decimal(12, 2)
-  pendingAmount Decimal  @db.Decimal(12, 2) @default(0)
-  date          DateTime @default(now())
-  paymentMethod String   @default("Cash")
+  amount        Decimal   @db.Decimal(12, 2)
+  pendingAmount Decimal   @db.Decimal(12, 2) @default(0)
+  date          DateTime  @default(now())
+  paymentMethod String    @default("Cash")
   reference     String?
-  status        String   @default("PAID") // PAID, PENDING, CANCELLED
+  status        String    @default("PAID") // PAID, PENDING, CANCELLED
+  // Vendor / payee (free text or linked supplier)
+  vendor        String?
+  supplierId    Int?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  // Receipt / bill attachment (uploaded via /api/upload/media)
+  attachmentUrl String?
+  // GST — for GST Reports ITC integration
+  gstApplicable Boolean   @default(false)
+  gstAmount     Decimal   @default(0) @db.Decimal(12, 2)
+  // Linked bank account — balance deducted when method is Bank Transfer
+  bankAccountId Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  // Recurrence + due date
+  recurring     String    @default("None") // None, Weekly, Monthly
+  dueDate       DateTime?
+  notes         String?
   createdById   Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdBy     User?     @relation(fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([category])
   @@index([status])
   @@index([date])
+  @@index([supplierId])
+  @@index([bankAccountId])
+  @@index([createdById])
 }
 
 // ---------- BACKUP / RESTORE ----------

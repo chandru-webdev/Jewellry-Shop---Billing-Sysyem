@@ -21,11 +21,11 @@ const storage = multer.diskStorage({
 })
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime']
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf']
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true)
   } else {
-    cb(new ApiError(400, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV'), false)
+    cb(new ApiError(400, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM, MOV, PDF'), false)
   }
 }
 

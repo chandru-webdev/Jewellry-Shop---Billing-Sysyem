@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Truck, Search, Plus, Phone, Mail, Edit, Trash2, X, Save, Pause, Play } from 'lucide-react'
+import { Truck, Search, Plus, Phone, Mail, Edit, Trash2, X, Save, Pause, Play, Eye } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext'
 import { exportSuppliersExcel, inRange } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
 
+const EMPTY_FORM = { name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' }
+
 export default function Suppliers() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -19,7 +21,9 @@ export default function Suppliers() {
   const [filterActive, setFilterActive] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState(null)
-  const [formData, setFormData] = useState({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
+  const [viewOpen, setViewOpen] = useState(false)
+  const [viewingSupplier, setViewingSupplier] = useState(null)
+  const [formData, setFormData] = useState(EMPTY_FORM)
 
   const canManage = user?.role?.name === 'SUPER_ADMIN' || user?.role?.name === 'MANAGER'
 
@@ -41,7 +45,7 @@ export default function Suppliers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       setShowAdd(false)
-      setFormData({ name: '', phone: '', email: '', address: '' })
+      setFormData(EMPTY_FORM)
     },
   })
 
@@ -49,8 +53,9 @@ export default function Suppliers() {
     mutationFn: ({ id, data }) => suppliersApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+      setShowAdd(false)
       setEditingSupplier(null)
-      setFormData({ name: '', phone: '', email: '', address: '' })
+      setFormData(EMPTY_FORM)
     },
   })
 
@@ -74,6 +79,9 @@ export default function Suppliers() {
       gstin: supplier.gstin || '',
       address: supplier.address || '',
     })
+    // The form modal renders only while showAdd is true, so opening it here is
+    // what makes the Edit button do anything.
+    setShowAdd(true)
   }
 
   const handleToggleActive = async (supplier) => {
@@ -101,14 +109,24 @@ export default function Suppliers() {
 
   const openAddForm = () => {
     setEditingSupplier(null)
-    setFormData({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
+    setFormData(EMPTY_FORM)
     setShowAdd(true)
   }
 
   const closeForm = () => {
     setShowAdd(false)
     setEditingSupplier(null)
-    setFormData({ name: '', contactPerson: '', phone: '', email: '', gstin: '', address: '' })
+    setFormData(EMPTY_FORM)
+  }
+
+  const openView = (supplier) => {
+    setViewingSupplier(supplier)
+    setViewOpen(true)
+  }
+
+  const closeView = () => {
+    setViewOpen(false)
+    setViewingSupplier(null)
   }
 
   return (
@@ -223,6 +241,102 @@ export default function Suppliers() {
         </Modal>
       )}
 
+      <Modal
+        open={viewOpen}
+        onClose={closeView}
+        title="Supplier Details"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={closeView}>Close</Button>
+            {canManage && viewingSupplier && (
+              <Button size="sm" onClick={() => { closeView(); handleEdit(viewingSupplier) }}>
+                <Edit size={12} /> Edit
+              </Button>
+            )}
+          </>
+        }
+      >
+        {viewingSupplier && (
+          <div className="space-y-5 text-sm">
+            <div className="flex items-center gap-3">
+              <span className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shrink-0">
+                <Truck size={18} />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold text-royal-950 dark:text-white text-base truncate">{viewingSupplier.name}</p>
+                <div className="mt-0.5">
+                  <Badge tone={viewingSupplier.isActive === false ? 'red' : 'green'}>
+                    {viewingSupplier.isActive === false ? 'Inactive' : 'Active'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-royal-50/60 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Total POs</p>
+                <p className="font-bold text-royal-950 dark:text-white text-lg">{viewingSupplier.totalPOs || 0}</p>
+              </div>
+              <div className="bg-royal-50/60 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Purchase Value</p>
+                <p className="font-bold text-royal-950 dark:text-white text-lg">{formatINR(viewingSupplier.totalPurchaseValue || 0)}</p>
+              </div>
+              <div className="bg-royal-50/60 rounded-lg p-3">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Outstanding</p>
+                <p className={`font-bold text-lg ${Number(viewingSupplier.outstanding) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-royal-950 dark:text-white'}`}>
+                  {formatINR(viewingSupplier.outstanding || 0)}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-white/[0.08] pt-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Contact</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Contact Person</p>
+                  <p className="font-medium">{viewingSupplier.contactPerson || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">GSTIN</p>
+                  <p className="font-mono text-xs">{viewingSupplier.gstin || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold flex items-center gap-1">
+                    <Phone size={10} /> Phone
+                  </p>
+                  <p className="font-medium">{viewingSupplier.phone ? <a href={`tel:${viewingSupplier.phone}`} className="hover:underline">{viewingSupplier.phone}</a> : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold flex items-center gap-1">
+                    <Mail size={10} /> Email
+                  </p>
+                  <p className="font-medium break-all">{viewingSupplier.email ? <a href={`mailto:${viewingSupplier.email}`} className="hover:underline">{viewingSupplier.email}</a> : '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Address</p>
+                  <p className="font-medium whitespace-pre-wrap">{viewingSupplier.address || '—'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-white/[0.08] pt-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Record</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Created</p>
+                  <p className="font-medium">{formatDate(viewingSupplier.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Updated</p>
+                  <p className="font-medium">{formatDate(viewingSupplier.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -279,6 +393,13 @@ export default function Suppliers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-center gap-1">
+                      <button
+                        onClick={() => openView(s)}
+                        className="p-1 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:hover:bg-white/10 rounded cursor-pointer"
+                        title="View"
+                      >
+                        <Eye size={12} />
+                      </button>
                       {canManage && (
                         <>
                           <button

@@ -24,6 +24,29 @@ async function ensureSchema() {
       `).catch(() => {})
     }
 
+// BankAccount table. It is in schema.prisma but no migration ever created
+    // it, so production has been missing it (the Bank Accounts feature errors
+    // with "relation BankAccount does not exist"). Idempotent, and must run
+    // before the Expense FK below references it.
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "BankAccount" (
+        "id" SERIAL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "bank" TEXT NOT NULL,
+        "accountNumber" TEXT NOT NULL,
+        "ifsc" TEXT NOT NULL,
+        "type" TEXT NOT NULL DEFAULT 'Current',
+        "openingBalance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "openingDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "balance" DECIMAL(12,2) NOT NULL DEFAULT 0,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "BankAccount_isActive_idx" ON "BankAccount"("isActive")`)
+    console.log('BankAccount table ensured.')
+
     // Expense advanced fields: vendor/supplier, attachment, GST, bank account,
     // recurrence, due date, notes (+ indexes / FKs). This MUST run before the
     // fast path returns below — a production database already has the marker
@@ -56,15 +79,15 @@ async function ensureSchema() {
         ALTER TABLE "Expense" ADD CONSTRAINT "Expense_supplierId_fkey"
           FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE;
       EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$
-    `)
+        END $$
+    `).catch((e) => console.error('[SCHEMA] Expense supplier FK skipped:', e.message))
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN
         ALTER TABLE "Expense" ADD CONSTRAINT "Expense_bankAccountId_fkey"
           FOREIGN KEY ("bankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
       EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$
-    `)
+        END $$
+    `).catch((e) => console.error('[SCHEMA] Expense bank FK skipped:', e.message))
     console.log('Expense advanced fields ensured.')
 
     // Fast path: if the newest schema marker column already exists, every

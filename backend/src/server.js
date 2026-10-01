@@ -24,6 +24,49 @@ async function ensureSchema() {
       `).catch(() => {})
     }
 
+    // Expense advanced fields: vendor/supplier, attachment, GST, bank account,
+    // recurrence, due date, notes (+ indexes / FKs). This MUST run before the
+    // fast path returns below — a production database already has the marker
+    // column, so anything placed after it would never be created. Every
+    // statement is idempotent (duplicate_column / duplicate_object guards).
+    const expenseColumns = [
+      ['vendor', 'TEXT'],
+      ['supplierId', 'INTEGER'],
+      ['attachmentUrl', 'TEXT'],
+      ['gstApplicable', 'BOOLEAN NOT NULL DEFAULT false'],
+      ['gstAmount', 'DECIMAL(12,2) NOT NULL DEFAULT 0'],
+      ['bankAccountId', 'INTEGER'],
+      ['recurring', 'TEXT NOT NULL DEFAULT \'None\''],
+      ['dueDate', 'TIMESTAMP(3)'],
+      ['notes', 'TEXT'],
+    ]
+    for (const [col, type] of expenseColumns) {
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          ALTER TABLE "Expense" ADD COLUMN "${col}" ${type};
+        EXCEPTION WHEN duplicate_column THEN NULL;
+        END $$
+      `)
+    }
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_supplierId_idx" ON "Expense"("supplierId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_bankAccountId_idx" ON "Expense"("bankAccountId")`)
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_createdById_idx" ON "Expense"("createdById")`)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_supplierId_fkey"
+          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_bankAccountId_fkey"
+          FOREIGN KEY ("bankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `)
+    console.log('Expense advanced fields ensured.')
+
     // Fast path: if the newest schema marker column already exists, every
     // <CREATE ... IF NOT EXISTS / EXCEPTION> check below is a no-op. Skipping
     // them drops cold boot from ~25s to ~1s, which matters on the Free plan:
@@ -593,47 +636,7 @@ async function ensureSchema() {
       EXCEPTION WHEN duplicate_column THEN NULL;
       END $$
     `)
-    console.log('Payment.pendingAmount / Expense.pendingAmount columns ensured.')
-
-    // Expense advanced fields: vendor/supplier, attachment, GST, bank account,
-    // recurrence, due date, notes (+ indexes / FKs). Safe in any environment.
-    const expenseColumns = [
-      ['vendor', 'TEXT'],
-      ['supplierId', 'INTEGER'],
-      ['attachmentUrl', 'TEXT'],
-      ['gstApplicable', 'BOOLEAN NOT NULL DEFAULT false'],
-      ['gstAmount', 'DECIMAL(12,2) NOT NULL DEFAULT 0'],
-      ['bankAccountId', 'INTEGER'],
-      ['recurring', 'TEXT NOT NULL DEFAULT \'None\''],
-      ['dueDate', 'TIMESTAMP(3)'],
-      ['notes', 'TEXT'],
-    ]
-    for (const [col, type] of expenseColumns) {
-      await prisma.$executeRawUnsafe(`
-        DO $$ BEGIN
-          ALTER TABLE "Expense" ADD COLUMN "${col}" ${type};
-        EXCEPTION WHEN duplicate_column THEN NULL;
-        END $$
-      `)
-    }
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_supplierId_idx" ON "Expense"("supplierId")`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_bankAccountId_idx" ON "Expense"("bankAccountId")`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Expense_createdById_idx" ON "Expense"("createdById")`)
-    await prisma.$executeRawUnsafe(`
-      DO $$ BEGIN
-        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_supplierId_fkey"
-          FOREIGN KEY ("supplierId") REFERENCES "Supplier"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$
-    `)
-    await prisma.$executeRawUnsafe(`
-      DO $$ BEGIN
-        ALTER TABLE "Expense" ADD CONSTRAINT "Expense_bankAccountId_fkey"
-          FOREIGN KEY ("bankAccountId") REFERENCES "BankAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$
-    `)
-    console.log('Expense advanced fields ensured.')
+console.log('Payment.pendingAmount / Expense.pendingAmount columns ensured.')
 
     // ---------- Backup / Restore history model ----------
     await prisma.$executeRawUnsafe(`

@@ -11,6 +11,7 @@ const createProductSchema = z.object({
   collectionId: z.number().int().positive().nullable().optional(),
   supplierId: z.number().int().positive().nullable().optional(),
   barcode: z.string().regex(/^\d{12}$/).nullable().optional(),
+  style: z.string().max(60).nullable().optional(),
   purity: z.number().positive().optional(),
   grossWeight: z.number().nonnegative().optional(),
   stoneWeight: z.number().nonnegative().optional(),

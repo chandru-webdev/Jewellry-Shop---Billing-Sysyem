@@ -16,10 +16,15 @@ const typeTone = { RECEIVED: 'green', SENT: 'red' }
 const payDir = (p) => p.type || (String(p.status || '').toUpperCase() === 'REFUNDED' ? 'SENT' : 'RECEIVED')
 
 // Products the payment is for, from the linked invoice/order line items.
+// `style` is read from the related product (the line items snapshot only
+// sku/name), so it reflects the product's current design code.
 const paymentProducts = (p) => {
   const items = p?.invoice?.items?.length ? p.invoice.items : p?.order?.items || []
-  return items.map((i) => ({ name: i.name, sku: i.sku, quantity: i.quantity }))
+  return items.map((i) => ({ name: i.name, sku: i.sku, style: i.product?.style || '', quantity: i.quantity }))
 }
+
+// Flattened styles across a payment's line items, de-duplicated.
+const paymentStyles = (p) => [...new Set(paymentProducts(p).map((i) => i.style).filter(Boolean))]
 
 export default function Payments() {
   const [search, setSearch] = useState('')
@@ -137,6 +142,7 @@ export default function Payments() {
               <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Invoice</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Customer / Supplier</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Style</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Amount</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Pending</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Method</th>
@@ -152,6 +158,9 @@ export default function Payments() {
                 <tr key={p.id} className="hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-royal-700 dark:text-gray-300 font-semibold">{p.invoice?.invoiceNumber || p.invoice || '—'}</td>
                   <td className="px-4 py-3 font-medium text-royal-950 dark:text-white text-xs">{p.customer?.name || p.customer || '—'}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                    {paymentStyles(p).length > 0 ? paymentStyles(p).join(', ') : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right font-bold text-royal-800 dark:text-gray-200">{formatINR(p.amount)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-amber-600">{p.status === 'PENDING' ? formatINR(p.pendingAmount) : '—'}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="blue">{p.method}</Badge></td>
@@ -197,13 +206,16 @@ export default function Payments() {
               <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Customer</p><p className="font-medium">{selected.customer?.name || selected.customer || '—'}</p></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Style</p><p className="font-mono text-xs text-gray-700 dark:text-gray-300">{paymentStyles(selected).length > 0 ? paymentStyles(selected).join(', ') : '—'}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Product</p>
                 {paymentProducts(selected).length > 0 ? (
                   <ul className="mt-1 space-y-1">
                     {paymentProducts(selected).map((it, i) => (
                       <li key={i} className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}{it.style ? <span className="ml-1 font-mono text-[10px] text-gray-500 dark:text-gray-500">[{it.style}]</span> : null}</span>
                         <span className="font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">({it.sku}{it.quantity > 1 ? ` × ${it.quantity}` : ''})</span>
                       </li>
                     ))}
@@ -277,7 +289,7 @@ export default function Payments() {
                 <ul className="space-y-1 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/5 px-3 py-2">
                   {paymentProducts(selected).map((it, i) => (
                     <li key={i} className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{it.name}{it.style ? <span className="ml-1 font-mono text-[10px] text-gray-500 dark:text-gray-500">[{it.style}]</span> : null}</span>
                       <span className="font-mono text-gray-500 dark:text-gray-400 dark:text-gray-500">({it.sku}{it.quantity > 1 ? ` × ${it.quantity}` : ''})</span>
                     </li>
                   ))}

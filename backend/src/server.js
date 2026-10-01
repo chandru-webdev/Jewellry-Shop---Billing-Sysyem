@@ -90,16 +90,63 @@ async function ensureSchema() {
     `).catch((e) => console.error('[SCHEMA] Expense bank FK skipped:', e.message))
     console.log('Expense advanced fields ensured.')
 
-    // Fast path: if the newest schema marker column already exists, every
-    // <CREATE ... IF NOT EXISTS / EXCEPTION> check below is a no-op. Skipping
-    // them drops cold boot from ~25s to ~1s, which matters on the Free plan:
-    // the container sleeps when idle and a slow wake makes the first request
-    // die with 502 before the update/history row is ever written.
+    // Every new Product column is additive + nullable/defaulted so existing rows
+    // survive. Declared here (before the fast path) so the guard below can verify
+    // them, and applied further down in the ADD COLUMN loop.
+    const productColumns = [
+      ['barcode', 'TEXT'],
+      ['style', 'TEXT'],
+      ['collectionId', 'INTEGER'],
+      ['supplierId', 'INTEGER'],
+      ['purity', 'DECIMAL(5,2)'],
+      ['colour', 'TEXT'],
+      ['grossWeight', 'DECIMAL(10,3)'],
+      ['stoneWeight', 'DECIMAL(10,3)'],
+      ['netWeight', 'DECIMAL(10,3)'],
+      ['silverRateUsed', 'DECIMAL(10,2)'],
+      ['compareAtPrice', 'DECIMAL(12,2)'],
+      ['shopifyVendor', 'TEXT'],
+      ['shopifyProductType', 'TEXT'],
+      ['shopifyTags', 'TEXT'],
+      ['shopifyImageUrl', 'TEXT'],
+      ['imageUrls', 'JSONB'],
+      ['trackInventory', 'BOOLEAN'],
+      ['pushToShopify', 'BOOLEAN'],
+      ['stoneType', 'TEXT'],
+      ['stonePieces', 'INTEGER'],
+      ['stoneValue', 'DECIMAL(12,2)'],
+      ['lowStockThreshold', 'INTEGER'],
+      ['shopifyProductId', 'BIGINT'],
+      ['shopifyVariantId', 'BIGINT'],
+      ['shopifyInventoryItemId', 'BIGINT'],
+      ['shopifyStatus', "TEXT NOT NULL DEFAULT 'active'"],
+      ['chargeTax', 'BOOLEAN NOT NULL DEFAULT true'],
+    ]
+
+    // Fast path: if the newest schema marker column already exists AND every
+    // declared Product column is present, every <CREATE ... IF NOT EXISTS /
+    // EXCEPTION> check below is a no-op. Skipping them drops cold boot from
+    // ~25s to ~1s, which matters on the Free plan: the container sleeps when
+    // idle and a slow wake makes the first request die with 502 before the
+    // update/history row is ever written.
+    //
+    // The marker alone is NOT enough: a newly added column in productColumns
+    // lives below this early return, so marker-only matching skipped applying
+    // it and every query selecting that column failed with
+    // "column does not exist". Hence the second check.
     try {
       const marker = await prisma.$queryRawUnsafe(
         `SELECT 1 FROM information_schema.columns WHERE table_name = 'MetalRateHistory' AND column_name = 'syncPayload'`
       )
-      if (marker && marker.length > 0) return
+      if (marker && marker.length > 0) {
+        // Identifiers are hardcoded literals in this file, not user input.
+        const wanted = productColumns.map(([col]) => `'${col}'`).join(',')
+        const found = await prisma.$queryRawUnsafe(
+          `SELECT column_name FROM information_schema.columns WHERE table_name = 'Product' AND column_name IN (${wanted})`
+        )
+        if (found && found.length >= productColumns.length) return
+        console.log('[SCHEMA] Product columns missing — running full schema check.')
+      }
     } catch {
       // information_schema unavailable — fall through and run the full checks.
     }
@@ -177,35 +224,6 @@ async function ensureSchema() {
     `)
     await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Collection_name_key" ON "Collection"("name")`)
 
-    // Every new Product column is additive + nullable/defaulted so existing rows survive.
-    const productColumns = [
-      ['barcode', 'TEXT'],
-      ['collectionId', 'INTEGER'],
-      ['supplierId', 'INTEGER'],
-      ['purity', 'DECIMAL(5,2)'],
-      ['colour', 'TEXT'],
-      ['grossWeight', 'DECIMAL(10,3)'],
-      ['stoneWeight', 'DECIMAL(10,3)'],
-      ['netWeight', 'DECIMAL(10,3)'],
-      ['silverRateUsed', 'DECIMAL(10,2)'],
-      ['compareAtPrice', 'DECIMAL(12,2)'],
-      ['shopifyVendor', 'TEXT'],
-      ['shopifyProductType', 'TEXT'],
-      ['shopifyTags', 'TEXT'],
-      ['shopifyImageUrl', 'TEXT'],
-      ['imageUrls', 'JSONB'],
-      ['trackInventory', 'BOOLEAN'],
-      ['pushToShopify', 'BOOLEAN'],
-      ['stoneType', 'TEXT'],
-      ['stonePieces', 'INTEGER'],
-      ['stoneValue', 'DECIMAL(12,2)'],
-      ['lowStockThreshold', 'INTEGER'],
-      ['shopifyProductId', 'BIGINT'],
-      ['shopifyVariantId', 'BIGINT'],
-      ['shopifyInventoryItemId', 'BIGINT'],
-      ['shopifyStatus', "TEXT NOT NULL DEFAULT 'active'"],
-      ['chargeTax', 'BOOLEAN NOT NULL DEFAULT true'],
-    ]
     for (const [col, type] of productColumns) {
       await prisma.$executeRawUnsafe(`
         DO $$ BEGIN

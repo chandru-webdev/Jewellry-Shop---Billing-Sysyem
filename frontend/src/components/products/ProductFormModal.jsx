@@ -42,6 +42,7 @@ const emptyForm = {
   collectionId: '',
   supplierId: '',
   barcode: '',
+  style: '',
   purity: '92.5',
   colour: '',
   description: '',
@@ -79,6 +80,7 @@ function buildForm(product, silverRate) {
     collectionId: product.collectionId ? String(product.collectionId) : '',
     supplierId: product.supplierId ? String(product.supplierId) : '',
     barcode: product.barcode || '',
+    style: product.style || '',
     purity: String(product.purity ?? 92.5),
     colour: product.colour || '',
     description: product.description || '',
@@ -225,6 +227,7 @@ export default function ProductFormModal({
       collectionId: form.collectionId ? Number(form.collectionId) : null,
       supplierId: form.supplierId ? Number(form.supplierId) : null,
       barcode: form.barcode.trim() || null,
+      style: form.style.trim() || null,
       purity: numOr(form.purity, 92.5),
       colour: form.colour.trim() || null,
       description: form.description.trim() || undefined,
@@ -343,6 +346,11 @@ export default function ProductFormModal({
               <Label htmlFor="barcode">Barcode (EAN)</Label>
               <Input id="barcode" value={form.barcode} onChange={set('barcode')} maxLength={12} placeholder="12 digits" />
               {barcodeError && <p className="text-xs text-red-600 mt-1">{barcodeError}</p>}
+            </div>
+            <div>
+              <Label htmlFor="style">Style</Label>
+              <Input id="style" value={form.style} onChange={set('style')} maxLength={60} placeholder="e.g. ANG-101" />
+              <p className="text-[11px] text-gray-400 mt-1">Design/style code. Shown on the Payments page.</p>
             </div>
             <div>
               <Label htmlFor="category">Category</Label>

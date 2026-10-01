@@ -157,6 +157,7 @@ model Product {
   category               Category               @relation(fields: [categoryId], references: [id])
   // Expanded catalog fields
   barcode                String?                @unique // 12-digit EAN, optional
+  style                  String?                // design/style code e.g. "ANG-101", shown on Payments
   collectionId           Int?
   collection             Collection?            @relation(fields: [collectionId], references: [id])
   supplierId             Int?

@@ -20,7 +20,7 @@ function startOfMonth() {
 
 const paymentService = {
   // GET /api/payments — searchable history, newest first
-  async list({ search, status, method, customerId, limit = 50 } = {}) {
+  async list({ search, status, method, customerId, limit = 100000 } = {}) {
     const where = {}
     if (status) where.status = status
     if (method) where.method = method
@@ -31,6 +31,8 @@ const paymentService = {
         { customer: { name: { contains: q, mode: 'insensitive' } } },
         { reference: { contains: q } },
         { invoice: { invoiceNumber: { contains: q } } },
+        { invoice: { items: { some: { product: { style: { contains: q, mode: 'insensitive' } } } } } },
+        { order: { items: { some: { product: { style: { contains: q, mode: 'insensitive' } } } } } },
       ]
     }
     return prisma.payment.findMany({
@@ -41,19 +43,23 @@ const paymentService = {
           select: {
             id: true,
             invoiceNumber: true,
-            items: true,
+            items: {
+              include: { product: { select: { id: true, style: true } } },
+            },
           },
         },
         order: {
           select: {
             id: true,
             orderNumber: true,
-            items: true,
+            items: {
+              include: { product: { select: { id: true, style: true } } },
+            },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: Number(limit),
+      take: Math.min(Number(limit) || 100000, 100000),
     })
   },
 

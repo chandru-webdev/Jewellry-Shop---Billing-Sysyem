@@ -76,6 +76,28 @@ export default async function printInvoice(invoice) {
 
   const customerGstin = invoice.customer?.gstin ? `<p>GSTIN: ${esc(invoice.customer.gstin)}</p>` : ''
 
+  // GST breakup. A GST invoice must show CGST+SGST for an intra-state sale and
+  // IGST for an inter-state one; the state is the first 2 digits of each GSTIN.
+  // Missing/unparseable GSTINs fall back to intra-state (CGST+SGST), which is the
+  // safer default for a single-state shop.
+  const stateCode = (g) => {
+    const m = String(g || '').trim().toUpperCase().match(/^(\d{2})/)
+    return m ? m[1] : null
+  }
+  const ownState = stateCode(settings.gstin)
+  const custState = stateCode(invoice.customer?.gstin)
+  const interState = ownState !== null && custState !== null && ownState !== custState
+  const gstTotal = Number(invoice.gstTotal) || 0
+  const half = Math.round(gstTotal * 100) / 200
+  const cgst = interState ? 0 : half
+  const sgst = interState ? 0 : half
+  const igst = interState ? gstTotal : 0
+  const taxableValue = Number(invoice.subtotal) || Number(invoice.grandTotal) - gstTotal
+
+  const taxBreakup = interState
+    ? row('IGST', money(igst, symbol))
+    : `${row('CGST', money(cgst, symbol))}${row('SGST', money(sgst, symbol))}`
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,8 +191,9 @@ export default async function printInvoice(invoice) {
     <tbody>${items}</tbody>
     <tfoot>
       ${row('Total Weight', `${esc(invoice.totalWeight)} g`)}
-      ${row('Subtotal', money(invoice.subtotal, symbol))}
-      ${row('GST Total', money(invoice.gstTotal, symbol))}
+      ${row('Taxable Value', money(taxableValue, symbol))}
+      ${taxBreakup}
+      ${row('Total GST', money(gstTotal, symbol))}
       ${invoice.discount > 0 ? row('Discount', `- ${money(invoice.discount, symbol)}`) : ''}
       <tr class="grand">
         <td colspan="5" class="right strong" style="padding-top:10px;">GRAND TOTAL</td>

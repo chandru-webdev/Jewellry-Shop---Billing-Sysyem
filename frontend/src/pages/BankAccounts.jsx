@@ -9,7 +9,15 @@ import Modal from '../components/ui/Modal'
 import { bankAccountsApi } from '../api/bankAccounts'
 import { formatINR, formatDate } from '../utils/format'
 
+// Keep in sync with BANK_ACCOUNT_TYPES in
+// backend/src/validators/bankAccount.validator.js.
+const ACCOUNT_TYPES = ['Current', 'Savings', 'Cash Credit', 'Overdraft']
 const typeTone = { Current: 'blue', Savings: 'green', 'Cash Credit': 'orange', Overdraft: 'red' }
+
+const EMPTY_FORM = {
+  name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current',
+  openingBalance: '', openingDate: new Date().toISOString().split('T')[0], balance: '',
+}
 
 export default function BankAccounts() {
   const queryClient = useQueryClient()
@@ -20,7 +28,7 @@ export default function BankAccounts() {
   const [viewOpen, setViewOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [formData, setFormData] = useState({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0], balance: '' })
+  const [formData, setFormData] = useState({ ...EMPTY_FORM, openingDate: new Date().toISOString().split('T')[0] })
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['bank-accounts', search, filterType, filterStatus],
@@ -98,22 +106,28 @@ export default function BankAccounts() {
       if (data.balance === '') delete data.balance
       updateMutation.mutate({ id: editing.id, data })
     } else {
-      const { balance, ...data } = formData
+      // balance is server-derived on create (seeded from openingBalance), so it
+      // is dropped here the same way the edit branch drops it when left blank.
+      const data = { ...formData }
+      delete data.balance
       createMutation.mutate(data)
     }
   }
 
   const handleEdit = (account) => {
     setEditing(account)
+    // Decimal values arrive as strings from JSON. Stringify defensively: a null
+    // balance/openingBalance would throw here and, because setFormOpen runs
+    // last, the Edit button would silently do nothing.
     setFormData({
-      name: account.name,
-      bank: account.bank,
-      accountNumber: account.accountNumber,
-      ifsc: account.ifsc,
-      type: account.type,
-      openingBalance: account.openingBalance.toString(),
+      name: account.name || '',
+      bank: account.bank || '',
+      accountNumber: account.accountNumber || '',
+      ifsc: account.ifsc || '',
+      type: ACCOUNT_TYPES.includes(account.type) ? account.type : 'Current',
+      openingBalance: account.openingBalance == null ? '' : String(account.openingBalance),
       openingDate: account.openingDate?.split('T')[0] || '',
-      balance: account.balance.toString(),
+      balance: account.balance == null ? '' : String(account.balance),
     })
     setFormOpen(true)
   }
@@ -126,7 +140,7 @@ export default function BankAccounts() {
 
   const resetForm = () => {
     setEditing(null)
-    setFormData({ name: '', bank: '', accountNumber: '', ifsc: '', type: 'Current', openingBalance: '', openingDate: new Date().toISOString().split('T')[0], balance: '' })
+    setFormData({ ...EMPTY_FORM, openingDate: new Date().toISOString().split('T')[0] })
   }
 
   return (
@@ -155,10 +169,9 @@ export default function BankAccounts() {
         </div>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Types</option>
-          <option value="Current">Current</option>
-          <option value="Savings">Savings</option>
-          <option value="Cash Credit">Cash Credit</option>
-          <option value="Overdraft">Overdraft</option>
+          {ACCOUNT_TYPES.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
         </select>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-sm bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500">
           <option value="">All Status</option>
@@ -254,10 +267,9 @@ export default function BankAccounts() {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type *</label>
               <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full rounded-lg border border-gray-300 bg-white dark:bg-[#1a1025] px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-royal-500" required>
-                <option value="Current">Current</option>
-                <option value="Savings">Savings</option>
-                <option value="Cash Credit">Cash Credit</option>
-                <option value="Overdraft">Overdraft</option>
+                {ACCOUNT_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
               </select>
             </div>
             <div>

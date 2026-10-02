@@ -34,6 +34,11 @@ const ledgerService = {
         openingBalance: toNumber(b.openingBalance),
         currentBalance: toNumber(b.balance),
         isActive: b.isActive,
+        // Bank rows are backed by a real BankAccount record, so they can be edited
+        // through /api/bank-accounts/:id. Derived rows below use negative ids and
+        // are computed, so they are read-only.
+        source: 'BANK_ACCOUNT',
+        editable: true,
       })),
       {
         id: -200,
@@ -44,6 +49,8 @@ const ledgerService = {
         openingBalance: 0,
         currentBalance: income,
         isActive: true,
+        source: 'DERIVED',
+        editable: false,
       },
       {
         id: -300,
@@ -54,6 +61,8 @@ const ledgerService = {
         openingBalance: 0,
         currentBalance: purchasesTotal,
         isActive: true,
+        source: 'DERIVED',
+        editable: false,
       },
       {
         id: -301,
@@ -64,6 +73,8 @@ const ledgerService = {
         openingBalance: 0,
         currentBalance: expensesTotal,
         isActive: true,
+        source: 'DERIVED',
+        editable: false,
       },
       {
         id: -400,
@@ -74,6 +85,8 @@ const ledgerService = {
         openingBalance: 0,
         currentBalance: capital,
         isActive: true,
+        source: 'DERIVED',
+        editable: false,
       },
       {
         id: -401,
@@ -84,6 +97,8 @@ const ledgerService = {
         openingBalance: 0,
         currentBalance: retained,
         isActive: true,
+        source: 'DERIVED',
+        editable: false,
       },
     ]
 

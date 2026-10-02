@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Download, Calculator, BookOpen } from 'lucide-react'
+import { Search, Download, Calculator, BookOpen, Pencil, Lock } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { ledgerApi } from '../api/ledger'
+import BankAccountEditModal from '../components/BankAccountEditModal'
 import { formatINR } from '../utils/format'
 
 const typeTone = { Asset: 'blue', Liability: 'red', Equity: 'purple', Income: 'green', Expense: 'orange' }
@@ -18,6 +19,8 @@ export default function Ledger() {
   const [view, setView] = useState('accounts')
   const [selected, setSelected] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   const { data: apiAccounts, isError: accountsError } = useQuery({
     queryKey: ['ledger-accounts'],
@@ -161,7 +164,14 @@ export default function Ledger() {
                         <Badge tone={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Active' : 'Inactive'}</Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => { setSelected(a); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><BookOpen size={14} /></button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { setSelected(a); setViewOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="View"><BookOpen size={14} /></button>
+                          {a.editable ? (
+                            <button onClick={() => { setEditTarget(a); setEditOpen(true) }} className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer" title="Edit bank account"><Pencil size={14} /></button>
+                          ) : (
+                            <span className="p-1.5 text-gray-300 dark:text-gray-600 cursor-not-allowed" title="Computed from bank accounts, payments, purchases and expenses - not editable here"><Lock size={14} /></span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -232,9 +242,20 @@ export default function Ledger() {
               <div className="bg-royal-50/60 rounded-lg p-3"><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Current Balance</p><p className="font-bold text-royal-950 dark:text-white text-xl">{formatINR(selected.currentBalance)}</p></div>
             </div>
             <div><p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 dark:text-gray-500 font-semibold">Account Name</p><p className="font-medium text-lg mt-1">{selected.name}</p></div>
+            {!selected.editable && (
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                This row is computed from bank accounts, payments, purchase orders and expenses. Edit those records instead.
+              </p>
+            )}
           </div>
         )}
       </Modal>
+
+      <BankAccountEditModal
+        open={editOpen}
+        account={editTarget}
+        onClose={() => { setEditOpen(false); setEditTarget(null) }}
+      />
     </div>
   )
 }

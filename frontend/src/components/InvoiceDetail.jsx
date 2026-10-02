@@ -5,8 +5,15 @@ import Badge from './ui/Badge'
 import Button from './ui/Button'
 import { customersApi } from '../api/customers'
 import { invoicesApi } from '../api/invoices'
+import { settingsApi } from '../api/settings'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
 import { useAuth } from '../context/AuthContext'
+
+// GSTIN state code = first 2 digits. Intra-state => CGST+SGST, inter => IGST.
+const stateCode = (g) => {
+  const m = String(g || '').trim().toUpperCase().match(/^(\d{2})/)
+  return m ? m[1] : null
+}
 
 const statusTone = {
   PAID: 'green',
@@ -46,6 +53,19 @@ export default function InvoiceDetail({ invoice }) {
     queryFn: () => customersApi.list({ search: customerSearch }).then((r) => r.data.data),
     enabled: !!customerSearch && customerSearch.length >= 2,
   })
+
+  const { data: allSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingsApi.getAll().then((r) => r.data.data),
+    retry: false,
+  })
+
+  const ownState = stateCode(allSettings?.gstin)
+  const custState = stateCode(invoice.customer?.gstin)
+  const interState = ownState !== null && custState !== null && ownState !== custState
+  const gstTotal = Number(invoice.gstTotal) || 0
+  const halfGst = Math.round(gstTotal * 100) / 200
+  const taxableValue = Number(invoice.subtotal) || Number(invoice.grandTotal) - gstTotal
 
   const assignCustomer = () => {
     if (!selectedCustomer) return
@@ -220,12 +240,29 @@ export default function InvoiceDetail({ invoice }) {
           <span className="text-gray-700 dark:text-gray-300 font-medium">{formatWeight(invoice.totalWeight)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Subtotal</span>
-          <span className="text-gray-700 dark:text-gray-300">{formatINR(invoice.subtotal)}</span>
+          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Taxable Value</span>
+          <span className="text-gray-700 dark:text-gray-300">{formatINR(taxableValue)}</span>
         </div>
+        {interState ? (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">IGST (inter-state)</span>
+            <span className="text-gray-700 dark:text-gray-300">{formatINR(gstTotal)}</span>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">CGST</span>
+              <span className="text-gray-700 dark:text-gray-300">{formatINR(halfGst)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">SGST</span>
+              <span className="text-gray-700 dark:text-gray-300">{formatINR(halfGst)}</span>
+            </div>
+          </>
+        )}
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">GST Total (3%)</span>
-          <span className="text-gray-700 dark:text-gray-300">{formatINR(invoice.gstTotal)}</span>
+          <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500">Total GST</span>
+          <span className="text-gray-700 dark:text-gray-300 font-medium">{formatINR(gstTotal)}</span>
         </div>
         {Number(invoice.discount) > 0 && (
           <div className="flex justify-between text-sm">

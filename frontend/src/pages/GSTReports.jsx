@@ -6,13 +6,17 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import { formatINR, formatDate } from '../utils/format'
 import { invoicesApi } from '../api/invoices'
+import { expensesApi } from '../api/expenses'
 import { settingsApi } from '../api/settings'
+import GSTR1DetailModal from '../components/GSTR1DetailModal'
 
 const MONTHS = [
   { key: '0', label: 'This Month' },
   { key: '1', label: 'Last Month' },
   { key: '2', label: 'Last 2 Months' },
+  { key: '3', label: 'Last 3 Months' },
   { key: 'quarter', label: 'This Quarter' },
+  { key: 'year', label: 'This FY (Apr-Mar)' },
 ]
 
 function currentRange(preset) {
@@ -20,9 +24,22 @@ function currentRange(preset) {
   if (preset === '0') return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now }
   if (preset === '1') return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1), to: new Date(now.getFullYear(), now.getMonth(), 0) }
   if (preset === '2') return { from: new Date(now.getFullYear(), now.getMonth() - 2, 1), to: now }
+  if (preset === '3') return { from: new Date(now.getFullYear(), now.getMonth() - 3, 1), to: now }
+  if (preset === 'year') {
+    // Indian financial year runs 1 April - 31 March.
+    const fyStart = now.getMonth() >= 3
+      ? new Date(now.getFullYear(), 3, 1)
+      : new Date(now.getFullYear() - 1, 3, 1)
+    return { from: fyStart, to: now }
+  }
   const qStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
   return { from: qStart, to: now }
 }
+
+// Presets tried in order when picking the period to open on. Widest first, so the
+// page never lands on a blank report: the current month is routinely empty early
+// in the month (today is the 1st of the month, the last sale was last month).
+const FALLBACK_ORDER = ['year', '2', 'quarter', '1', '0']
 
 function stateCode(gstin) {
   if (!gstin) return null
@@ -31,12 +48,37 @@ function stateCode(gstin) {
 }
 
 export default function GSTReports() {
-  const [preset, setPreset] = useState('0')
+  const [preset, setPreset] = useState(null)
+  const [pinned, setPinned] = useState(false)
+  const [detailId, setDetailId] = useState(null)
+
+  // Find the first preset that actually contains invoices. Runs only until the
+  // user picks a period themselves, after which we respect their choice.
+  const { data: probe, isLoading: probeLoading } = useQuery({
+    queryKey: ['gst-period-probe'],
+    queryFn: async () => {
+      for (const key of FALLBACK_ORDER) {
+        const r = currentRange(key)
+        const f = r.from.toISOString().slice(0, 10)
+        const t = r.to.toISOString().slice(0, 10)
+        const res = await invoicesApi.list({ dateFrom: f, dateTo: t, limit: 1 })
+        if ((res.data.data || []).length > 0) return { key, from: f, to: t }
+      }
+      const r = currentRange('0')
+      return { key: '0', from: r.from.toISOString().slice(0, 10), to: r.to.toISOString().slice(0, 10) }
+    },
+    retry: false,
+    enabled: !pinned,
+  })
+
+  // `preset` is null until the user picks a period; before that the probed key
+  // wins. Deriving it here avoids a state-sync effect.
+  const activePreset = preset || probe?.key || '0'
 
   const { from, to } = useMemo(() => {
-    const r = currentRange(preset)
+    const r = currentRange(activePreset)
     return { from: r.from.toISOString().slice(0, 10), to: r.to.toISOString().slice(0, 10) }
-  }, [preset])
+  }, [activePreset])
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -47,6 +89,15 @@ export default function GSTReports() {
   const { data: invData, isLoading, isError } = useQuery({
     queryKey: ['gst-invoices', { from, to }],
     queryFn: () => invoicesApi.list({ dateFrom: from, dateTo: to, limit: 500 }).then((r) => r.data.data),
+    retry: false,
+  })
+
+  // Input Tax Credit: GST already paid on PAID expenses that are flagged
+  // GST-applicable. Kept as its own query so a failure here cannot blank the
+  // whole report.
+  const { data: expenseData } = useQuery({
+    queryKey: ['gst-itc-expenses', { from, to }],
+    queryFn: () => expensesApi.list({ status: 'PAID' }).then((r) => r.data.data || []),
     retry: false,
   })
 
@@ -78,6 +129,25 @@ export default function GSTReports() {
       .sort((a, b) => new Date(b.date) - new Date(a.date))
   }, [invData, ownState])
 
+  const itc = useMemo(() => {
+    const fromMs = new Date(`${from}T00:00:00`).getTime()
+    const toMs = new Date(`${to}T23:59:59.999`).getTime()
+    let amount = 0
+    let gst = 0
+    let count = 0
+    for (const e of expenseData || []) {
+      if (e.status !== 'PAID' || !e.gstApplicable) continue
+      const d = new Date(e.date).getTime()
+      if (Number.isNaN(d) || d < fromMs || d > toMs) continue
+      amount += Number(e.amount) || 0
+      gst += Number(e.gstAmount) || 0
+      count += 1
+    }
+    // GSTR-3B 4(A)(5): the credit available is the GST component only, not the
+    // gross expense amount.
+    return { amount, gst, count }
+  }, [expenseData, from, to])
+
   const summary = useMemo(() => {
     const s = { invoices: invoices.length, taxable: 0, gst: 0, cgst: 0, sgst: 0, igst: 0, b2b: 0, b2c: 0, grand: 0 }
     for (const i of invoices) {
@@ -92,6 +162,8 @@ export default function GSTReports() {
     }
     return s
   }, [invoices])
+
+  const netTax = useMemo(() => summary.gst - itc.gst, [summary.gst, itc.gst])
 
   const byRate = useMemo(() => {
     const map = new Map()
@@ -113,6 +185,8 @@ export default function GSTReports() {
     { label: 'GST Charged', value: formatINR(summary.gst), icon: Scale, tone: 'text-emerald-600' },
     { label: 'CGST + SGST', value: formatINR(summary.cgst + summary.sgst), icon: Landmark, tone: 'text-purple-600' },
     { label: 'IGST (Inter-state)', value: formatINR(summary.igst), icon: Building2, tone: 'text-amber-600' },
+    { label: 'ITC (Input Credit)', value: formatINR(itc.gst), icon: Scale, tone: 'text-teal-600' },
+    { label: 'Net Tax Payable', value: formatINR(netTax), icon: Receipt, tone: 'text-royal-600' },
     { label: 'Nett Amount', value: formatINR(summary.grand), icon: Receipt, tone: 'text-royal-600' },
   ]
 
@@ -122,11 +196,20 @@ export default function GSTReports() {
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {MONTHS.map((m) => (
-          <button key={m.key} onClick={() => setPreset(m.key)} className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${preset === m.key ? 'bg-royal-600 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-royal-100 dark:hover:bg-white/20'}`}>
+          <button
+            key={m.key}
+            onClick={() => { setPreset(m.key); setPinned(true) }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors cursor-pointer ${activePreset === m.key ? 'bg-royal-600 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-royal-100 dark:hover:bg-white/20'}`}
+          >
             {m.label}
           </button>
         ))}
-        <span className="ml-auto text-xs text-gray-400">{formatDate(from)} — {formatDate(to)}</span>
+        <span className="ml-auto text-xs text-gray-400">
+          {probeLoading && !preset
+            ? 'Finding period with data…'
+            : `${MONTHS.find((m) => m.key === activePreset)?.label || ''} · `}
+          {formatDate(from)} — {formatDate(to)}
+        </span>
       </div>
 
       {isLoading ? (
@@ -153,10 +236,13 @@ export default function GSTReports() {
                   <tr><td className="py-2 text-gray-600 dark:text-gray-400">3.1(b) Intra-state (SGST)</td><td className="py-2 text-right font-semibold text-royal-950 dark:text-white">{formatINR(summary.sgst)}</td></tr>
                   <tr><td className="py-2 text-gray-600 dark:text-gray-400">3.1(c) Inter-state (IGST)</td><td className="py-2 text-right font-semibold text-royal-950 dark:text-white">{formatINR(summary.igst)}</td></tr>
                   <tr className="bg-royal-50 dark:bg-white/5"><td className="py-2.5 font-medium text-royal-950 dark:text-white">Total Tax (CGST+SGST+IGST)</td><td className="py-2.5 text-right font-bold text-royal-700 dark:text-gray-200">{formatINR(summary.gst)}</td></tr>
+                  <tr><td className="py-2 text-gray-600 dark:text-gray-400">4(A)(5) All ITC on business expenses</td><td className="py-2 text-right font-semibold text-royal-950 dark:text-white">{formatINR(itc.gst)}</td></tr>
+                  <tr><td className="py-2 text-gray-600 dark:text-gray-400">4(A)(5) Less ITC available (already claimed)</td><td className="py-2 text-right font-semibold text-royal-950 dark:text-white">{formatINR(0)}</td></tr>
+                  <tr className="bg-royal-50 dark:bg-white/5"><td className="py-2.5 font-medium text-royal-950 dark:text-white">Net Tax Payable</td><td className="py-2.5 text-right font-bold text-royal-700 dark:text-gray-200">{formatINR(netTax)}</td></tr>
                 </tbody>
               </table>
               <div className="mt-3 text-[11px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
-                Inter-state is inferred from GSTIN state codes (own {String(ownState ?? '--')}). Does not include VOID invoices. Input Tax Credit is not computed from expenses here.
+                Inter-state is inferred from GSTIN state codes (own {String(ownState ?? '--')}). Does not include VOID invoices. ITC counts {itc.count} PAID expense{itc.count === 1 ? '' : 's'} flagged GST-applicable (gross {formatINR(itc.amount)}), and is shown as a full available credit because no earlier claim is tracked yet.
               </div>
             </Card>
 
@@ -204,10 +290,18 @@ export default function GSTReports() {
                     <th className="px-5 py-3 font-semibold text-right text-royal-900 dark:text-gray-200">SGST</th>
                     <th className="px-5 py-3 font-semibold text-right text-royal-900 dark:text-gray-200">IGST</th>
                     <th className="px-5 py-3 font-semibold text-right text-royal-900 dark:text-gray-200">Total</th>
+                    <th className="px-5 py-3 font-semibold text-right text-royal-900 dark:text-gray-200">Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {invoices.length === 0 && <tr><td colSpan={9} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">No invoices this period.</td></tr>}
+                  {invoices.length === 0 && (
+                    <tr>
+                      <td colSpan={10} className="px-5 py-6 text-center">
+                        <p className="text-sm font-medium text-royal-950 dark:text-white">No invoices between {formatDate(from)} and {formatDate(to)}.</p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Try a wider period, for example {MONTHS.filter((m) => ['2', '3', 'year'].includes(m.key)).map((m) => m.label).join(', ')}.</p>
+                      </td>
+                    </tr>
+                  )}
                   {invoices.map((inv) => (
                     <tr key={inv.id} className="hover:bg-royal-50 dark:hover:bg-white/5">
                       <td className="px-5 py-3 font-mono text-xs text-royal-700 dark:text-gray-300">{inv.invoiceNumber}</td>
@@ -219,13 +313,21 @@ export default function GSTReports() {
                       <td className="px-5 py-3 text-right text-gray-700 dark:text-gray-300">{formatINR(inv.sgst)}</td>
                       <td className="px-5 py-3 text-right text-gray-700 dark:text-gray-300">{formatINR(inv.igst)}</td>
                       <td className="px-5 py-3 text-right font-semibold text-emerald-600">{formatINR(inv.grandTotal)}</td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => setDetailId(inv.id)}
+                          className="px-2 py-1 text-[11px] font-semibold rounded-lg border border-royal-200 dark:border-white/15 text-royal-700 dark:text-gray-200 hover:bg-royal-50 dark:hover:bg-white/10 cursor-pointer"
+                        >
+                          View
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 {invoices.length > 0 && (
                   <tfoot>
                     <tr className="bg-royal-50/60 dark:bg-white/5 border-t-2 border-royal-200 dark:border-white/10 font-semibold">
-                      <td className="px-5 py-3 text-royal-800 dark:text-gray-200" colSpan={4}>Total</td>
+                      <td className="px-5 py-3 text-royal-800 dark:text-gray-200" colSpan={5}>Total</td>
                       <td className="px-5 py-3 text-right text-royal-800 dark:text-gray-200">{formatINR(summary.taxable)}</td>
                       <td className="px-5 py-3 text-right text-royal-800 dark:text-gray-200">{formatINR(summary.cgst)}</td>
                       <td className="px-5 py-3 text-right text-royal-800 dark:text-gray-200">{formatINR(summary.sgst)}</td>
@@ -239,6 +341,8 @@ export default function GSTReports() {
           </Card>
         </>
       )}
+
+      <GSTR1DetailModal invoiceId={detailId} onClose={() => setDetailId(null)} />
     </div>
   )
 }

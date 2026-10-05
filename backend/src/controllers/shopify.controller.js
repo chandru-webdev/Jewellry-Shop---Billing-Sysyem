@@ -1,5 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler')
 const { success } = require('../utils/ApiResponse')
+const ApiError = require('../utils/ApiError')
 const shopifyService = require('../services/shopify.service')
 const shopifyConfigService = require('../services/shopifyConfig.service')
 const syncProgress = require('../services/syncProgress.service')
@@ -10,15 +11,44 @@ const prisma = require('../prisma/client')
 // returns immediately with a jobId; the frontend opens the SSE stream for that
 // jobId to see live, colour-coded per-product progress. `countQuery` resolves
 // the number of items and `run` is the job function (reads r.ok/r.failed).
-async function startBulkJob({ title, countQuery, run }) {
-  const total = await countQuery()
+//
+// Two syncs of the same kind running at once is a real failure mode, not a
+// harmless duplicate: both write the same products, so their workers fight over
+// Shopify's per-product lock and the losers fail with 409 "currently being
+// modified". `kind` keys a guard so a second click is rejected up front.
+const activeBulkJobs = new Map()
+
+async function startBulkJob({ kind, title, countQuery, run }) {
+  if (kind && activeBulkJobs.has(kind)) {
+    throw new ApiError(
+      409,
+      `A ${kind.toLowerCase()} sync is already running. Wait for it to finish before starting another.`
+    )
+  }
+
   const jobId = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  // Claim the slot before the first await. Claiming it after countQuery() left a
+  // window where two simultaneous clicks both passed the guard above and then
+  // both started, which is the overlap the guard exists to prevent.
+  if (kind) activeBulkJobs.set(kind, jobId)
+
+  let total = 0
+  try {
+    total = await countQuery()
+  } catch (err) {
+    if (kind && activeBulkJobs.get(kind) === jobId) activeBulkJobs.delete(kind)
+    throw err
+  }
+
   syncProgress.startBulk(jobId, { title, total })
   run()
     .then((r) => syncProgress.finishBulk(jobId, 'success', { ok: r.ok, failed: r.failed, total: r.total }))
     .catch((err) => {
       console.error(`Bulk sync ${jobId} failed:`, err.message)
       syncProgress.finishBulk(jobId, 'failed', { message: (err && err.message) || 'Sync failed' })
+    })
+    .finally(() => {
+      if (kind && activeBulkJobs.get(kind) === jobId) activeBulkJobs.delete(kind)
     })
   return jobId
 }
@@ -55,14 +85,57 @@ const shopifyController = {
   }),
 
   // POST /api/shopify/sync/products — push one product
+  //
+  // Backs the per-row "Sync" button. It feeds the same per-product progress
+  // tracker the edit form uses, so the button can show the identical
+  // colour-coded step list over SSE, and records the attempt so the sync
+  // history drawer accounts for it.
   syncOneProduct: asyncHandler(async (req, res) => {
-    const result = await shopifyService.syncProduct(req.params.id)
-    success(res, 200, result, 'Product synced to Shopify')
+    const productId = Number(req.params.id)
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, name: true, sku: true, pushToShopify: true },
+    })
+    if (!product) throw new ApiError(404, 'Product not found')
+
+    // Products flagged "don't push to Shopify" are billing-software-only and are
+    // never published, so an on-demand push must not sneak one onto the store.
+    if (product.pushToShopify === false) {
+      throw new ApiError(
+        400,
+        `${product.name} is marked "don't push to Shopify". Turn that on for this product before syncing it.`
+      )
+    }
+
+    syncProgress.start(productId)
+    // This path doesn't re-save or re-price the ERP record, so those two steps
+    // would sit on "pending" forever in the step list.
+    syncProgress.report(productId, 'save', 'skipped', 'Already saved in ERP')
+    syncProgress.report(productId, 'price', 'skipped', 'Not re-calculated')
+
+    try {
+      const result = await shopifyService.syncProduct(productId, {
+        onProgress: (key, status, message) => syncProgress.report(productId, key, status, message),
+      })
+      syncProgress.finish(productId, 'success', 'Synced to Shopify')
+      shopifyService.logSync('PRODUCT', 1, 0, null, req.user.id, 1).catch(() => {})
+      success(res, 200, result, 'Product synced to Shopify')
+    } catch (err) {
+      const message = (err && err.message) || 'Shopify sync failed'
+      syncProgress.finish(productId, 'failed', message)
+      shopifyService
+        .logSync('PRODUCT', 0, 1, message, req.user.id, 1, [
+          { id: product.id, sku: product.sku, name: product.name, message },
+        ])
+        .catch(() => {})
+      throw err
+    }
   }),
 
   // POST /api/shopify/sync/all-products — push every active product
   syncAllProducts: asyncHandler(async (req, res) => {
     const jobId = await startBulkJob({
+      kind: 'PRODUCT',
       title: 'Syncing products to Shopify',
       countQuery: () => prisma.product.count({ where: { isActive: true } }),
       run: () => shopifyService.syncAllProducts(req.user.id, {
@@ -75,6 +148,7 @@ const shopifyController = {
   // POST /api/shopify/sync/prices
   syncAllPrices: asyncHandler(async (req, res) => {
     const jobId = await startBulkJob({
+      kind: 'PRICE',
       title: 'Syncing prices to Shopify',
       countQuery: () => prisma.product.count({ where: { isActive: true, shopifyVariantId: { not: null } } }),
       run: () => shopifyService.syncAllPrices(req.user.id, {
@@ -87,6 +161,7 @@ const shopifyController = {
   // POST /api/shopify/sync/inventory
   syncAllInventory: asyncHandler(async (req, res) => {
     const jobId = await startBulkJob({
+      kind: 'INVENTORY',
       title: 'Syncing inventory to Shopify',
       countQuery: () => prisma.product.count({ where: { shopifyInventoryItemId: { not: null } } }),
       run: () => shopifyService.syncAllInventory(req.user.id, {

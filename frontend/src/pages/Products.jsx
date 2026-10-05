@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Power, Upload, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2, Eye, ImagePlus } from 'lucide-react'
+import { Plus, Pencil, Power, Upload, RefreshCw, Search, Package, DollarSign, Weight, X, Check, Loader2, Eye, ImagePlus, History } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -9,6 +9,8 @@ import ProductFormModal from '../components/products/ProductFormModal'
 import ProductViewModal from '../components/products/ProductViewModal'
 import ProductImageModal from '../components/products/ProductImageModal'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
+import SingleSyncModal from '../components/products/SingleSyncModal'
 import { productsApi } from '../api/products'
 import { categoriesApi } from '../api/categories'
 import { collectionsApi } from '../api/collections'
@@ -20,6 +22,26 @@ import { useAuth } from '../context/AuthContext'
 import { exportProductsExcel } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
 
+// Column header with a "sync this column" button beside the label. Bulk syncs
+// run in the background, so the button just asks the page to start one.
+function ColumnSyncLabel({ label, kind, title, disabled, onSync, align = 'left' }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+      <span>{label}</span>
+      <button
+        type="button"
+        onClick={() => onSync(kind)}
+        disabled={disabled}
+        title={title}
+        aria-label={`Sync ${label} to Shopify for all products`}
+        className="p-1 rounded-md text-royal-600 dark:text-royal-400 hover:bg-royal-100 dark:hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <RefreshCw size={12} />
+      </button>
+    </span>
+  )
+}
+
 export default function Products() {
   const { user } = useAuth()
   const canEdit = ['SUPER_ADMIN', 'MANAGER'].includes(user?.role?.name)
@@ -29,6 +51,8 @@ export default function Products() {
   const [editing, setEditing] = useState(null)
   const [syncProduct, setSyncProduct] = useState(null)
   const [syncJob, setSyncJob] = useState(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [singleSync, setSingleSync] = useState(null)
   const [viewing, setViewing] = useState(null)
   const [imageProduct, setImageProduct] = useState(null)
   const [error, setError] = useState('')
@@ -138,6 +162,61 @@ export default function Products() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
   })
 
+  // Per-row "Sync": push just this one product, then stream its steps.
+  const singleSyncMutation = useMutation({
+    mutationFn: (product) => shopifyApi.syncProduct(product.id),
+    onSuccess: (res, product) => {
+      // Open the stepper regardless — it streams the real per-step result, and
+      // reports the failure itself if the push did not actually succeed.
+      if (res?.data?.success === false) setError(res.data.message || 'Shopify sync failed')
+      setSingleSync(product)
+    },
+    onError: (err) => {
+      setError(err.response?.data?.message || 'Failed to sync product to Shopify')
+      queryClient.invalidateQueries({ queryKey: ['shopify-sync-history'] })
+    },
+  })
+
+  const handleSingleSyncComplete = (status, message) => {
+    setSingleSync(null)
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-sync-history'] })
+    showToast(
+      status === 'success' ? message || 'Product synced to Shopify' : message || 'Shopify sync failed',
+      status === 'success' ? 'success' : 'warn'
+    )
+  }
+
+  // Header buttons: sync one column's field across every product. Each maps to a
+  // separate bulk endpoint so only the chosen field is written.
+  const COLUMN_SYNCS = {
+    PRODUCT: { run: () => shopifyApi.syncAllProducts(), title: 'Syncing product details to Shopify' },
+    PRICE: { run: () => shopifyApi.syncAllPrices(), title: 'Syncing prices to Shopify' },
+    INVENTORY: { run: () => shopifyApi.syncAllInventory(), title: 'Syncing stock to Shopify' },
+  }
+
+  const columnSyncMutation = useMutation({
+    mutationFn: (kind) => COLUMN_SYNCS[kind].run(),
+    onSuccess: (res, kind) => {
+      const jobId = res.data?.data?.jobId
+      if (jobId) setSyncJob({ jobId, title: COLUMN_SYNCS[kind].title })
+      else setError(res.data?.message || 'Could not start the sync')
+    },
+    onError: (err) => setError(err.response?.data?.message || 'Failed to start the sync'),
+  })
+
+  // One bulk sync at a time, and not while a row sync or progress modal is open.
+  const columnSyncDisabled =
+    !canEdit || columnSyncMutation.isPending || !!syncJob || !!singleSync
+  const startColumnSync = (kind) => {
+    setError('')
+    columnSyncMutation.mutate(kind)
+  }
+
+  // The row being pushed right now; used to spin just that row's icon.
+  const syncingThisId = singleSyncMutation.isPending ? singleSyncMutation.variables?.id : null
+  const singleSyncBusy = singleSyncMutation.isPending || !!syncJob || !!columnSyncMutation.isPending
+
   const approveImportMutation = useMutation({
     mutationFn: (id) => productsApi.approveImport(id),
     onSuccess: (res) => {
@@ -238,6 +317,7 @@ export default function Products() {
     queryClient.invalidateQueries({ queryKey: ['products'] })
     queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
     queryClient.invalidateQueries({ queryKey: ['shopify-logs'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-sync-history'] })
     if (status === 'success') {
       showToast(`Synced ${summary?.ok ?? 0} products to Shopify${summary?.failed ? `, failed ${summary.failed}` : ''}`)
     } else {
@@ -278,6 +358,9 @@ export default function Products() {
                 {importMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <><Upload size={14} /> Import</>}
               </Button>
               <ExportControls onExport={handleExport} />
+              <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+                <History size={14} /> History
+              </Button>
               <Button variant="outline" size="sm" onClick={() => syncShopifyMutation.mutate()} disabled={syncShopifyMutation.isPending || Boolean(syncJob)}>{syncShopifyMutation.isPending || syncJob ? <Loader2 size={14} className="animate-spin" /> : <><RefreshCw size={14} /> Sync Shopify</>}</Button>
               <Button size="sm" onClick={() => { setEditing(null); setModalKey((k) => k + 1); setModalOpen(true) }}>
                 <Plus size={14} /> Add Product
@@ -356,13 +439,19 @@ export default function Products() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-royal-50/80 border-b border-gray-200 dark:border-white/[0.08]">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Product</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <ColumnSyncLabel label="Product" kind="PRODUCT" title="Push names, images, category & details for every product" disabled={columnSyncDisabled} onSync={startColumnSync} />
+                </th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">SKU</th>
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Purity</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Net Weight</th>
                 <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Making Charge</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Selling Price</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Stock</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <ColumnSyncLabel label="Selling Price" kind="PRICE" title="Push selling price & making charge for every product" disabled={columnSyncDisabled} onSync={startColumnSync} align="right" />
+                </th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">
+                  <ColumnSyncLabel label="Stock" kind="INVENTORY" title="Push stock quantity for every product" disabled={columnSyncDisabled} onSync={startColumnSync} align="right" />
+                </th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Shopify</th>
                 <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Status</th>
                 {canEdit && <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 dark:text-gray-500">Actions</th>}
@@ -483,6 +572,21 @@ export default function Products() {
                         <button onClick={() => setViewing(p)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-white/10 rounded-lg cursor-pointer" title="View">
                           <Eye size={14} />
                         </button>
+                        <button
+                          onClick={() => { setError(''); singleSyncMutation.mutate(p) }}
+                          disabled={singleSyncBusy}
+                          title={
+                            p.pushToShopify === false
+                              ? "Marked \"don't push to Shopify\""
+                              : !p.shopifyProductId
+                                ? 'Not pushed to Shopify yet — sync product details first'
+                                : 'Sync this product to Shopify'
+                          }
+                          aria-label={`Sync ${p.name} to Shopify`}
+                          className="p-1.5 text-royal-600 dark:text-royal-300 hover:bg-royal-100 dark:hover:bg-white/10 rounded-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {syncingThisId === p.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        </button>
                         <button onClick={() => setImageProduct(p)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-royal-50 dark:hover:bg-white/10 rounded-lg cursor-pointer" title="Add image">
                           <ImagePlus size={14} />
                         </button>
@@ -546,6 +650,19 @@ export default function Products() {
         title={syncJob?.title}
         onClose={() => setSyncJob(null)}
         onComplete={handleSyncJobComplete}
+      />
+
+      <SyncHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        type="PRODUCT"
+      />
+
+      <SingleSyncModal
+        open={!!singleSync}
+        product={singleSync}
+        onClose={() => setSingleSync(null)}
+        onComplete={handleSingleSyncComplete}
       />
     </div>
   )

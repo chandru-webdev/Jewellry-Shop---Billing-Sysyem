@@ -30,6 +30,16 @@ const HISTORY_RETENTION_MS = 3 * 24 * 60 * 60 * 1000
 // can be in flight without blowing Shopify's ~2 req/s sustained cap.
 const BULK_CONCURRENCY = 4
 
+// How long to pause after a product write that carried images, so Shopify
+// finishes reprocessing and releases the product lock before the variant /
+// inventory / metafield writes for the same product go out. See the 409 note in
+// updateProductOnShopify.
+const PRODUCT_WRITE_SETTLE_MS = Number(process.env.SHOPIFY_PRODUCT_SETTLE_MS) > 0
+  ? Number(process.env.SHOPIFY_PRODUCT_SETTLE_MS)
+  : 2500
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 // Run `worker(item, index)` over every item with at most `concurrency` in
 // flight at once. Each worker must return (not throw) its own outcome so one
 // failing item never stalls or rejects the rest of the pool.
@@ -693,6 +703,17 @@ const shopifyService = {
     } catch (err) {
       progress('shopifyProduct', 'failed', err.message)
       throw err
+    }
+
+    // A successful product PUT puts Shopify into async processing (image
+    // reprocessing, media handling) and it holds a write lock on the product
+    // while doing so. The variant / inventory / metafield writes that follow all
+    // target the SAME product, so without a short settle they collide with
+    // Shopify's own processing and come back 409 "currently being modified".
+    // Pausing here is far cheaper than letting each write burn its whole retry
+    // budget. Tunable, and skipped when the product write sent no images.
+    if (shopifyProduct.images && shopifyProduct.images.length) {
+      await sleep(PRODUCT_WRITE_SETTLE_MS)
     }
 
     const variantUpdate = {

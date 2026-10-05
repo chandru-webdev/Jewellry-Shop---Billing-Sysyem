@@ -142,24 +142,55 @@ function isTransientShopifyError(err) {
     (err.status === 0 ||
       err.status >= 500 ||
       err.status === 429 ||
-      (err.status === 409 && /currently being modified|already been modified/i.test(err.message)))
+      isProductLockError(err))
   )
 }
 
+// Shopify holds a per-product write lock for several seconds after ANY write to
+// that product (product, variant, metafield or inventory level) while it does
+// async work such as image reprocessing. A lock conflict is therefore not a
+// normal transient blip: it needs many more, slower attempts than a 5xx does.
+// These writes always send the full desired state, so retrying is safe — the
+// last write wins and converges on what we intended.
+const PRODUCT_LOCK_RE = /currently being modified|already been modified|currently being locked|product is being edited/i
+
+function isProductLockError(err) {
+  return err instanceof ShopifyApiError && err.status === 409 && PRODUCT_LOCK_RE.test(err.message)
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 // Call `fn` and retry on transient Shopify errors with exponential backoff.
 // Non-transient errors (4xx validation, auth, 404 etc.) bubble up immediately.
-async function withRetry(fn, { attempts = 3, baseDelayMs = 800 } = {}) {
+//
+// Product-lock conflicts get their own, far more patient budget: attempts=3 with
+// an 800ms base only spans ~2.4s, which is shorter than the lock Shopify holds,
+// so every locked product failed even though a slightly later write would have
+// succeeded. `lockAttempts=7` with a 1s base spans ~2 minutes, and the jitter
+// stops the parallel workers retrying in lockstep and colliding again.
+async function withRetry(
+  fn,
+  { attempts = 3, baseDelayMs = 800, lockAttempts = 7, lockBaseDelayMs = 1000, maxDelayMs = 15000 } = {}
+) {
   let lastErr
-  for (let attempt = 0; attempt < attempts; attempt++) {
+  for (let attempt = 0; attempt < lockAttempts; attempt++) {
     try {
       return await fn()
     } catch (err) {
       lastErr = err
-      if (!isTransientShopifyError(err) || attempt === attempts - 1) throw err
-      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 2 ** attempt))
+      if (!isTransientShopifyError(err)) throw err
+
+      const locked = isProductLockError(err)
+      const budget = locked ? lockAttempts : attempts
+      if (attempt >= budget - 1) throw err
+
+      const base = locked ? lockBaseDelayMs : baseDelayMs
+      // Jitter keeps concurrent workers from re-colliding on the same tick.
+      const wait = Math.min(base * 2 ** attempt + Math.random() * 400, maxDelayMs)
+      await sleep(wait)
     }
   }
   throw lastErr
 }
 
-module.exports = { request, graphql, throttle, ShopifyApiError, withRetry }
+module.exports = { request, graphql, throttle, ShopifyApiError, withRetry, isProductLockError }

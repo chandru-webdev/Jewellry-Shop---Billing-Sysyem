@@ -129,12 +129,6 @@ export default function ProductFormModal({
   syncing = false,
 }) {
   const [form, setForm] = useState(() => buildForm(product, silverRate))
-  // Syncing pushes the last *saved* record, so offering it while there are
-  // unsaved edits would quietly push stale data. Detect and disable instead.
-  const hasUnsavedEdits = useMemo(
-    () => isEdit && JSON.stringify(form) !== JSON.stringify(buildForm(product, silverRate)),
-    [form, product, silverRate, isEdit]
-  )
   const [skuError, setSkuError] = useState('')
   const [barcodeError, setBarcodeError] = useState('')
   const [netManual, setNetManual] = useState(false)
@@ -157,6 +151,14 @@ export default function ProductFormModal({
     return Math.abs(expected - storedPrice) > 0.01 ? String(storedPrice) : ''
   })
   const isEdit = Boolean(product)
+  // Syncing pushes the last *saved* record, so offering it while there are
+  // unsaved edits would quietly push stale data. Detect and disable instead.
+  // Declared after isEdit on purpose: referencing it above throws a TDZ
+  // ReferenceError that blanks the whole Products page.
+  const hasUnsavedEdits = useMemo(
+    () => isEdit && JSON.stringify(form) !== JSON.stringify(buildForm(product, silverRate)),
+    [form, product, silverRate, isEdit]
+  )
 
   const set = (field) => (e) => {
     const value = e.target.value

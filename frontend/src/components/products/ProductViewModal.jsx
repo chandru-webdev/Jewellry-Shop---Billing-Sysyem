@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, ExternalLink, Copy, Power, Package, Check, X, History, Film, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, ExternalLink, Copy, Power, Package, Check, X, History, Film, Maximize2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
@@ -26,7 +26,7 @@ function Section({ title, children }) {
   )
 }
 
-export default function ProductViewModal({ open, onClose, product, shopDomain, onEdit, onDuplicate, onDeactivate, onAdjustStock, submitting }) {
+export default function ProductViewModal({ open, onClose, product, shopDomain, onEdit, onDuplicate, onDeactivate, onAdjustStock, onSync, submitting }) {
   const [adjustStock, setAdjustStock] = useState(null)
   const [stockValue, setStockValue] = useState('')
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -66,6 +66,13 @@ export default function ProductViewModal({ open, onClose, product, shopDomain, o
             Created {product.createdAt ? formatDateTime(product.createdAt) : '—'} · Updated {product.updatedAt ? formatDateTime(product.updatedAt) : '—'}
           </div>
           <div className="flex flex-wrap gap-2">
+            {product.pushToShopify !== false && (
+              <Button variant="outline" size="sm" onClick={() => onSync?.(product)}
+                loading={submitting === 'sync'}
+                title={product.shopifyProductId ? 'Push this product to Shopify' : 'Not on Shopify yet — this will create it'}>
+                <RefreshCw size={14} /> {product.shopifyProductId ? 'Sync to Shopify' : 'Create on Shopify'}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => onEdit?.(product)}><Pencil size={14} /> Edit</Button>
             <Button variant="outline" size="sm" onClick={() => onDuplicate?.(product)} loading={submitting === 'duplicate'}><Copy size={14} /> Duplicate</Button>
             <Button variant="outline" size="sm" onClick={startAdjustStock}><Package size={14} /> Adjust Stock</Button>

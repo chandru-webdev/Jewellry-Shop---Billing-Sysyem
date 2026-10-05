@@ -121,6 +121,8 @@ async function ensureSchema() {
       ['shopifyInventoryItemId', 'BIGINT'],
       ['shopifyStatus', "TEXT NOT NULL DEFAULT 'active'"],
       ['chargeTax', 'BOOLEAN NOT NULL DEFAULT true'],
+      ['shopifyLastSyncedAt', 'TIMESTAMP(3)'],
+      ['shopifyLastSyncError', 'TEXT'],
     ]
 
     // Fast path: if the newest schema marker column already exists AND every

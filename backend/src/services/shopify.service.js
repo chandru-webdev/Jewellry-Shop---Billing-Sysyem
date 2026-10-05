@@ -910,6 +910,11 @@ const shopifyService = {
   // Push ONE ERP product to Shopify (create if needed, else update)
   // onProgress(stepKey, status, message) forwards the inner Shopify steps
   // (used by the bulk sync jobs to show which step a product is on).
+  //
+  // A product with no shopifyProductId is created here (reusing a matching SKU
+  // if Shopify already has one), so the per-row Sync button works on a product
+  // that has never been pushed. Last outcome is stamped onto the Product so the
+  // list can show "Synced 2 mins ago" without re-querying Sync Logs.
   async syncProduct(productId, { onProgress = null } = {}) {
     const product = await prisma.product.findUnique({
       where: { id: Number(productId) },
@@ -919,19 +924,22 @@ const shopifyService = {
 
     let ids = null
 
+    const stampSync = (data) =>
+      prisma.product.update({
+        where: { id: product.id },
+        data: { shopifyLastSyncedAt: new Date(), shopifyLastSyncError: null, ...data },
+      })
+
     // No link saved yet: reuse an existing Shopify product with the same
     // SKU if one exists, otherwise create a brand-new one.
     if (!product.shopifyProductId) {
       ids = (await this.findShopifyProductBySku(product.sku)) || (await this.createProductOnShopify(product))
-      await prisma.product.update({
-        where: { id: product.id },
-        data: {
-          shopifyProductId: ids.shopifyProductId,
-          shopifyVariantId: ids.shopifyVariantId,
-          shopifyInventoryItemId: ids.shopifyInventoryItemId,
-        },
+      await stampSync({
+        shopifyProductId: ids.shopifyProductId,
+        shopifyVariantId: ids.shopifyVariantId,
+        shopifyInventoryItemId: ids.shopifyInventoryItemId,
       })
-      return { productId: product.id, sku: product.sku, ...ids }
+      return { productId: product.id, sku: product.sku, created: true, ...ids }
     }
 
     // Linked but the Shopify product was deleted there: recreate it.
@@ -940,18 +948,26 @@ const shopifyService = {
     } catch (err) {
       if (!(err instanceof ShopifyApiError) || err.status !== 404) throw err
       ids = await this.createProductOnShopify(product)
-      await prisma.product.update({
-        where: { id: product.id },
-        data: {
-          shopifyProductId: ids.shopifyProductId,
-          shopifyVariantId: ids.shopifyVariantId,
-          shopifyInventoryItemId: ids.shopifyInventoryItemId,
-        },
+      await stampSync({
+        shopifyProductId: ids.shopifyProductId,
+        shopifyVariantId: ids.shopifyVariantId,
+        shopifyInventoryItemId: ids.shopifyInventoryItemId,
       })
-      return { productId: product.id, sku: product.sku, ...ids }
+      return { productId: product.id, sku: product.sku, created: true, ...ids }
     }
 
+    await stampSync({})
     return { productId: product.id, sku: product.sku }
+  },
+
+  // Record a failed sync attempt so the list can show "Sync failed - retry".
+  async markSyncFailed(productId, message) {
+    return prisma.product
+      .update({
+        where: { id: Number(productId) },
+        data: { shopifyLastSyncError: (message || 'Shopify sync failed').slice(0, 500) },
+      })
+      .catch(() => null)
   },
 
   // ---------- bulk jobs (recorded in ShopifySyncLog) ----------

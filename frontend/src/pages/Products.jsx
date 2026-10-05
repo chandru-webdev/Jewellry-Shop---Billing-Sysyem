@@ -22,6 +22,20 @@ import { useAuth } from '../context/AuthContext'
 import { exportProductsExcel } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
 
+function timeAgo(value) {
+  if (!value) return ''
+  const then = new Date(value).getTime()
+  if (Number.isNaN(then)) return ''
+  const secs = Math.max(0, Math.round((Date.now() - then) / 1000))
+  if (secs < 45) return 'just now'
+  const mins = Math.round(secs / 60)
+  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`
+  const days = Math.round(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
+}
+
 // Column header with a "sync this column" button beside the label. Bulk syncs
 // run in the background, so the button just asks the page to start one.
 function ColumnSyncLabel({ label, kind, title, disabled, onSync, align = 'left' }) {
@@ -216,6 +230,10 @@ export default function Products() {
   // The row being pushed right now; used to spin just that row's icon.
   const syncingThisId = singleSyncMutation.isPending ? singleSyncMutation.variables?.id : null
   const singleSyncBusy = singleSyncMutation.isPending || !!syncJob || !!columnSyncMutation.isPending
+  const startRowSync = (p) => {
+    setError('')
+    singleSyncMutation.mutate(p)
+  }
 
   const approveImportMutation = useMutation({
     mutationFn: (id) => productsApi.approveImport(id),
@@ -543,10 +561,35 @@ export default function Products() {
                   <td className="px-4 py-3 text-center">
                     {p.pushToShopify === false ? (
                       <span className="text-[11px] text-gray-400">—</span>
+                    ) : p.shopifyLastSyncError ? (
+                      <button
+                        onClick={() => startRowSync(p)}
+                        disabled={singleSyncBusy}
+                        title={`Sync failed: ${p.shopifyLastSyncError} — click to retry`}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 dark:text-red-400 hover:underline cursor-pointer disabled:opacity-40"
+                      >
+                        <X size={11} />
+                        Sync failed — retry
+                      </button>
                     ) : p.shopifyProductId ? (
-                      <Badge tone="blue">Synced</Badge>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge tone="blue">Synced</Badge>
+                        {p.shopifyLastSyncedAt && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">{timeAgo(p.shopifyLastSyncedAt)}</span>
+                        )}
+                      </div>
                     ) : (
-                      <Badge tone="orange">Pending</Badge>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <Badge tone="orange">Not created</Badge>
+                        <button
+                          onClick={() => startRowSync(p)}
+                          disabled={singleSyncBusy}
+                          title="Create this product on Shopify"
+                          className="text-[10px] font-medium text-royal-600 dark:text-royal-400 hover:underline cursor-pointer disabled:opacity-40"
+                        >
+                          Create now
+                        </button>
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -573,13 +616,13 @@ export default function Products() {
                           <Eye size={14} />
                         </button>
                         <button
-                          onClick={() => { setError(''); singleSyncMutation.mutate(p) }}
+                          onClick={() => startRowSync(p)}
                           disabled={singleSyncBusy}
                           title={
                             p.pushToShopify === false
                               ? "Marked \"don't push to Shopify\""
                               : !p.shopifyProductId
-                                ? 'Not pushed to Shopify yet — sync product details first'
+                                ? 'Not on Shopify yet — this will create it'
                                 : 'Sync this product to Shopify'
                           }
                           aria-label={`Sync ${p.name} to Shopify`}
@@ -621,6 +664,8 @@ export default function Products() {
         submitting={saveMutation.isPending}
         syncProduct={syncProduct}
         onSyncComplete={handleSyncComplete}
+        onSyncToShopify={() => { if (editing) startRowSync(editing) }}
+        syncing={singleSyncMutation.isPending && singleSyncMutation.variables?.id === editing?.id}
       />
 
       <ProductViewModal
@@ -632,7 +677,8 @@ export default function Products() {
         onDuplicate={(p) => duplicateMutation.mutate(p.id)}
         onDeactivate={(p) => { setViewing(null); toggleMutation.mutate(p) }}
         onAdjustStock={(p, qty) => updateMutation.mutate({ id: p.id, data: { initialStock: qty, updateStock: true } })}
-        submitting={duplicateMutation.isPending ? 'duplicate' : toggleMutation.isPending ? 'deactivate' : null}
+        onSync={(p) => startRowSync(p)}
+        submitting={duplicateMutation.isPending ? 'duplicate' : toggleMutation.isPending ? 'deactivate' : singleSyncMutation.isPending ? 'sync' : null}
       />
       <ProductImageModal
         key={imageProduct?.id}

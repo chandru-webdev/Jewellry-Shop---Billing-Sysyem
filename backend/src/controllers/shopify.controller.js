@@ -123,6 +123,7 @@ const shopifyController = {
     } catch (err) {
       const message = (err && err.message) || 'Shopify sync failed'
       syncProgress.finish(productId, 'failed', message)
+      await shopifyService.markSyncFailed(productId, message)
       shopifyService
         .logSync('PRODUCT', 0, 1, message, req.user.id, 1, [
           { id: product.id, sku: product.sku, name: product.name, message },

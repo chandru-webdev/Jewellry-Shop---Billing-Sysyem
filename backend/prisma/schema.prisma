@@ -197,6 +197,8 @@ model Product {
   chargeTax              Boolean                @default(true) // shopify variant.taxable — separate from ERP GST%
   trackInventory         Boolean                @default(true) // Shopify manages stock
   pushToShopify          Boolean                @default(true) // false = billing-software-only product
+  shopifyLastSyncedAt    DateTime?              // last successful push to Shopify (single or bulk)
+  shopifyLastSyncError   String?                // last failed push message; cleared on success
   inventory              Inventory?
   transactions           InventoryTransaction[]
   orderItems             OrderItem[]

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { Input, Select, Label, Textarea } from '../ui/FormControls'
@@ -125,8 +125,16 @@ export default function ProductFormModal({
   submitError = '',
   syncProduct = null,
   onSyncComplete,
+  onSyncToShopify,
+  syncing = false,
 }) {
   const [form, setForm] = useState(() => buildForm(product, silverRate))
+  // Syncing pushes the last *saved* record, so offering it while there are
+  // unsaved edits would quietly push stale data. Detect and disable instead.
+  const hasUnsavedEdits = useMemo(
+    () => isEdit && JSON.stringify(form) !== JSON.stringify(buildForm(product, silverRate)),
+    [form, product, silverRate, isEdit]
+  )
   const [skuError, setSkuError] = useState('')
   const [barcodeError, setBarcodeError] = useState('')
   const [netManual, setNetManual] = useState(false)
@@ -312,6 +320,23 @@ export default function ProductFormModal({
         ) : (
           <>
             <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            {isEdit && product?.pushToShopify !== false && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onSyncToShopify}
+                disabled={syncing || submitting || hasUnsavedEdits}
+                title={
+                  hasUnsavedEdits
+                    ? 'Save your changes first — this pushes the last saved version'
+                    : product.shopifyProductId
+                      ? 'Push this product to Shopify'
+                      : 'Not on Shopify yet — this will create it'
+                }
+              >
+                {syncing ? 'Syncing...' : product.shopifyProductId ? 'Sync to Shopify' : 'Create on Shopify'}
+              </Button>
+            )}
             <Button type="submit" form="product-form" disabled={submitting}>
               {submitting ? 'Saving...' : isEdit ? 'Save Changes' : form.pushToShopify ? 'Create & Push to Shopify' : 'Create Product'}
             </Button>

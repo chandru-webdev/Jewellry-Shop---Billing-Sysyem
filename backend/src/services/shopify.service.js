@@ -884,7 +884,14 @@ const shopifyService = {
     target.parameters.forEach(p => formData.append(p.name, p.value))
     formData.append('file', new Blob([fileBuffer], { type: mimeType }), filename)
 
-    const uploadRes = await fetch(target.url, { method: 'POST', body: formData })
+    const uploadRes = await fetch(target.url, {
+      method: 'POST',
+      body: formData,
+      // This PUT goes straight to Shopify's upload host, not through request(),
+      // so it needs its own ceiling. Without one a stalled upload pins the
+      // worker slot forever and the bulk job never finishes.
+      signal: AbortSignal.timeout(120000),
+    })
     if (!uploadRes.ok) throw new Error(`Staged upload failed: ${uploadRes.status}`)
 
     // 3. Create product media from staged resource URL

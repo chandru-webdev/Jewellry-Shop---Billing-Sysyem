@@ -50,8 +50,12 @@ function acquireToken() {
 }
 
 // Every call gets a ceiling so a silently-stuck Shopify request can never
-// hang a worker slot (or the whole sync) forever.
-const REQUEST_TIMEOUT_MS = 30000
+// hang a worker slot (or the whole sync) forever. Overridable because the
+// useful ceiling depends on the host: a sleeping single-replica container on a
+// metered plan needs more headroom than a warm always-on one.
+const REQUEST_TIMEOUT_MS = Number(process.env.SHOPIFY_REQUEST_TIMEOUT_MS) > 0
+  ? Number(process.env.SHOPIFY_REQUEST_TIMEOUT_MS)
+  : 30000
 
 // GET or POST (or any method) to /admin/api/2025-01/<path>
 async function request(path, { method = 'GET', body } = {}) {
@@ -170,19 +174,48 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 // stops the parallel workers retrying in lockstep and colliding again.
 async function withRetry(
   fn,
-  { attempts = 3, baseDelayMs = 800, lockAttempts = 7, lockBaseDelayMs = 1000, maxDelayMs = 15000 } = {}
+  {
+    attempts = 3,
+    baseDelayMs = 800,
+    lockAttempts = 7,
+    lockBaseDelayMs = 1000,
+    netAttempts = 2,
+    maxDelayMs = 15000,
+  } = {}
 ) {
   let lastErr
   for (let attempt = 0; attempt < lockAttempts; attempt++) {
+    const startedAt = Date.now()
     try {
       return await fn()
     } catch (err) {
+      const elapsed = Date.now() - startedAt
       lastErr = err
       if (!isTransientShopifyError(err)) throw err
 
       const locked = isProductLockError(err)
-      const budget = locked ? lockAttempts : attempts
-      if (attempt >= budget - 1) throw err
+      // A network-level failure (status 0) is the most expensive kind to retry:
+      // every attempt can burn the full request timeout, so three of them can
+      // hold a worker for 90s+ and the product still fails. Two is enough to
+      // ride out a blip without turning one bad product into a stall.
+      const isNetwork = err.status === 0
+      const budget = locked ? lockAttempts : isNetwork ? netAttempts : attempts
+      const ctx = `attempt ${attempt + 1}/${budget}, ${elapsed}ms`
+
+      // The thrown error used to carry no context at all, so a timeout report
+      // from production said only "operation was aborted due to timeout" —
+      // no endpoint, no attempt count, no duration. Log what we know at the
+      // point it is still true.
+      console.warn(
+        `[shopify] transient ${locked ? 'product-lock' : isNetwork ? 'network' : 'server'} failure (${ctx}): ${err.message}`
+      )
+
+      if (attempt >= budget - 1) {
+        throw new ShopifyApiError(
+          err.status,
+          `${err.message} [${ctx}${isNetwork ? `, timeout ${REQUEST_TIMEOUT_MS}ms` : ''}]`
+        )
+      }
 
       const base = locked ? lockBaseDelayMs : baseDelayMs
       // Jitter keeps concurrent workers from re-colliding on the same tick.

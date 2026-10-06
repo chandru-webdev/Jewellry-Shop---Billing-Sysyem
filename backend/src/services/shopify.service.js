@@ -38,6 +38,16 @@ const PRODUCT_WRITE_SETTLE_MS = Number(process.env.SHOPIFY_PRODUCT_SETTLE_MS) > 
   ? Number(process.env.SHOPIFY_PRODUCT_SETTLE_MS)
   : 2500
 
+// How many not-yet-present photos we are willing to upload inside ONE product
+// update. Image uploads are the slow part of the call: the silver-bangle product
+// was missing 68, and pushing them all in one PUT could not finish inside the
+// 30s client ceiling and came back "could not reach Shopify". Batching keeps
+// every request small; later syncs of the same product carry the next batch
+// until the gallery is complete.
+const MAX_NEW_IMAGES_PER_SYNC = Number(process.env.SHOPIFY_MAX_NEW_IMAGES) > 0
+  ? Number(process.env.SHOPIFY_MAX_NEW_IMAGES)
+  : 12
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // Run `worker(item, index)` over every item with at most `concurrency` in
@@ -56,6 +66,22 @@ async function runPool(items, concurrency, worker) {
   return results
 }
 
+// Shopify mints a fresh uuid every time the same image is re-uploaded, so a
+// photo that round-trips ERP -> Shopify -> ERP grows a filename each trip:
+//   images_A.jpg -> images_A_B.jpg -> images_A_B_C.jpg
+// normalizeImageUrl used to strip only ONE trailing "_token", so images_A_B.jpg
+// collapsed to images_A.jpg while images_A_B_C.jpg collapsed to images_A_B.jpg
+// -- two spellings of the same photo compared as different, so every sync
+// re-appended the whole gallery and it grew without bound.
+// Keep the FIRST uuid (that is the photo's identity) and drop the rest.
+// Only uuid-SHAPED groups are stripped here, so this cannot merge two different
+// photos that merely share a filename stem. (The separate size-suffix rule below
+// is pre-existing and broader -- it still collapses "product_image_1.jpg" and
+// "product_image_2.jpg" to the same key. Left alone deliberately: tightening it
+// changes dedupe for every product and risks dropping legitimately distinct
+// images. Raise it as its own change if it ever bites.)
+const RE_UPLOAD_UUIDS = /(_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})+(?=\.[^.]+$)/i
+
 const shopifyService = {
 
   // Normalize a Shopify product payload's image list to clean image URLs.
@@ -68,8 +94,9 @@ const shopifyService = {
     if (!url) return ''
     try {
       const u = new URL(url)
+      let path = u.pathname.replace(RE_UPLOAD_UUIDS, '$1')
       // Remove query params and Shopify CDN size suffixes (e.g., _100x, _large)
-      let path = u.pathname.replace(/(_\d+x\d*|_\w+)(?=\.[^.]+$)/, '')
+      path = path.replace(/(_\d+x\d*|_\w+)(?=\.[^.]+$)/, '')
       return `${u.origin}${path}`
     } catch {
       return String(url).trim()
@@ -662,10 +689,19 @@ const shopifyService = {
     // Fetch the store's CURRENT images and merge, so ERP-side updates APPEND
     // images instead of wiping store-only ones (two-way image ownership).
     let storeImages = []
+    // Keep each store image's Shopify id too. Sending an image as {src} only
+    // tells Shopify to CREATE it, so a payload of 70 {src} entries on a product
+    // that already has those 70 rebuilds every one of them -- which is both how
+    // the galleries got duplicates and why the PUT could finish in time.
+    let storeImageIds = new Map()
     progress('shopifyImages', 'running', 'Reading store images…')
     try {
       const res = await request(`/products/${product.shopifyProductId}.json?fields=images`)
-      storeImages = (res.product?.images || []).map((img) => img.src).filter(Boolean)
+      const imgs = res.product?.images || []
+      storeImages = imgs.map((img) => img.src).filter(Boolean)
+      storeImageIds = new Map(
+        imgs.filter((img) => img.src && img.id).map((img) => [this.normalizeImageUrl(img.src), img.id])
+      )
       progress('shopifyImages', 'done', `${storeImages.length} store image(s)`)
     } catch (err) {
       // If we can't read the store product, fall back to a plain image update
@@ -687,13 +723,40 @@ const shopifyService = {
     const mergedSet = new Set(mergedImages.map((src) => this.normalizeImageUrl(src)))
     const imagesChanged =
       storeSet.size !== mergedSet.size || [...mergedSet].some((url) => !storeSet.has(url))
+    // ERP images that did not fit into this sync's upload budget; they stay in
+    // the ERP list and are retried on the next sync.
+    let deferredImages = []
     if (imagesChanged && mergedImages.length) {
-      shopifyProduct.images = mergedImages.map((src) => ({ src }))
+      // Images already on the product carry their id, so Shopify keeps them
+      // as they are; only genuinely new photos are sent as {src} and uploaded.
+      // Uploading is the slow part: one product can be missing dozens of photos,
+      // and pushing every missing one in a single PUT reliably blows past the
+      // 30s request ceiling (it timed out at 30029ms with 68 images pending).
+      // So add at most a handful per sync -- the next sync picks up the rest.
+      const existing = []
+      const fresh = []
+      for (const src of mergedImages) {
+        const id = storeImageIds.get(this.normalizeImageUrl(src))
+        if (id) existing.push({ id: Number(id), src })
+        else fresh.push({ src })
+      }
+      const newCount = Math.min(fresh.length, MAX_NEW_IMAGES_PER_SYNC)
+      if (newCount < fresh.length) {
+        progress(
+          'shopifyImages',
+          'running',
+          `Adding ${newCount} of ${fresh.length} new images (rest on next sync)…`
+        )
+      }
+      shopifyProduct.images = [...existing, ...fresh.slice(0, newCount)]
+      // Whatever did not fit stays in the ERP list for the next sync.
+      deferredImages = fresh.slice(newCount)
     }
 
     progress('shopifyProduct', 'running', 'Updating product details…')
+    let putRes = null
     try {
-      await withRetry(() =>
+      putRes = await withRetry(() =>
         request(`/products/${product.shopifyProductId}.json`, {
           method: 'PUT',
           body: { product: shopifyProduct },
@@ -703,6 +766,35 @@ const shopifyService = {
     } catch (err) {
       progress('shopifyProduct', 'failed', err.message)
       throw err
+    }
+
+    // Shopify re-hosts every image we send it, so a photo uploaded on the
+    // billing page becomes TWO records: our /uploads/foo.jpg and the store's
+    // cdn.shopify.com/... copy. Nothing dedupes those (different origins), so the
+    // next sync still sees /uploads/foo.jpg as "missing from the store" and
+    // uploads it again -- which is the duplicate loop: one photo in, two copies
+    // out, forever. Adopt the store's URLs as canonical after a successful push
+    // so the original retires instead of surviving alongside its own copy.
+    const storeSrcs = (putRes?.product?.images || []).map((img) => img.src).filter(Boolean)
+    if (storeSrcs.length) {
+      // Videos live in imageUrls too and Shopify will not return them as
+      // product images, so carry them across rather than silently dropping them.
+      const isVideo = (u) => /\.(mp4|webm|mov)$/i.test(u || '')
+      const videos = (product.imageUrls || []).filter(
+        (u) => isVideo(u) && !storeSrcs.some((s) => this.normalizeImageUrl(s) === this.normalizeImageUrl(u))
+      )
+      const nextImages = this.mergeImageUrls(storeSrcs, [...deferredImages, ...videos])
+      const current = Array.isArray(product.imageUrls) ? product.imageUrls : []
+      const same =
+        nextImages.length === current.length &&
+        nextImages.every((u, i) => u === current[i])
+      if (!same) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { imageUrls: nextImages },
+        })
+        progress('shopifyImages', 'done', `Gallery synced from Shopify (${storeSrcs.length} image(s))`)
+      }
     }
 
     // A successful product PUT puts Shopify into async processing (image

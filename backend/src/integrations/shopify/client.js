@@ -82,7 +82,9 @@ async function request(path, { method = 'GET', body } = {}) {
     })
   } catch (err) {
     // Network-level failure (Shopify unreachable, DNS, timeout, etc.)
-    throw new ShopifyApiError(0, `Could not reach Shopify: ${err.message}`)
+    // Name the call: "operation was aborted due to timeout" on its own is
+    // unactionable, and only this frame knows which endpoint it was.
+    throw new ShopifyApiError(0, `Could not reach Shopify (${method} ${path}): ${err.message}`)
   }
 
   if (!res.ok) {
@@ -121,7 +123,7 @@ async function graphql(query, variables = {}) {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
   } catch (err) {
-    throw new ShopifyApiError(0, `Could not reach Shopify GraphQL: ${err.message}`)
+    throw new ShopifyApiError(0, `Could not reach Shopify GraphQL (POST /graphql.json): ${err.message}`)
   }
 
   if (!res.ok) {
@@ -184,6 +186,11 @@ async function withRetry(
   } = {}
 ) {
   let lastErr
+  // Counted PER error class, not per loop iteration. A single call can hit five
+  // product-locks and then a network timeout; counting globally reported that
+  // as "attempt 6/2", which is nonsense -- the 6 was the lock position and the
+  // 2 was the network budget. Each class gets its own budget and its own count.
+  const kindCount = { lock: 0, network: 0, server: 0 }
   for (let attempt = 0; attempt < lockAttempts; attempt++) {
     const startedAt = Date.now()
     try {
@@ -199,18 +206,18 @@ async function withRetry(
       // hold a worker for 90s+ and the product still fails. Two is enough to
       // ride out a blip without turning one bad product into a stall.
       const isNetwork = err.status === 0
+      const kind = locked ? 'lock' : isNetwork ? 'network' : 'server'
       const budget = locked ? lockAttempts : isNetwork ? netAttempts : attempts
-      const ctx = `attempt ${attempt + 1}/${budget}, ${elapsed}ms`
+      kindCount[kind] += 1
+      const ctx = `${kind} attempt ${kindCount[kind]}/${budget}, ${elapsed}ms`
 
       // The thrown error used to carry no context at all, so a timeout report
       // from production said only "operation was aborted due to timeout" —
       // no endpoint, no attempt count, no duration. Log what we know at the
       // point it is still true.
-      console.warn(
-        `[shopify] transient ${locked ? 'product-lock' : isNetwork ? 'network' : 'server'} failure (${ctx}): ${err.message}`
-      )
+      console.warn(`[shopify] transient ${kind} failure (${ctx}): ${err.message}`)
 
-      if (attempt >= budget - 1) {
+      if (kindCount[kind] >= budget) {
         throw new ShopifyApiError(
           err.status,
           `${err.message} [${ctx}${isNetwork ? `, timeout ${REQUEST_TIMEOUT_MS}ms` : ''}]`

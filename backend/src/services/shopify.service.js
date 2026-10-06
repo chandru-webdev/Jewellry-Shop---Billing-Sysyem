@@ -52,12 +52,14 @@ const MAX_NEW_IMAGES_PER_SYNC = Number(process.env.SHOPIFY_MAX_NEW_IMAGES) > 0
 // A gallery bigger than this gets checked for byte-identical copies before it
 // is pushed. Filenames cannot spot them: Shopify mints an unrelated uuid for
 // every re-upload, so "the same photo 106 times" has 106 different names and
-// never matches on string comparison. Only the bytes are the same. Below the
-// threshold the download cost is not worth it -- small galleries are not where
-// the runaway duplicates live.
+// never matches on string comparison. Only the bytes are the same. The
+// threshold is 1: anything that could hold a duplicate gets checked, because
+// the duplicates we actually found were on 6-14 image galleries, not the big
+// ones. The cost is re-downloading the gallery on a sync, which is cheap
+// compared to shipping the same photo twenty times.
 const IMAGE_DEDUPE_THRESHOLD = Number(process.env.SHOPIFY_IMAGE_DEDUPE_THRESHOLD) > 0
   ? Number(process.env.SHOPIFY_IMAGE_DEDUPE_THRESHOLD)
-  : 20
+  : 1
 
 const IMAGE_HASH_TIMEOUT_MS = Number(process.env.SHOPIFY_IMAGE_HASH_TIMEOUT_MS) > 0
   ? Number(process.env.SHOPIFY_IMAGE_HASH_TIMEOUT_MS)

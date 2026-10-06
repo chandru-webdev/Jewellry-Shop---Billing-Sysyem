@@ -12,6 +12,7 @@
 // =============================================================
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 const prisma = require('../prisma/client')
 const { Prisma } = require('@prisma/client')
 const { request, graphql, throttle, ShopifyApiError, withRetry } = require('../integrations/shopify/client')
@@ -47,6 +48,22 @@ const PRODUCT_WRITE_SETTLE_MS = Number(process.env.SHOPIFY_PRODUCT_SETTLE_MS) > 
 const MAX_NEW_IMAGES_PER_SYNC = Number(process.env.SHOPIFY_MAX_NEW_IMAGES) > 0
   ? Number(process.env.SHOPIFY_MAX_NEW_IMAGES)
   : 12
+
+// A gallery bigger than this gets checked for byte-identical copies before it
+// is pushed. Filenames cannot spot them: Shopify mints an unrelated uuid for
+// every re-upload, so "the same photo 106 times" has 106 different names and
+// never matches on string comparison. Only the bytes are the same. Below the
+// threshold the download cost is not worth it -- small galleries are not where
+// the runaway duplicates live.
+const IMAGE_DEDUPE_THRESHOLD = Number(process.env.SHOPIFY_IMAGE_DEDUPE_THRESHOLD) > 0
+  ? Number(process.env.SHOPIFY_IMAGE_DEDUPE_THRESHOLD)
+  : 20
+
+const IMAGE_HASH_TIMEOUT_MS = Number(process.env.SHOPIFY_IMAGE_HASH_TIMEOUT_MS) > 0
+  ? Number(process.env.SHOPIFY_IMAGE_HASH_TIMEOUT_MS)
+  : 20000
+
+const IMAGE_HASH_CONCURRENCY = 8
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -103,28 +120,90 @@ const shopifyService = {
     }
   },
 
+  // True when the image is hosted by Shopify itself rather than by our own
+  // uploads. Only Shopify-hosted URLs are subject to a deletion made in the
+  // Shopify admin -- a local /uploads/... file has never been on the store and
+  // still has to be pushed.
+  isStoreHostedImage(url) {
+    try {
+      const host = new URL(url).hostname.toLowerCase()
+      return host === 'cdn.shopify.com' || host.endsWith('.cdn.shopify.com')
+    } catch {
+      return false
+    }
+  },
+
   // Merge image URLs: store images first, then ERP images that aren't already on store.
   // Normalizes URLs for comparison to handle CDN variants.
   mergeImageUrls(storeImages, erpImages) {
     const merged = []
     const seen = new Set()
+    // Only strings belong here. Anything else (a {src} payload object that
+    // leaked in) would be persisted as-is and later crash every call site that
+    // does url.endsWith(...), taking the whole sync down with it.
+    const add = (src) => {
+      if (typeof src !== 'string') return
+      const trimmed = src.trim()
+      if (!trimmed) return
+      const key = this.normalizeImageUrl(trimmed)
+      if (seen.has(key)) return
+      seen.add(key)
+      merged.push(trimmed)
+    }
     // Add store images first (they're already on Shopify)
-    for (const src of storeImages || []) {
-      if (!src) continue
-      const key = this.normalizeImageUrl(src)
-      if (seen.has(key)) continue
-      seen.add(key)
-      merged.push(src)
-    }
+    for (const src of storeImages || []) add(src)
     // Add ERP images only if not already present (after normalization)
-    for (const src of erpImages || []) {
-      if (!src) continue
-      const key = this.normalizeImageUrl(src)
-      if (seen.has(key)) continue
-      seen.add(key)
-      merged.push(src)
-    }
+    for (const src of erpImages || []) add(src)
     return merged
+  },
+
+  // Drop byte-identical copies from a gallery, keeping the first occurrence.
+  // Shopify re-hosts the file we send it, so every re-upload of the same photo
+  // comes back under a brand-new uuid -- 106 different filenames, 106 copies of
+  // one image. No string comparison can see that; only the bytes can.
+  //
+  // Anything that cannot be downloaded is kept: a hash we never computed must
+  // never be treated as a duplicate of another image.
+  async dedupeImagesByContent(urls, progress) {
+    const list = (urls || []).filter(Boolean)
+    if (list.length <= IMAGE_DEDUPE_THRESHOLD) return list
+
+    const hashes = new Array(list.length)
+    let next = 0
+    const worker = async () => {
+      while (next < list.length) {
+        const i = next++
+        try {
+          const res = await fetch(list[i], { signal: AbortSignal.timeout(IMAGE_HASH_TIMEOUT_MS) })
+          if (!res.ok) continue
+          const buf = Buffer.from(await res.arrayBuffer())
+          hashes[i] = crypto.createHash('sha256').update(buf).digest('hex')
+        } catch {
+          // network/timeout: leave undefined so the image is kept
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: IMAGE_HASH_CONCURRENCY }, worker))
+
+    const seen = new Set()
+    const out = []
+    let duplicates = 0
+    for (let i = 0; i < list.length; i++) {
+      const hash = hashes[i]
+      if (hash) {
+        if (seen.has(hash)) {
+          duplicates++
+          continue
+        }
+        seen.add(hash)
+      }
+      out.push(list[i])
+    }
+
+    if (duplicates && typeof progress === 'function') {
+      progress('shopifyImages', 'running', `Removing ${duplicates} identical duplicate image(s)…`)
+    }
+    return duplicates ? out : list
   },
 
   // Import ONE Shopify product into the ERP (used by the full pull and by the
@@ -694,6 +773,7 @@ const shopifyService = {
     // that already has those 70 rebuilds every one of them -- which is both how
     // the galleries got duplicates and why the PUT could finish in time.
     let storeImageIds = new Map()
+    let storeReadOk = false
     progress('shopifyImages', 'running', 'Reading store images…')
     try {
       const res = await request(`/products/${product.shopifyProductId}.json?fields=images`)
@@ -702,6 +782,7 @@ const shopifyService = {
       storeImageIds = new Map(
         imgs.filter((img) => img.src && img.id).map((img) => [this.normalizeImageUrl(img.src), img.id])
       )
+      storeReadOk = true
       progress('shopifyImages', 'done', `${storeImages.length} store image(s)`)
     } catch (err) {
       // If we can't read the store product, fall back to a plain image update
@@ -713,7 +794,29 @@ const shopifyService = {
       : product.shopifyImageUrl
         ? [product.shopifyImageUrl]
         : []
-    const mergedImages = this.mergeImageUrls(storeImages, erpImages)
+    let mergedImages = this.mergeImageUrls(storeImages, erpImages)
+
+    // Honour deletions made in the Shopify admin. mergeImageUrls is a union, so
+    // an image you delete on the store stayed in the ERP and the very next sync
+    // re-uploaded it -- deleting a duplicate and pushing brought it straight
+    // back. An ERP copy that Shopify hosts but the product no longer has was
+    // removed on purpose; drop it instead of resurrecting it. Only applied when
+    // the store read actually succeeded, otherwise a failed read would look like
+    // "everything was deleted".
+    if (storeReadOk && mergedImages.length) {
+      const storeKeys = new Set(storeImages.map((src) => this.normalizeImageUrl(src)))
+      const kept = []
+      for (const src of mergedImages) {
+        if (this.isStoreHostedImage(src) && !storeKeys.has(this.normalizeImageUrl(src))) continue
+        kept.push(src)
+      }
+      mergedImages = kept
+    }
+
+    // Byte-level pass: drop identical copies. This is what actually cleans a
+    // gallery like "silver bangle: 106 images, 1 distinct" -- every copy is the
+    // same file under a different uuid, so string comparison keeps all 106.
+    mergedImages = await this.dedupeImagesByContent(mergedImages, progress)
 
     // Only rewrite Shopify images when the merged set actually changed. Sending
     // the full image array on every sync re-triggers Shopify's async image
@@ -750,7 +853,7 @@ const shopifyService = {
       }
       shopifyProduct.images = [...existing, ...fresh.slice(0, newCount)]
       // Whatever did not fit stays in the ERP list for the next sync.
-      deferredImages = fresh.slice(newCount)
+      deferredImages = fresh.slice(newCount).map((entry) => entry.src)
     }
 
     progress('shopifyProduct', 'running', 'Updating product details…')

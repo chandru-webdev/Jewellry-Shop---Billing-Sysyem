@@ -20,7 +20,11 @@
 // IMPORTANT: the webhook HMAC is signed with a FIXED test secret so
 // the test is deterministic. This must be set BEFORE the app loads.
 // =============================================================
-process.env.SHOPIFY_WEBHOOK_SECRET = 'opal-line-test-secret'
+// THE test secret. Set in the env for the fallback path AND written into the
+// stored shopifyConfig, because credentials() resolves the DB row first — an
+// env-only secret is ignored the moment Settings > Integrations has a store.
+const TEST_WEBHOOK_SECRET = 'opal-line-test-secret'
+process.env.SHOPIFY_WEBHOOK_SECRET = TEST_WEBHOOK_SECRET
 
 const { test, before, after } = require('node:test')
 const assert = require('node:assert')
@@ -30,12 +34,21 @@ const { Prisma } = require('@prisma/client')
 const prisma = require('../../src/prisma/client')
 const app = require('../../src/app')
 const { calculatePrice, recalculateAllProducts } = require('../../src/services/pricing.service')
+const {
+  getStoredConfig,
+  saveConfig,
+  clearConfig,
+} = require('../../src/integrations/shopify/shopifyConfig')
 
 const Decimal = Prisma.Decimal
 
 // Unique run id so re-runs never collide with leftover data.
 const RUN = `TEST${Date.now()}`
-const SKU = `TEST-RING-${RUN}`
+// Must satisfy SKU_PATTERN (^/LETTERS[-LETTERS]-DIGITS/$): normalizeSKU
+// rewrites anything else (it strips the dashes from TEST-RING-…), and the
+// webhook matches line items by the STORED sku — a mismatch means zero
+// matched lines, so the order is created and stock is never touched.
+const SKU = `TEST-${RUN.slice(4)}`
 const SHOPIFY_ORDER_ID = BigInt(Date.now())
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@opalline.com'
@@ -46,7 +59,12 @@ let categoryId = null
 let productId = null
 let originalRate = null
 let newRateId = null
-const NEW_RATE = 125
+// Stored shopifyConfig row as it was before we swapped in the test secret.
+let savedShopifyConfig = null
+// Reassigned in before() to differ from whatever the database is sitting on:
+// if it matches, updateSilver takes the "unchanged" branch and returns a body
+// with no newRate on it at all.
+let NEW_RATE = 125
 
 // Expected price for our test product (weight 5, making 180, GST 3%) at any rate.
 function expectedPrice(rate) {
@@ -86,8 +104,7 @@ function shopifyOrderPayload(qty) {
     total_price: String(1570.75 * qty),
   })
 
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET
-  const hmac = crypto.createHmac('sha256', secret || '').update(body).digest('base64')
+  const hmac = crypto.createHmac('sha256', TEST_WEBHOOK_SECRET).update(body).digest('base64')
 
   return { body, hmac }
 }
@@ -105,11 +122,23 @@ async function postWebhook() {
 }
 
 before(async () => {
+  // credentials() reads the shopifyConfig row BEFORE the env, so the test
+  // secret has to be in the database or the HMAC never matches. Save the real
+  // config and put it back in after().
+  savedShopifyConfig = await getStoredConfig()
+  await saveConfig({
+    shopDomain: savedShopifyConfig?.shopDomain || 'integration-test.myshopify.com',
+    accessToken: savedShopifyConfig?.accessToken || 'integration-test-token',
+    webhookSecret: TEST_WEBHOOK_SECRET,
+  })
+
   await login()
 
   // Remember the current rate so we can restore it at the end.
   const current = await getSilverRate()
   originalRate = current.rate
+  // Publish a rate that is guaranteed to actually change something.
+  NEW_RATE = Number(originalRate) + 5
 
   // Reuse the first category (Rings) for the test product.
   const cats = await request(app).get('/api/categories').set('Authorization', `Bearer ${token}`)
@@ -123,7 +152,10 @@ before(async () => {
       sku: SKU,
       name: 'Test Silver Ring',
       categoryId,
-      weight: 5,
+      // grossWeight, not weight: the service derives netWeight as
+      // grossWeight - stoneWeight and never reads a `weight` field, so a
+      // payload with only `weight` creates a 0g product priced at ₹0.
+      grossWeight: 5,
       makingCharge: 180,
       gstPercent: 3,
       initialStock: 10,
@@ -133,6 +165,14 @@ before(async () => {
 })
 
 after(async () => {
+  // Always restore the real store config, even if setup failed partway.
+  try {
+    if (savedShopifyConfig) await saveConfig(savedShopifyConfig)
+    else await clearConfig()
+  } catch (err) {
+    console.error('Shopify config restore warning:', err.message)
+  }
+
   if (!productId) return
 
   // ---- Clean up everything the test created, in FK-safe order ----
@@ -149,6 +189,9 @@ after(async () => {
     await prisma.order.deleteMany({ where: { shopifyOrderId: SHOPIFY_ORDER_ID } })
     await prisma.customer.deleteMany({ where: { phone: `919999${RUN.slice(-6)}` } })
     await prisma.inventory.deleteMany({ where: { productId } })
+    // Price history holds the product with RESTRICT, so it has to go first —
+    // otherwise every run leaves an orphaned test product behind.
+    await prisma.productPriceHistory.deleteMany({ where: { productId } })
     await prisma.product.delete({ where: { id: productId } })
 
     // Restore the silver rate and recompute prices WITHOUT a new history row.

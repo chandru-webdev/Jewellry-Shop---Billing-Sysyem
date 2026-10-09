@@ -85,6 +85,16 @@ async function runPool(items, concurrency, worker) {
   return results
 }
 
+// A Shopify 404 means the id we stored for a product no longer exists on the
+// store: it was deleted there, or replaced (Shopify mints a new id every time a
+// product is recreated). That is a DEAD MAPPING, not a transient failure, so a
+// bulk job must clear the stale ids and carry on rather than failing the whole
+// run on one product. Clearing them also lets the next product sync treat the
+// product as unlinked and recreate it under a fresh id.
+function isStaleShopifyMappingError(err) {
+  return err instanceof ShopifyApiError && err.status === 404
+}
+
 // Shopify mints a fresh uuid every time the same image is re-uploaded, so a
 // photo that round-trips ERP -> Shopify -> ERP grows a filename each trip:
 //   images_A.jpg -> images_A_B.jpg -> images_A_B_C.jpg
@@ -102,6 +112,10 @@ async function runPool(items, concurrency, worker) {
 const RE_UPLOAD_UUIDS = /(_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})+(?=\.[^.]+$)/i
 
 const shopifyService = {
+
+  // Exposed for tests and for the inventory/stock paths that need to tell a
+  // dead Shopify mapping (404) apart from a real sync failure.
+  isStaleShopifyMappingError,
 
   // Normalize a Shopify product payload's image list to clean image URLs.
   shopifyImageUrls(sp) {
@@ -1150,7 +1164,7 @@ const shopifyService = {
     try {
       await this.updateProductOnShopify(product, onProgress ? { onProgress } : {})
     } catch (err) {
-      if (!(err instanceof ShopifyApiError) || err.status !== 404) throw err
+      if (!isStaleShopifyMappingError(err)) throw err
       ids = await this.createProductOnShopify(product)
       await stampSync({
         shopifyProductId: ids.shopifyProductId,
@@ -1170,6 +1184,26 @@ const shopifyService = {
       .update({
         where: { id: Number(productId) },
         data: { shopifyLastSyncError: (message || 'Shopify sync failed').slice(0, 500) },
+      })
+      .catch(() => null)
+  },
+
+  // The product is linked to a Shopify product/variant/inventory item that
+  // Shopify now answers 404 for, i.e. it was deleted (or recreated) on the
+  // store. Drop the dead ids so the product is treated as unlinked and can be
+  // recreated on the next product sync, instead of 404-ing forever. Best-effort
+  // — a failure here must not break the calling sync job.
+  async clearStaleShopifyMapping(productId) {
+    return prisma.product
+      .update({
+        where: { id: Number(productId) },
+        data: {
+          shopifyProductId: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+          shopifyLastSyncError:
+            'Stale Shopify mapping cleared — the linked Shopify product no longer exists (404). Re-sync to recreate it.',
+        },
       })
       .catch(() => null)
   },
@@ -1239,6 +1273,14 @@ const shopifyService = {
         onBulk?.(key, product.name, 'done', `₹${price}`)
         return { ok: true }
       } catch (err) {
+        // A 404 is a dead Shopify link, not a price-sync failure. Clear the
+        // stale ids so the product is re-created on its next product sync, and
+        // keep this product from failing the whole job.
+        if (isStaleShopifyMappingError(err)) {
+          await this.clearStaleShopifyMapping(product.id)
+          onBulk?.(key, product.name, 'done', 'Stale Shopify link cleared')
+          return { ok: true, staleCleared: true }
+        }
         onBulk?.(key, product.name, 'failed', err.message)
         return { ok: false, message: err.message }
       }
@@ -1250,9 +1292,14 @@ const shopifyService = {
     const failures = products
       .map((p, i) => (results[i].ok ? null : { id: p.id, sku: p.sku, name: p.name, message: results[i].message }))
       .filter(Boolean)
+    const staleCleared = products
+      .map((p, i) => (results[i].staleCleared
+        ? { id: p.id, sku: p.sku, name: p.name, message: 'Stale Shopify mapping cleared (Shopify returned 404)' }
+        : null))
+      .filter(Boolean)
 
-    await this.logSync('PRICE', ok, failed, firstError, userId, products.length, failures)
-    return { total: products.length, ok, failed, firstError, failures }
+    await this.logSync('PRICE', ok, failed, firstError, userId, products.length, failures, staleCleared)
+    return { total: products.length, ok, failed, firstError, failures, staleCleared }
   },
 
   // Push every product's current stock to Shopify
@@ -1271,6 +1318,13 @@ const shopifyService = {
         onBulk?.(key, product.name, 'done', `${qty} in stock`)
         return { ok: true }
       } catch (err) {
+        // Dead inventory-item mapping (404): clear the stale ids and keep the
+        // rest of the stock job going instead of failing it.
+        if (isStaleShopifyMappingError(err)) {
+          await this.clearStaleShopifyMapping(product.id)
+          onBulk?.(key, product.name, 'done', 'Stale Shopify link cleared')
+          return { ok: true, staleCleared: true }
+        }
         onBulk?.(key, product.name, 'failed', err.message)
         return { ok: false, message: err.message }
       }
@@ -1282,9 +1336,14 @@ const shopifyService = {
     const failures = products
       .map((p, i) => (results[i].ok ? null : { id: p.id, sku: p.sku, name: p.name, message: results[i].message }))
       .filter(Boolean)
+    const staleCleared = products
+      .map((p, i) => (results[i].staleCleared
+        ? { id: p.id, sku: p.sku, name: p.name, message: 'Stale Shopify mapping cleared (Shopify returned 404)' }
+        : null))
+      .filter(Boolean)
 
-    await this.logSync('INVENTORY', ok, failed, firstError, userId, products.length, failures)
-    return { total: products.length, ok, failed, firstError, failures }
+    await this.logSync('INVENTORY', ok, failed, firstError, userId, products.length, failures, staleCleared)
+    return { total: products.length, ok, failed, firstError, failures, staleCleared }
   },
 
   // Write one row in ShopifySyncLog so the dashboard can show status.
@@ -1292,17 +1351,26 @@ const shopifyService = {
   // `ok`/`failed` split that total, `pending` = items still not processed.
   // `failures` (optional) is the per-item failure detail [ { id, name, sku, message } ]
   // so the UI can show WHICH products failed and WHY.
-  async logSync(type, ok, failed, firstError, userId, total, failures) {
+  // `warnings` (optional) is the same shape for non-fatal outcomes such as a
+  // stale Shopify mapping (404) that was cleared — the job still SUCCEEDED, but
+  // the detail is worth surfacing.
+  async logSync(type, ok, failed, firstError, userId, total, failures, warnings) {
     await this.pruneSyncHistory()
 
     const pending = Math.max((total ?? 0) - ok - failed, 0)
     const failureDetail = Array.isArray(failures) ? failures.slice(0, 100) : []
+    const warningDetail = Array.isArray(warnings) ? warnings.slice(0, 100) : []
+    const baseMessage = failed === 0 ? 'All items synced' : `${failed} failed. ${firstError || ''}`.trim()
+    const message =
+      failed === 0 && warningDetail.length
+        ? `${baseMessage} — ${warningDetail.length} stale Shopify mapping${warningDetail.length > 1 ? 's' : ''} cleared`
+        : baseMessage
     await prisma.shopifySyncLog.create({
       data: {
         type,
         status: failed === 0 ? 'SUCCESS' : 'FAILED',
         itemsProcessed: ok,
-        message: failed === 0 ? 'All items synced' : `${failed} failed. ${firstError || ''}`.trim(),
+        message,
         payload: {
           total: total ?? ok,
           ok,
@@ -1310,6 +1378,7 @@ const shopifyService = {
           pending,
           userId,
           ...(failureDetail.length ? { failures: failureDetail } : {}),
+          ...(warningDetail.length ? { warnings: warningDetail } : {}),
         },
       },
     })

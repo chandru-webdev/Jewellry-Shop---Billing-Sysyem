@@ -115,6 +115,14 @@ const inventoryService = {
       )
       return { ok: true }
     } catch (err) {
+      // A 404 means the linked Shopify inventory item no longer exists. That is
+      // a dead mapping, not a stock-sync failure: clear it so the product is
+      // re-linked on its next product sync, and don't write a FAILED log that
+      // would flag the whole INVENTORY health check.
+      if (shopifyService.isStaleShopifyMappingError(err)) {
+        await shopifyService.clearStaleShopifyMapping(productId)
+        return { ok: false, error: 'STALE_SHOPIFY_MAPPING' }
+      }
       await this.recordSyncFailure(productId, newQuantity, err.message || 'Unknown sync error')
       return { ok: false, error: err.message }
     }

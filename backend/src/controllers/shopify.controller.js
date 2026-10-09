@@ -53,7 +53,10 @@ async function startBulkJob({ kind, title, countQuery, run, reattach = false }) 
   }
 
   syncProgress.startBulk(jobId, { title, total: scope, stages })
-  run()
+  // `run` receives jobId as an argument: the job function may report progress
+  // synchronously (before startBulkJob resolves), so it must not close over the
+  // caller's `jobId` binding, which is still in its temporal dead zone.
+  run(jobId)
     .then((r) => syncProgress.finishBulk(jobId, 'success', { ok: r.ok, failed: r.failed, total: r.total }))
     .catch((err) => {
       console.error(`Bulk sync ${jobId} failed:`, err.message)
@@ -151,7 +154,7 @@ const shopifyController = {
       kind: 'PRODUCT',
       title: 'Syncing products to Shopify',
       countQuery: () => prisma.product.count({ where: { isActive: true } }),
-      run: () => shopifyService.syncAllProducts(req.user.id, {
+      run: (jobId) => shopifyService.syncAllProducts(req.user.id, {
         onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
       }),
     })
@@ -160,11 +163,11 @@ const shopifyController = {
 
   // POST /api/shopify/sync/prices
   syncAllPrices: asyncHandler(async (req, res) => {
-    const jobId = await startBulkJob({
+    const { jobId } = await startBulkJob({
       kind: 'PRICE',
       title: 'Syncing prices to Shopify',
       countQuery: () => prisma.product.count({ where: { isActive: true, shopifyVariantId: { not: null } } }),
-      run: () => shopifyService.syncAllPrices(req.user.id, {
+      run: (jobId) => shopifyService.syncAllPrices(req.user.id, {
         onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
       }),
     })
@@ -173,11 +176,11 @@ const shopifyController = {
 
   // POST /api/shopify/sync/inventory
   syncAllInventory: asyncHandler(async (req, res) => {
-    const jobId = await startBulkJob({
+    const { jobId } = await startBulkJob({
       kind: 'INVENTORY',
       title: 'Syncing inventory to Shopify',
       countQuery: () => prisma.product.count({ where: { shopifyInventoryItemId: { not: null } } }),
-      run: () => shopifyService.syncAllInventory(req.user.id, {
+      run: (jobId) => shopifyService.syncAllInventory(req.user.id, {
         onBulk: (key, label, status, message) => syncProgress.reportBulk(jobId, key, status, label, message),
       }),
     })
@@ -195,7 +198,7 @@ const shopifyController = {
       title: 'Syncing everything to Shopify',
       reattach: true,
       countQuery: () => shopifyService.countSyncScope(),
-      run: () => shopifyService.syncAllCombined(req.user.id, {
+      run: (jobId) => shopifyService.syncAllCombined(req.user.id, {
         onBulk: (stage, key, label, status, message) =>
           syncProgress.reportBulk(jobId, `${stage}:${key}`, status, label, message),
         onStage: (stageKey, label) => {

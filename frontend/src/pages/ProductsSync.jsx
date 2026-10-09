@@ -30,6 +30,7 @@ export default function ProductsSync() {
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
   const [syncJob, setSyncJob] = useState(null)
+  const [progressOpen, setProgressOpen] = useState(false)
   const [lastRun, setLastRun] = useState(null)
   const [historyOpen, setHistoryOpen] = useState(false)
 
@@ -116,6 +117,7 @@ export default function ProductsSync() {
       const jobId = res.data?.data?.jobId
       if (jobId) {
         setSyncJob({ jobId, title: 'Syncing Products to Shopify' })
+        setProgressOpen(true)
       } else {
         showToast('Products synced to Shopify')
         refreshAll()
@@ -127,6 +129,7 @@ export default function ProductsSync() {
   // Fired by the live progress modal once the bulk sync job finishes.
   const handleSyncJobComplete = (status, summary, steps) => {
     setSyncJob(null)
+    setProgressOpen(false)
     setLastRun({ status, summary: summary || {}, steps: Array.isArray(steps) ? steps : [], at: Date.now() })
     refreshAll()
     if (status === 'success') {
@@ -198,6 +201,8 @@ export default function ProductsSync() {
           {toast.message}
         </div>
       )}
+
+      {syncJob && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Product sync is in progress</p>}
 
       {configError && (
         <div className="mb-3 text-sm rounded-lg px-4 py-2 border flex items-center gap-2 bg-amber-50 text-amber-800 border-amber-200">
@@ -323,14 +328,15 @@ export default function ProductsSync() {
         </div>
       </Card>
 
-      <BulkSyncProgress
+<BulkSyncProgress
         key={syncJob?.jobId}
-        open={Boolean(syncJob)}
+        open={progressOpen}
         jobId={syncJob?.jobId}
         title={syncJob?.title}
         onClose={() => setSyncJob(null)}
+        onMinimize={() => setProgressOpen(false)}
         onComplete={handleSyncJobComplete}
-      />
+/>
 
       <SyncHistoryModal
         open={historyOpen}

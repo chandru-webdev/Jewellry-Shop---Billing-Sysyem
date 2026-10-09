@@ -51,6 +51,10 @@ router.post('/sync/products/:id', shopifyController.syncOneProduct)
 router.post('/sync/all-products', shopifyController.syncAllProducts)
 router.post('/sync/prices', shopifyController.syncAllPrices)
 router.post('/sync/inventory', shopifyController.syncAllInventory)
+router.post('/sync/all', shopifyController.syncAll)
+
+// GET /api/shopify/sync/active — jobId of the combined sync currently running
+router.get('/sync/active', shopifyController.activeSync)
 
 // GET /api/shopify/sync-progress/:jobId — snapshot + SSE stream for bulk jobs
 router.get('/sync-progress/:jobId', shopifyController.getBulkProgress)

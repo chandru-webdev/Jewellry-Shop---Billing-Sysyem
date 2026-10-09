@@ -7,11 +7,13 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { shopifyApi } from '../api/shopify'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncRunPanel from '../components/shopify/SyncRunPanel'
 import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 
 export default function InventorySync() {
   const queryClient = useQueryClient()
   const [syncJob, setSyncJob] = useState(null)
+  const [lastRun, setLastRun] = useState(null)
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data: inventory = [], isLoading } = useQuery({
@@ -32,8 +34,9 @@ export default function InventorySync() {
   })
 
   // Fired by the live progress modal once the bulk inventory sync finishes.
-  const handleSyncJobComplete = () => {
+  const handleSyncJobComplete = (status, summary, steps) => {
     setSyncJob(null)
+    setLastRun({ status, summary: summary || {}, steps: Array.isArray(steps) ? steps : [], at: Date.now() })
     queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
     queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
   }
@@ -88,6 +91,13 @@ export default function InventorySync() {
           <p className="text-sm font-bold text-royal-800 dark:text-gray-200 mt-1">{inventory[0]?.lastSync || 'Never'}</p>
         </div>
       </div>
+
+      <SyncRunPanel
+        title="Last inventory sync run"
+        run={lastRun}
+        onDismiss={() => setLastRun(null)}
+        emptyText="No per-product steps were reported for this run."
+      />
 
       <Card noPadding className="overflow-hidden mb-5">
         <div className="overflow-x-auto">

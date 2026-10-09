@@ -16,10 +16,15 @@ const prisma = require('../prisma/client')
 // harmless duplicate: both write the same products, so their workers fight over
 // Shopify's per-product lock and the losers fail with 409 "currently being
 // modified". `kind` keys a guard so a second click is rejected up front.
+//
+// When `reattach` is true (the combined "Sync All" button) a second click
+// during a running job returns the existing jobId instead of a 409, so the UI
+// can simply reopen the panel attached to the job that is already going.
 const activeBulkJobs = new Map()
 
-async function startBulkJob({ kind, title, countQuery, run }) {
+async function startBulkJob({ kind, title, countQuery, run, reattach = false }) {
   if (kind && activeBulkJobs.has(kind)) {
+    if (reattach) return { jobId: activeBulkJobs.get(kind), reattached: true }
     throw new ApiError(
       409,
       `A ${kind.toLowerCase()} sync is already running. Wait for it to finish before starting another.`
@@ -32,15 +37,22 @@ async function startBulkJob({ kind, title, countQuery, run }) {
   // both started, which is the overlap the guard exists to prevent.
   if (kind) activeBulkJobs.set(kind, jobId)
 
-  let total = 0
+  let scope = 0
+  let stages = null
   try {
-    total = await countQuery()
+    const counted = await countQuery()
+    if (counted && typeof counted === 'object') {
+      scope = counted.total || 0
+      stages = counted.stages || null
+    } else {
+      scope = counted
+    }
   } catch (err) {
     if (kind && activeBulkJobs.get(kind) === jobId) activeBulkJobs.delete(kind)
     throw err
   }
 
-  syncProgress.startBulk(jobId, { title, total })
+  syncProgress.startBulk(jobId, { title, total: scope, stages })
   run()
     .then((r) => syncProgress.finishBulk(jobId, 'success', { ok: r.ok, failed: r.failed, total: r.total }))
     .catch((err) => {
@@ -50,7 +62,7 @@ async function startBulkJob({ kind, title, countQuery, run }) {
     .finally(() => {
       if (kind && activeBulkJobs.get(kind) === jobId) activeBulkJobs.delete(kind)
     })
-  return jobId
+  return { jobId, reattached: false }
 }
 
 const shopifyController = {
@@ -135,7 +147,7 @@ const shopifyController = {
 
   // POST /api/shopify/sync/all-products — push every active product
   syncAllProducts: asyncHandler(async (req, res) => {
-    const jobId = await startBulkJob({
+    const { jobId } = await startBulkJob({
       kind: 'PRODUCT',
       title: 'Syncing products to Shopify',
       countQuery: () => prisma.product.count({ where: { isActive: true } }),
@@ -170,6 +182,44 @@ const shopifyController = {
       }),
     })
     success(res, 202, { jobId }, 'Inventory sync started')
+  }),
+
+  // POST /api/shopify/sync/all — one job that pushes products, prices and
+  // inventory, then pulls orders, as a sequence of stages. Backs the dashboard
+  // "Sync All" button. Unlike the per-type jobs this reattaches: pressing it
+  // while a combined job is already running returns that job's id so the UI
+  // reopens the live panel instead of starting a duplicate.
+  syncAll: asyncHandler(async (req, res) => {
+    const { jobId, reattached } = await startBulkJob({
+      kind: 'ALL',
+      title: 'Syncing everything to Shopify',
+      reattach: true,
+      countQuery: () => shopifyService.countSyncScope(),
+      run: () => shopifyService.syncAllCombined(req.user.id, {
+        onBulk: (stage, key, label, status, message) =>
+          syncProgress.reportBulk(jobId, `${stage}:${key}`, status, label, message),
+        onStage: (stageKey, label) => {
+          const snap = syncProgress.getSnapshot(jobId)
+          const stage = snap?.stages?.find((s) => s.key === stageKey)
+          syncProgress.startStage(jobId, {
+            key: stageKey,
+            label,
+            index: (snap?.stages?.findIndex((s) => s.key === stageKey) ?? 0) + 1,
+            count: stage?.count || 0,
+          })
+        },
+        onStageDone: (stageKey, patch) => syncProgress.finishStage(jobId, stageKey, patch),
+      }),
+    })
+    success(res, 202, { jobId, reattached }, reattached ? 'Sync already running' : 'Sync started')
+  }),
+
+  // GET /api/shopify/sync/active — the jobId of the combined sync currently
+  // running, if any. The dashboard uses this on mount to reattach to a run that
+  // is still going (e.g. after a page reload) instead of showing it as idle.
+  activeSync: asyncHandler(async (req, res) => {
+    const jobId = activeBulkJobs.get('ALL') || null
+    success(res, 200, { jobId }, 'Active sync fetched')
   }),
 
   // GET /api/shopify/sync-progress/:jobId — current snapshot of a bulk job
@@ -239,7 +289,8 @@ const shopifyController = {
       const total = typeof payload.total === 'number' ? payload.total : ok + failed
       const pending = typeof payload.pending === 'number' ? payload.pending : Math.max(total - ok - failed, 0)
       const failures = Array.isArray(payload.failures) ? payload.failures : []
-      return { ...l, total, ok, failed, pending, failures }
+      const warnings = Array.isArray(payload.warnings) ? payload.warnings : []
+      return { ...l, total, ok, failed, pending, failures, warnings }
     })
     success(res, 200, shaped, 'Sync logs fetched')
   }),

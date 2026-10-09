@@ -6,7 +6,8 @@ import { shopifyApi } from '../../api/shopify'
 
 // Colour-coded per-item status for a bulk sync job streamed over SSE.
 // One row per product processed so far: running (royal spinner), done (green
-// check), failed (red X). The modal closes itself once the job is finished.
+// check), failed (red X). When the job has stages (the combined "Sync All")
+// a strip shows each phase and which one is running.
 const STATUS_STYLE = {
   done: { icon: Check, ring: 'bg-emerald-500 text-white border-emerald-500', label: 'text-royal-950 dark:text-gray-100', msg: 'text-emerald-600 dark:text-emerald-400', connector: 'bg-emerald-400' },
   failed: { icon: X, ring: 'bg-red-500 text-white border-red-500', label: 'text-royal-950 dark:text-gray-100', msg: 'text-red-600 dark:text-red-400', connector: 'bg-gray-200 dark:bg-white/10' },
@@ -14,18 +15,30 @@ const STATUS_STYLE = {
   pending: { icon: Circle, ring: 'bg-white dark:bg-[#1a1025] text-gray-400 border-gray-300 dark:border-white/20', label: 'text-gray-400 dark:text-gray-500', msg: 'text-gray-400 dark:text-gray-500', connector: 'bg-gray-200 dark:bg-white/10' },
 }
 
-export default function BulkSyncProgress({ open, jobId, title, onClose, onComplete }) {
+const STAGE_TONE = {
+  done: 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400',
+  failed: 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400',
+  running: 'border-royal-300 bg-royal-50 text-royal-700 dark:border-royal-500/40 dark:bg-royal-500/10 dark:text-royal-300',
+  pending: 'border-gray-200 bg-gray-50 text-gray-400 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-500',
+}
+
+export default function BulkSyncProgress({ open, jobId, title, onClose, onComplete, onMinimize, onRetryFailed }) {
   const [status, setStatus] = useState('running')
   const [message, setMessage] = useState('')
   const [steps, setSteps] = useState([])
   const [total, setTotal] = useState(0)
   const [done, setDone] = useState(0)
   const [summary, setSummary] = useState(null)
+  const [stages, setStages] = useState([])
+  const [stage, setStage] = useState(null)
   const [connecting, setConnecting] = useState(true)
   const reported = useRef(false)
 
+  // Stream while a jobId is set — independent of `open`, so minimizing the
+  // panel (open=false) keeps the run attached and the progress live. Callers
+  // key this component by jobId, so a new job remounts it with fresh state.
   useEffect(() => {
-    if (!open || !jobId) return
+    if (!jobId) return
     let cancelled = false
     const controller = new AbortController()
 
@@ -41,11 +54,13 @@ export default function BulkSyncProgress({ open, jobId, title, onClose, onComple
             if (typeof p.total === 'number') setTotal(p.total)
             if (typeof p.done === 'number') setDone(p.done)
             if (p.summary) setSummary(p.summary)
+            setStages(Array.isArray(p.stages) ? p.stages : [])
+            setStage(p.stage || null)
           },
           signal: controller.signal,
         })
       } catch {
-        // Stream failed/timed out — treat the job as over so the modal closes.
+        // Stream failed/timed out — treat the job as over.
         if (cancelled) return
         setConnecting(false)
         setStatus((cur) => (cur === 'failed' ? cur : 'success'))
@@ -56,27 +71,37 @@ export default function BulkSyncProgress({ open, jobId, title, onClose, onComple
       cancelled = true
       controller.abort()
     }
-  }, [open, jobId])
+  }, [jobId])
 
   const finalStatus = status === 'failed' ? 'failed' : status === 'success' ? 'success' : null
   useEffect(() => {
     if (finalStatus && !reported.current) {
       reported.current = true
       const failedCount = steps.filter((s) => s.status === 'failed').length
-      const t = setTimeout(
-        () => onComplete?.(finalStatus, summary || { ok: done, failed: failedCount, total }),
-        1400
-      )
-      return () => clearTimeout(t)
+      const finalSteps = steps
+      onComplete?.(finalStatus, summary || { ok: done, failed: failedCount, total }, finalSteps)
     }
     // Guarded by reported.current, so it only fires once per completed job.
   }, [finalStatus, steps, done, total, summary, onComplete])
 
   const isRunning = status === 'running'
   const percent = total > 0 ? Math.round((done / total) * 100) : 0
+  const failedCount = summary ? summary.failed : steps.filter((s) => s.status === 'failed').length
+
+  const footer = (
+    <div className="flex items-center gap-2">
+      {isRunning && onMinimize && (
+        <Button variant="ghost" onClick={onMinimize}>Minimize</Button>
+      )}
+      {finalStatus && failedCount > 0 && onRetryFailed && (
+        <Button variant="secondary" onClick={onRetryFailed}>Retry failed</Button>
+      )}
+      <Button variant="ghost" onClick={onClose}>Close</Button>
+    </div>
+  )
 
   return (
-    <Modal open={open} title={title || 'Sync Progress'} onClose={onClose} footer={<Button variant="ghost" onClick={onClose}>Close</Button>}>
+    <Modal open={open} title={title || 'Sync Progress'} onClose={onClose} footer={footer}>
       <div className="space-y-5">
         {/* Overall header */}
         <div
@@ -108,13 +133,31 @@ export default function BulkSyncProgress({ open, jobId, title, onClose, onComple
                     : message || 'Syncing…'}
             </p>
             {isRunning && !connecting && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{message}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {stage ? `Stage ${stage.index || ''} · ${stage.label}` : message}
+              </p>
             )}
           </div>
           {isRunning && !connecting && total > 0 && (
             <span className="ml-auto text-xs font-semibold text-royal-600 dark:text-royal-400 tabular-nums">{percent}%</span>
           )}
         </div>
+
+        {/* Stage strip (combined "Sync All") */}
+        {stages.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {stages.map((s) => (
+              <span
+                key={s.key}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${STAGE_TONE[s.status] || STAGE_TONE.pending}`}
+              >
+                {s.status === 'running' && <Loader2 size={11} className="animate-spin" />}
+                {s.label}
+                {s.count > 0 && <span className="tabular-nums opacity-70">· {s.done || 0}/{s.count}</span>}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Summary line on the finished state */}
         {finalStatus && summary && (
@@ -155,7 +198,7 @@ export default function BulkSyncProgress({ open, jobId, title, onClose, onComple
           {connecting && !steps.length && (
             <li className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">Waiting for sync to start…</li>
           )}
-          {!connecting && isRunning && total > 0 && done === total && (
+          {!connecting && isRunning && total > 0 && done >= total && (
             <li className="text-sm text-royal-600 dark:text-royal-400 py-2 text-center font-medium">Finishing up…</li>
           )}
         </ol>

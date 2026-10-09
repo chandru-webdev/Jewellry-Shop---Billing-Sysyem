@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2, AlertTriangle, Eye, ChevronDown, ChevronUp } from 'lucide-react'
+import { RefreshCw, CheckCircle2, XCircle, Clock, Filter, Download, Loader2, AlertTriangle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -21,7 +21,6 @@ export default function SyncLogs() {
   const [filterStatus, setFilterStatus] = useState('All')
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState(null)
-  const [expandedLogId, setExpandedLogId] = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -47,6 +46,7 @@ export default function SyncLogs() {
     time: l.createdAt,
     duration: l.duration || '—',
     failures: Array.isArray(l.failures) ? l.failures : [],
+    warnings: Array.isArray(l.warnings) ? l.warnings : [],
   }))
 
   const synced = logs.filter((l) => l.status === 'SUCCESS').length
@@ -213,7 +213,6 @@ export default function SyncLogs() {
               )}
               {!isFetching && filtered.map((log, i) => {
                 const StatusIcon = statusIcon[log.status] || Clock
-                const isOpen = expandedLogId === log.id
                 return (
                   <>
                     <tr key={log.id} className={`border-t border-gray-100 dark:border-white/[0.05] ${i % 2 === 0 ? 'bg-white dark:bg-[#1a1025]' : 'bg-gray-50/50'} hover:bg-royal-50 dark:hover:bg-white/5/30 transition-colors`}>
@@ -230,31 +229,25 @@ export default function SyncLogs() {
                       </td>
                       <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 whitespace-nowrap">{new Date(log.time).toLocaleString()}</td>
                       <td className="px-4 py-2.5 text-right">
-                        {log.status === 'FAILED' && (
-                          <div className="flex items-center justify-end gap-2">
-                            {log.failures.length > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                              >
-                                {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                <Eye size={12} className="ml-1" /> {isOpen ? 'Hide' : 'View'} ({log.failures.length})
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" onClick={() => retryMutation.mutate(log)} disabled={retryMutation.isPending}>
-                              <RefreshCw size={12} className={retryMutation.isPending ? 'animate-spin' : ''} /> Retry
-                            </Button>
-                          </div>
+                        {(log.status === 'FAILED' || log.failures.length > 0) && (
+                          <Button variant="ghost" size="sm" onClick={() => retryMutation.mutate(log)} disabled={retryMutation.isPending}>
+                            <RefreshCw size={12} className={retryMutation.isPending ? 'animate-spin' : ''} /> Retry
+                          </Button>
                         )}
                       </td>
                     </tr>
-                    {isOpen && log.failures.length > 0 && (
+                    {(log.failures.length > 0 || log.warnings.length > 0) && (
                       <tr>
-                        <td colSpan={9} className="px-4 py-3 bg-red-50 dark:bg-red-950/30 border-t border-red-100 dark:border-red-900/40">
+                        <td colSpan={9} className="px-4 py-3 bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/[0.05]">
                           <div className="space-y-2">
+                            {log.warnings.map((w, wi) => (
+                              <div key={`w-${wi}`} className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2.5">
+                                <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                                <p className="text-xs text-amber-700 dark:text-amber-300 break-words">{w}</p>
+                              </div>
+                            ))}
                             {log.failures.map((f, fi) => (
-                              <div key={fi} className="rounded-lg bg-white dark:bg-[#1a1025] border border-red-200 dark:border-red-800 p-3">
+                              <div key={`f-${fi}`} className="rounded-lg bg-white dark:bg-[#1a1025] border border-red-200 dark:border-red-800 p-3">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-semibold text-red-800 dark:text-red-300 min-w-0">{f.name || 'Unknown product'}</span>
                                   {f.sku && <span className="text-[11px] font-mono text-red-500 dark:text-red-400">({f.sku})</span>}

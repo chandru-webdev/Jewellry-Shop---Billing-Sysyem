@@ -7,12 +7,14 @@ import Button from '../components/ui/Button'
 import { formatDate } from '../utils/format'
 import { customersApi } from '../api/customers'
 import { shopifyApi } from '../api/shopify'
+import SyncRunPanel from '../components/shopify/SyncRunPanel'
 
 export default function CustomersSync() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState(null)
   const [lastPull, setLastPull] = useState(null)
+  const [lastRun, setLastRun] = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -32,6 +34,15 @@ export default function CustomersSync() {
     onSuccess: (res) => {
       const r = res.data.data
       setLastPull({ created: r.created, updated: r.updated, failed: r.failed, firstError: r.firstError })
+      const created = r.created ?? 0
+      const updated = r.updated ?? 0
+      const failed = r.failed ?? 0
+      const steps = [
+        { key: 'created', label: `${created} new customer${created === 1 ? '' : 's'}`, status: 'done', message: created ? 'Imported into ERP' : 'No new customers' },
+        ...(updated ? [{ key: 'updated', label: `${updated} updated`, status: 'done', message: 'Updated in ERP' }] : []),
+        ...(failed ? [{ key: 'failed', label: `${failed} failed`, status: 'failed', message: r.firstError || 'See Sync Logs for detail' }] : []),
+      ]
+      setLastRun({ status: failed ? 'failed' : 'success', summary: { ok: created + updated, failed, total: created + updated + failed }, steps, at: Date.now() })
       showToast(`Imported ${r.created ?? 0} new, updated ${r.updated ?? 0}${r.failed ? `, failed ${r.failed}` : ''}`)
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
@@ -110,6 +121,13 @@ export default function CustomersSync() {
           {lastPull.failed} customers could not be imported{lastPull.firstError ? ` — ${lastPull.firstError}` : ''}
         </div>
       )}
+
+      <SyncRunPanel
+        title="Last customer import run"
+        run={lastRun}
+        onDismiss={() => setLastRun(null)}
+        emptyText="No customers were reported for this run."
+      />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-sm">

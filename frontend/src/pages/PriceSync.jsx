@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import { formatINR } from '../utils/format'
 import { shopifyApi } from '../api/shopify'
 import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
+import SyncRunPanel from '../components/shopify/SyncRunPanel'
 import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
 
 const statusTone = {
@@ -18,6 +19,7 @@ const statusTone = {
 export default function PriceSync() {
   const queryClient = useQueryClient()
   const [syncJob, setSyncJob] = useState(null)
+  const [lastRun, setLastRun] = useState(null)
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const { data: items = [], isLoading } = useQuery({
@@ -38,8 +40,9 @@ export default function PriceSync() {
   })
 
   // Fired by the live progress modal once the bulk price sync finishes.
-  const handleSyncJobComplete = () => {
+  const handleSyncJobComplete = (status, summary, steps) => {
     setSyncJob(null)
+    setLastRun({ status, summary: summary || {}, steps: Array.isArray(steps) ? steps : [], at: Date.now() })
     queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] })
     queryClient.invalidateQueries({ queryKey: ['shopify-status'] })
   }
@@ -87,6 +90,13 @@ export default function PriceSync() {
           <p className="text-xl font-bold text-red-600 mt-0.5">{mismatches}</p>
         </div>
       </div>
+
+      <SyncRunPanel
+        title="Last price sync run"
+        run={lastRun}
+        onDismiss={() => setLastRun(null)}
+        emptyText="No per-product steps were reported for this run."
+      />
 
       <Card noPadding className="overflow-hidden">
         <div className="overflow-x-auto">

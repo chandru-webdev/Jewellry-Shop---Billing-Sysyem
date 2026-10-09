@@ -18,6 +18,10 @@ export const shopifyApi = {
   syncAllProducts: () => apiClient.post('/shopify/sync/all-products'),
   syncAllPrices: () => apiClient.post('/shopify/sync/prices'),
   syncAllInventory: () => apiClient.post('/shopify/sync/inventory'),
+  // Combined dashboard "Sync All": products → prices → inventory → orders as one
+  // streamed job. Reattaches (returns the running jobId) if one is already going.
+  syncAll: () => apiClient.post('/shopify/sync/all'),
+  activeSync: () => apiClient.get('/shopify/sync/active'),
   pullProducts: () => apiClient.post('/shopify/pull-products'),
   pullOrders: () => apiClient.post('/shopify/pull-orders'),
   pullCustomers: () => apiClient.post('/shopify/pull-customers'),

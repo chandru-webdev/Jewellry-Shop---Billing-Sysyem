@@ -1346,6 +1346,65 @@ const shopifyService = {
     return { total: products.length, ok, failed, firstError, failures, staleCleared }
   },
 
+  // How many items the combined "Sync All" job will touch, split by stage.
+  // Orders are counted during the pull (unknown upfront), so their stage starts
+  // at 0 and is filled in once the pull finishes.
+  async countSyncScope() {
+    const [products, prices, inventory] = await Promise.all([
+      prisma.product.count({ where: { isActive: true } }),
+      prisma.product.count({ where: { isActive: true, shopifyVariantId: { not: null } } }),
+      prisma.product.count({ where: { shopifyInventoryItemId: { not: null } } }),
+    ])
+    const stages = [
+      { key: 'products', label: 'Products', count: products },
+      { key: 'prices', label: 'Prices', count: prices },
+      { key: 'inventory', label: 'Inventory', count: inventory },
+      { key: 'orders', label: 'Orders', count: 0 },
+    ]
+    return { total: products + prices + inventory + 1, stages }
+  },
+
+  // Combined "Sync All": runs products, prices, inventory and orders as one job
+  // so the dashboard can show a single live panel with a stage per phase. Each
+  // stage still writes its own ShopifySyncLog row (via syncAllProducts etc.), so
+  // Sync Logs / History stay populated exactly as if the buttons were pressed
+  // separately.
+  async syncAllCombined(userId, { onBulk = null, onStage = null, onStageDone = null, includeOrders = true } = {}) {
+    const stageOf = (stageKey) => (key, label, status, message) =>
+      onBulk?.(stageKey, key, label, status, message)
+
+    const runStage = async (key, label, fn) => {
+      onStage?.(key, label)
+      const res = await fn()
+      onStageDone?.(key, { ok: res.ok ?? 0, failed: res.failed ?? 0, total: res.total ?? 0 })
+      return res
+    }
+
+    const productRes = await runStage('products', 'Syncing products', () =>
+      this.syncAllProducts(userId, { onBulk: stageOf('products') })
+    )
+    const priceRes = await runStage('prices', 'Syncing prices', () =>
+      this.syncAllPrices(userId, { onBulk: stageOf('prices') })
+    )
+    const inventoryRes = await runStage('inventory', 'Syncing inventory', () =>
+      this.syncAllInventory(userId, { onBulk: stageOf('inventory') })
+    )
+
+    let orderRes = { ok: 0, failed: 0, total: 0 }
+    if (includeOrders) {
+      orderRes = await runStage('orders', 'Pulling orders', async () => {
+        const r = await this.pullOrdersFromShopify(userId)
+        onBulk?.('orders', 'orders', 'Orders', 'done', `${r.created ?? 0} new, ${r.already ?? 0} already synced`)
+        return { ok: r.created ?? 0, failed: r.failed ?? 0, total: r.total ?? 0 }
+      })
+    }
+
+    const total = (productRes.total || 0) + (priceRes.total || 0) + (inventoryRes.total || 0) + (orderRes.total || 0)
+    const ok = (productRes.ok || 0) + (priceRes.ok || 0) + (inventoryRes.ok || 0) + (orderRes.ok || 0)
+    const failed = (productRes.failed || 0) + (priceRes.failed || 0) + (inventoryRes.failed || 0) + (orderRes.failed || 0)
+    return { total, ok, failed }
+  },
+
   // Write one row in ShopifySyncLog so the dashboard can show status.
   // `total` is the number of items the job tried (products in the sync scope);
   // `ok`/`failed` split that total, `pending` = items still not processed.

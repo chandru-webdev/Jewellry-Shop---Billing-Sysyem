@@ -1,15 +1,19 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2, XCircle, History as HistoryIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { RefreshCw, Package, DollarSign, Boxes, AlertCircle, ShoppingBag, AlertTriangle, Loader2, XCircle, Check, History as HistoryIcon } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import SyncHistoryModal from '../components/shopify/SyncHistoryModal'
+import BulkSyncProgress from '../components/shopify/BulkSyncProgress'
 import { shopifyApi } from '../api/shopify'
 import { ordersApi } from '../api/orders'
+import { productsApi } from '../api/products'
 import { formatINR, formatDateTime } from '../utils/format'
+import { needsAttention, productSyncState } from '../utils/productSync'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -54,6 +58,9 @@ export default function ShopifyDashboard() {
   const logsKey = { queryKey: ['shopify-logs'] }
   const ordersKey = { queryKey: ['orders', 'shopify'] }
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [syncJob, setSyncJob] = useState(null)
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [syncFinished, setSyncFinished] = useState(false)
 
   const { data: syncStatus = {}, refetch } = useQuery({
     queryKey: ['shopify-status'],
@@ -73,6 +80,17 @@ export default function ShopifyDashboard() {
     retry: false,
   })
 
+  const { data: erpProducts = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['shopify-erp-products'],
+    queryFn: () => productsApi.list().then((r) => r.data.data),
+    retry: false,
+  })
+
+  const attentionProducts = useMemo(
+    () => (erpProducts || []).filter(needsAttention),
+    [erpProducts]
+  )
+
   const { data: probeOk = false } = useQuery({
     queryKey: ['shopify-probe'],
     queryFn: async () => {
@@ -82,16 +100,58 @@ export default function ShopifyDashboard() {
     retry: false,
   })
 
-  const pullMutation = useMutation({
-    mutationFn: () => shopifyApi.pullProducts(),
-    onSuccess: () => {
-      queryClient.invalidateQueries(statusKey)
-      queryClient.invalidateQueries(logsKey)
-      queryClient.invalidateQueries(ordersKey)
-      queryClient.invalidateQueries({ queryKey: ['shopify-probe'] })
-      refetch()
+  // On mount, reattach to a combined "Sync All" that is still running (e.g.
+  // after a reload) so it shows as live instead of idle.
+  useEffect(() => {
+    let cancelled = false
+    shopifyApi.activeSync()
+      .then((r) => {
+        const jobId = r.data?.data?.jobId
+        if (!cancelled && jobId) {
+          setSyncJob({ jobId, title: 'Syncing everything to Shopify' })
+          setProgressOpen(true)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  // Combined Sync All: products → prices → inventory → orders as one streamed
+  // job. A second click while it runs reattaches (same jobId) instead of
+  // starting a duplicate.
+  const syncAllMutation = useMutation({
+    mutationFn: () => shopifyApi.syncAll(),
+    onSuccess: (r) => {
+      const jobId = r.data?.data?.jobId
+      if (jobId) {
+        setSyncFinished(false)
+        setSyncJob({ jobId, title: 'Syncing everything to Shopify' })
+        setProgressOpen(true)
+      }
     },
   })
+
+  const refreshAfterSync = () => {
+    queryClient.invalidateQueries(statusKey)
+    queryClient.invalidateQueries(logsKey)
+    queryClient.invalidateQueries(ordersKey)
+    queryClient.invalidateQueries({ queryKey: ['shopify-sync-logs'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-probe'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-erp-products'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-price-comparison'] })
+    queryClient.invalidateQueries({ queryKey: ['shopify-inventory-comparison'] })
+    refetch()
+  }
+
+  const handleSyncComplete = () => {
+    setSyncFinished(true)
+    refreshAfterSync()
+  }
+
+  const closeSyncPanel = () => {
+    setSyncJob(null)
+    setProgressOpen(false)
+  }
 
   const failedCount = logs.filter((l) => l.status === 'FAILED').length
 
@@ -158,8 +218,8 @@ export default function ShopifyDashboard() {
           <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
             <HistoryIcon size={14} /> History
           </Button>
-          <Button variant="primary" size="sm" onClick={() => pullMutation.mutate()} loading={pullMutation.isPending}>
-            {pullMutation.isPending ? <><Loader2 size={14} className="animate-spin" /> Pulling...</> : <><RefreshCw size={14} /> Sync All</>}
+          <Button variant="primary" size="sm" onClick={() => syncAllMutation.mutate()}>
+            <RefreshCw size={14} /> Sync All
           </Button>
         </div>
       } />
@@ -232,6 +292,41 @@ export default function ShopifyDashboard() {
         </Card>
       </div>
 
+      <Card
+        title="Products needing attention"
+        className="mb-5"
+        action={<Link to="/shopify/products-sync" className="text-xs font-medium text-royal-600 dark:text-royal-400 hover:underline">Open Products Sync →</Link>}
+      >
+        {productsLoading && (
+          <p className="text-sm text-gray-400 py-3 flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Checking products…</p>
+        )}
+        {!productsLoading && attentionProducts.length === 0 && (
+          <p className="text-sm text-emerald-600 dark:text-emerald-400 py-3 flex items-center gap-2">
+            <Package size={14} /> All active products are linked to Shopify.
+          </p>
+        )}
+        {!productsLoading && attentionProducts.length > 0 && (
+          <div className="space-y-2">
+            {attentionProducts.slice(0, 10).map((p) => {
+              const state = productSyncState(p)
+              return (
+                <div key={p.id} className={`flex items-start gap-3 rounded-lg border px-3 py-2 ${state.tone === 'red' ? 'bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/30' : 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30'}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-royal-950 dark:text-white truncate">{p.name}</p>
+                    <p className="text-[11px] font-mono text-gray-400">{p.sku || '—'}</p>
+                    <p className={`text-[11px] mt-0.5 break-words ${state.tone === 'red' ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>{state.detail}</p>
+                  </div>
+                  <Badge tone={state.tone}>{state.label}</Badge>
+                </div>
+              )
+            })}
+            {attentionProducts.length > 10 && (
+              <p className="text-[11px] text-gray-400 pt-1">+{attentionProducts.length - 10} more — open Products Sync to see all.</p>
+            )}
+          </div>
+        )}
+      </Card>
+
       <Card title="Recent Shopify Orders">
         <div className="space-y-3">
           {orders.length === 0 && (
@@ -264,6 +359,28 @@ export default function ShopifyDashboard() {
         type="ALL"
         title="Shopify Sync History"
       />
+
+      <BulkSyncProgress
+        key={syncJob?.jobId}
+        open={progressOpen}
+        jobId={syncJob?.jobId}
+        title={syncJob?.title}
+        onClose={closeSyncPanel}
+        onComplete={handleSyncComplete}
+        onMinimize={() => setProgressOpen(false)}
+        onRetryFailed={() => syncAllMutation.mutate()}
+      />
+
+      {syncJob && !progressOpen && (
+        <button
+          onClick={() => setProgressOpen(true)}
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-royal-700 hover:bg-royal-800 text-white px-4 py-2.5 shadow-lg text-sm font-semibold"
+        >
+          {syncFinished ? <Check size={15} /> : <Loader2 size={15} className="animate-spin" />}
+          {syncFinished ? 'Sync complete' : 'Sync in progress'}
+          <span className="text-xs font-normal opacity-80">View</span>
+        </button>
+      )}
     </div>
   )
 }

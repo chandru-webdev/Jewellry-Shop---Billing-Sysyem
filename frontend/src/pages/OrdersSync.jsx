@@ -9,6 +9,7 @@ import Modal from '../components/ui/Modal'
 import { shopifyApi } from '../api/shopify'
 import { ordersApi } from '../api/orders'
 import { formatINR } from '../utils/format'
+import SyncRunPanel from '../components/shopify/SyncRunPanel'
 
 function timeAgo(date) {
   if (!date) return '—'
@@ -179,6 +180,7 @@ export default function OrdersSync() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [selectedOrderId, setSelectedOrderId] = useState(null)
+  const [lastRun, setLastRun] = useState(null)
   const queryClient = useQueryClient()
 
   // Real orders imported from Shopify (source = SHOPIFY).
@@ -207,16 +209,23 @@ export default function OrdersSync() {
       queryClient.invalidateQueries({ queryKey: ['shopify-sync-logs'] })
       queryClient.invalidateQueries({ queryKey: ['shopify-sync'] })
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      const msg = `Pulled ${d.total ?? 0} order(s) • ${d.created ?? 0} new • ${d.already ?? 0} already synced${d.failed ? ` • ${d.failed} failed` : ''}`
-      alert(msg)
+      const created = d.created ?? 0
+      const already = d.already ?? 0
+      const failed = d.failed ?? 0
+      const steps = [
+        { key: 'created', label: `${created} new order${created === 1 ? '' : 's'}`, status: 'done', message: created ? 'Imported into ERP' : 'No new orders' },
+        ...(already ? [{ key: 'already', label: `${already} already synced`, status: 'done', message: 'Skipped — already in ERP' }] : []),
+        ...(failed ? [{ key: 'failed', label: `${failed} failed`, status: 'failed', message: 'See Sync Log below for detail' }] : []),
+      ]
+      setLastRun({ status: failed ? 'failed' : 'success', summary: { ok: created + already, failed, total: d.total ?? created + already + failed }, steps, at: Date.now() })
     },
     onError: (err) => {
       const msg = err.response?.data?.message || err.message || ''
-      if (msg.includes('credentials') || msg.includes('not configured')) {
-        alert('Shopify is not connected. Add your store credentials in Settings > Shopify to pull orders.')
-      } else {
-        alert('Pull failed: ' + msg)
-      }
+      const friendly = msg.includes('credentials') || msg.includes('not configured')
+        ? 'Shopify is not connected. Add your store credentials in Settings > Shopify to pull orders.'
+        : `Pull failed: ${msg}`
+      setLastRun({ status: 'failed', summary: { ok: 0, failed: 1, total: 1 }, steps: [{ key: 'error', label: 'Order pull failed', status: 'failed', message: friendly }], at: Date.now() })
+      alert(friendly)
     },
   })
 
@@ -281,6 +290,13 @@ export default function OrdersSync() {
           </button>
         ))}
       </div>
+
+      <SyncRunPanel
+        title="Last order pull run"
+        run={lastRun}
+        onDismiss={() => setLastRun(null)}
+        emptyText="No orders were reported for this run."
+      />
 
       <Card className="p-0 overflow-hidden mb-6">
         <div className="overflow-x-auto">

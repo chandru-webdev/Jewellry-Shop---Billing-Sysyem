@@ -53,6 +53,8 @@ function snap(job) {
     ...(job.title ? { title: job.title } : {}),
     ...(job.total ? { total: job.total } : {}),
     ...(job.summary ? { summary: { ...job.summary } } : {}),
+    ...(job.stages ? { stages: job.stages.map((s) => ({ ...s })) } : {}),
+    ...(job.stage ? { stage: { ...job.stage } } : {}),
     done,
     status: job.status,
     message: job.message,
@@ -110,7 +112,7 @@ function start(productId) {
 
 // Create a bulk sync job. `title` names the overall task and `total` is the
 // number of items that will be processed. Items are reported via reportBulk.
-function startBulk(jobId, { title = 'Syncing…', total = 0 } = {}) {
+function startBulk(jobId, { title = 'Syncing…', total = 0, stages = null } = {}) {
   const now = new Date().toISOString()
   const job = {
     jobId: String(jobId),
@@ -123,10 +125,49 @@ function startBulk(jobId, { title = 'Syncing…', total = 0 } = {}) {
     finishedAt: null,
     updatedAt: now,
     steps: [],
+    stages: Array.isArray(stages)
+      ? stages.map((s) => ({ key: s.key, label: s.label || s.key, count: Number(s.count) || 0, status: 'pending', done: 0 }))
+      : null,
+    stage: null,
     subscribers: new Set(),
   }
   jobs.set(job.jobId, job)
   return job
+}
+
+// Mark a named stage of a bulk job as the one currently running. Used by the
+// combined "Sync All" job so the panel can show which phase is active.
+function startStage(jobId, { key, label = '', index = 0, count = 0 } = {}) {
+  const job = getJob(jobId)
+  if (!job || job.kind !== 'bulk') return
+  if (job.stages) {
+    const stage = job.stages.find((s) => s.key === key)
+    if (stage) {
+      stage.status = 'running'
+      if (label) stage.label = label
+      if (count) stage.count = Number(count)
+    }
+  }
+  job.stage = { key, label: label || key, index: Number(index) || 0, count: Number(count) || 0, status: 'running' }
+  touch(job)
+  emit(job)
+}
+
+// Close out a named stage with its per-stage tally.
+function finishStage(jobId, key, { ok = 0, failed = 0, total = 0 } = {}) {
+  const job = getJob(jobId)
+  if (!job || job.kind !== 'bulk') return
+  if (job.stages) {
+    const stage = job.stages.find((s) => s.key === key)
+    if (stage) {
+      stage.status = failed > 0 && ok === 0 ? 'failed' : 'done'
+      stage.done = ok
+      if (total) stage.count = Number(total)
+    }
+  }
+  if (job.stage && job.stage.key === key) job.stage = { ...job.stage, status: 'done' }
+  touch(job)
+  emit(job)
 }
 
 // Record one step transition and broadcast it to subscribers.
@@ -225,6 +266,8 @@ module.exports = {
   startBulk,
   reportBulk,
   finishBulk,
+  startStage,
+  finishStage,
   subscribe,
   getSnapshot,
   STEP_ORDER,

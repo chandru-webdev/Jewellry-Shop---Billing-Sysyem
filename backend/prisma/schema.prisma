@@ -276,6 +276,7 @@ model Customer {
   name      String
   phone     String    @unique
   email     String?   @unique
+  shopifyCustomerId BigInt? @unique
   address   String?
   gstin     String?
   orders    Order[]

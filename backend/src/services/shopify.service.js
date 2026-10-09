@@ -494,6 +494,8 @@ const shopifyService = {
   // customer is created. The pull is recorded in ShopifySyncLog (type CUSTOMER)
   // so the sync logs / system health show the last customer sync status.
   async pullCustomersFromShopify(userId) {
+    const { normalizePhone, normalizeEmail } = require('../utils/customerMatch')
+
     let total = 0
     let created = 0
     let updated = 0
@@ -515,11 +517,12 @@ const shopifyService = {
 
       for (const c of customers) {
         try {
-          const email = c.email || null
-          // The ERP Customer model requires a unique phone number and the
-          // Shopify record may not have one, so fall back to a stable
-          // placeholder keyed by the Shopify customer id.
-          const phone = c.phone || `SHOPIFY-${c.id}`
+          const email = normalizeEmail(c.email)
+          // Store the phone in its canonical form so the same customer matches
+          // across formats; fall back to a stable placeholder (keyed by the
+          // Shopify id) when the record has no usable phone, since the ERP
+          // Customer.phone column is NOT NULL and UNIQUE.
+          const phone = normalizePhone(c.phone) || `SHOPIFY-${c.id}`
           const name =
             [c.first_name, c.last_name].filter(Boolean).join(' ') ||
             (email ? email.split('@')[0] : 'Shopify Customer')
@@ -531,18 +534,25 @@ const shopifyService = {
                 .join(', ') || null
             : null
 
-          let existing = null
-          if (email) existing = await prisma.customer.findUnique({ where: { email } })
+          let existing = await prisma.customer.findUnique({ where: { shopifyCustomerId: BigInt(c.id) } })
+          if (!existing && email) existing = await prisma.customer.findUnique({ where: { email } })
           if (!existing) existing = await prisma.customer.findUnique({ where: { phone } })
 
           if (existing) {
             await prisma.customer.update({
               where: { id: existing.id },
-              data: { name, email: email || existing.email, address: address || existing.address },
+              data: {
+                name,
+                email: email || existing.email,
+                address: address || existing.address,
+                shopifyCustomerId: BigInt(c.id),
+              },
             })
             updated++
           } else {
-            await prisma.customer.create({ data: { name, email, phone, address } })
+            await prisma.customer.create({
+              data: { name, email, phone, address, shopifyCustomerId: BigInt(c.id) },
+            })
             created++
           }
           total++

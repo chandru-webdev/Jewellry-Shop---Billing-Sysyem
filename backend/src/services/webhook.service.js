@@ -60,6 +60,93 @@ async function reduceStockInTx(tx, productId, quantity, reference) {
   return { reduced: taken }
 }
 
+// Shared phone reserved for the single "Guest" customer that catches orders
+// whose customer details Shopify redacted (guest checkout, no email, no phone).
+const {
+  GUEST_PHONE,
+  normalizePhone,
+  normalizeEmail,
+  pickCustomerMatch,
+  isUniqueConstraintError,
+} = require('../utils/customerMatch')
+
+// Load the customers that could match this order. The Shopify id is indexed so
+// it is looked up directly; email/phone need normalising before comparison and
+// the same number can be stored in many formats ("+91 98765 43210", "098765..."),
+// which a SQL substring match cannot catch, so those fall back to the full
+// customer list and are compared in JS. Shopify webhook volume is low, and the
+// customer table is small, so this stays cheap.
+async function findCustomerCandidates({ shopifyCustomerId, email, phone }) {
+  if (shopifyCustomerId != null) {
+    const byId = await prisma.customer.findUnique({ where: { shopifyCustomerId: BigInt(shopifyCustomerId) } })
+    if (byId) return [byId]
+  }
+  if (!email && !phone) return []
+  return prisma.customer.findMany({
+    select: { id: true, name: true, email: true, phone: true, address: true, shopifyCustomerId: true },
+  })
+}
+
+// Find the order's customer, creating one only when nothing matches. Handles
+// guest checkouts (no email, no phone) by attaching to a shared Guest customer,
+// and recovers from a concurrent-create unique-constraint clash by re-reading
+// the record the other request just wrote.
+async function findOrCreateCustomer({ payload, name, address, shopifyOrderId }) {
+  const shopifyCustomerId = payload.customer?.id ?? null
+  const email = normalizeEmail(payload.email || payload.customer?.email)
+  const phone = normalizePhone(payload.phone || payload.customer?.phone)
+
+  const candidates = await findCustomerCandidates({ shopifyCustomerId, email, phone })
+  const match = pickCustomerMatch(candidates, { shopifyCustomerId, email, phone })
+
+  if (match) {
+    // Backfill what we now know (link to the Shopify id, fill a missing address)
+    // so the next order from this customer matches by id. Never fatal.
+    const patch = {}
+    if (shopifyCustomerId != null && match.shopifyCustomerId == null) patch.shopifyCustomerId = BigInt(shopifyCustomerId)
+    if (address && !match.address) patch.address = address
+    if (Object.keys(patch).length) {
+      await prisma.customer.update({ where: { id: match.id }, data: patch }).catch(() => {})
+    }
+    return { customerId: match.id, created: false, guest: false }
+  }
+
+  const isGuest = !email && !phone
+
+  // All guest checkouts share one "Guest" customer so they import without
+  // inventing a fake per-order phone.
+  if (isGuest) {
+    const guest = await prisma.customer.findUnique({ where: { phone: GUEST_PHONE } })
+    if (guest) return { customerId: guest.id, created: false, guest: true }
+  }
+
+  const data = isGuest
+    ? { name: 'Guest', email: null, address, phone: GUEST_PHONE }
+    : {
+        name,
+        email: email || null,
+        address,
+        // Shopify orders sometimes have no phone; keep a unique placeholder so
+        // the NOT NULL unique column is satisfied.
+        phone: phone || `SHOPIFY-${shopifyCustomerId || shopifyOrderId}`,
+        shopifyCustomerId: shopifyCustomerId != null ? BigInt(shopifyCustomerId) : null,
+      }
+
+  try {
+    const created = await prisma.customer.create({ data })
+    return { customerId: created.id, created: true, guest: isGuest }
+  } catch (err) {
+    if (!isUniqueConstraintError(err)) throw err
+    // A concurrent webhook wrote the row first — reuse it instead of failing.
+    const again = await findCustomerCandidates({ shopifyCustomerId, email, phone })
+    const existing =
+      pickCustomerMatch(again, { shopifyCustomerId, email, phone }) ||
+      (isGuest ? await prisma.customer.findUnique({ where: { phone: GUEST_PHONE } }) : null)
+    if (existing) return { customerId: existing.id, created: false, guest: isGuest, matchedAfterConflict: true }
+    throw err
+  }
+}
+
 const webhookService = {
   // Entry point called by the route for every webhook topic.
   async handle({ topic, eventId, payload, shopDomain }) {
@@ -150,12 +237,11 @@ const webhookService = {
     const already = await prisma.order.findUnique({ where: { shopifyOrderId: shopifyOrderIdBig } })
     if (already) return { orderId: already.id, alreadyProcessed: true }
 
-    // ---- Customer (find by email first, then phone, else create) ----
-    const email = payload.email || payload.customer?.email || null
-    const phone = payload.phone || payload.customer?.phone || null
+    // ---- Customer (match by Shopify id, then email, then phone, else create) ----
+    const rawEmail = payload.email || payload.customer?.email || null
     const name =
       [payload.customer?.first_name, payload.customer?.last_name].filter(Boolean).join(' ') ||
-      email?.split('@')[0] ||
+      rawEmail?.split('@')[0] ||
       'Shopify Customer'
 
     // Pick the best shipping address available on the order payload.
@@ -172,32 +258,16 @@ const webhookService = {
           .join(', ')
       : null
 
-    let customerId = null
-    if (email) {
-      const byEmail = await prisma.customer.findUnique({ where: { email } })
-      customerId = byEmail?.id || null
-    }
-    if (!customerId && phone) {
-      const byPhone = await prisma.customer.findUnique({ where: { phone } })
-      customerId = byPhone?.id || null
-    }
-    if (!customerId) {
-      const created = await prisma.customer.create({
-        data: {
-          name,
-          email: email || null,
-          address,
-          // Shopify orders sometimes have no phone; keep a unique placeholder.
-          phone: phone || `SHOPIFY-${shopifyOrderId}`,
-        },
-      })
-      customerId = created.id
-    } else if (address) {
-      // Refresh the customer's address if we don't have one yet.
-      const existing = await prisma.customer.findUnique({ where: { id: customerId } })
-      if (existing && !existing.address) {
-        await prisma.customer.update({ where: { id: customerId }, data: { address } })
-      }
+    const { customerId, guest } = await findOrCreateCustomer({
+      payload,
+      name,
+      address,
+      shopifyOrderId,
+    })
+    if (guest) {
+      console.warn(
+        `Shopify order ${orderNumber}: no usable customer email/phone — attached to the Guest customer.`
+      )
     }
 
     // ---- Match line items to our products by SKU ----
@@ -311,3 +381,10 @@ const webhookService = {
 }
 
 module.exports = webhookService
+
+// Exposed for unit tests (pure helpers, no DB access).
+module.exports.normalizePhone = normalizePhone
+module.exports.normalizeEmail = normalizeEmail
+module.exports.pickCustomerMatch = pickCustomerMatch
+module.exports.GUEST_PHONE = GUEST_PHONE
+module.exports._findOrCreateCustomer = findOrCreateCustomer

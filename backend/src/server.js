@@ -203,6 +203,20 @@ async function ensureSchema() {
       END $$
     `)
 
+    // Shopify customer id on Customer — lets a returning customer be matched
+    // even when the order payload has no usable email/phone.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        ALTER TABLE "Customer" ADD COLUMN IF NOT EXISTS "shopifyCustomerId" BIGINT;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "Customer_shopifyCustomerId_key"
+        ON "Customer"("shopifyCustomerId")
+    `)
+    console.log('Customer.shopifyCustomerId column ensured.')
+
     // Payment method captured per order from Shopify (nullable, enum-backed).
     await prisma.$executeRawUnsafe(`
       DO $$ BEGIN

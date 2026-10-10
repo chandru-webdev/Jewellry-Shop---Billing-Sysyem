@@ -509,18 +509,6 @@ async function ensureSchema() {
     `)
     console.log('Purchase order / return models ensured.')
 
-    // One-time repair: purchase-return items that were saved with weight 0 (the old
-    // update path dropped weight) inherit the linked product's weight. Idempotent —
-    // only touches rows still at 0 linked to a product that has a weight.
-    await prisma.$executeRawUnsafe(`
-      UPDATE "PurchaseReturnItem" pri
-      SET "weight" = p."weight"
-      FROM "Product" p
-      WHERE pri."productId" = p."id"
-        AND pri."weight" = 0
-        AND p."weight" > 0
-    `)
-
     // Weight per unit (g) and rate per unit (₹/g) on PurchaseOrderItem — additive,
     // nullable so existing POs are not broken.
     await prisma.$executeRawUnsafe(`
@@ -543,6 +531,21 @@ async function ensureSchema() {
       END $$
     `)
     console.log('PurchaseOrderItem.weight and rate columns ensured.')
+
+    // One-time repair: purchase-return items that were saved with weight 0 (the old
+    // update path dropped weight) inherit the linked product's weight. Idempotent —
+    // only touches rows still at 0 linked to a product that has a weight. Isolated so
+    // a failure here can never abort the rest of the schema checks.
+    try {
+      await prisma.$executeRawUnsafe(`
+        UPDATE "PurchaseReturnItem"
+        SET "weight" = (SELECT p."weight" FROM "Product" p WHERE p."id" = "PurchaseReturnItem"."productId")
+        WHERE "weight" = 0
+          AND "productId" IN (SELECT "id" FROM "Product" WHERE "weight" > 0)
+      `)
+    } catch (e) {
+      console.warn('purchase-return weight backfill skipped:', e.message)
+    }
 
     // ---------- Expense model (migration may not be runtime-applied) ----------
     await prisma.$executeRawUnsafe(`

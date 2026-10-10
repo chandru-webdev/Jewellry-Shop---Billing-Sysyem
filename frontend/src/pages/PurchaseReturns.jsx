@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext'
 import { purchaseReturnsApi } from '../api/purchaseReturns'
 import { suppliersApi } from '../api/suppliers'
 import { productsApi } from '../api/products'
+import { purchaseOrdersApi } from '../api/purchaseOrders'
 import { formatINR, formatDate, formatWeight } from '../utils/format'
 import { exportPurchaseReturnsExcel, inRange } from '../utils/exportExcel'
 import ExportControls from '../components/ui/ExportControls'
@@ -41,7 +42,7 @@ export default function PurchaseReturns() {
   const [viewOpen, setViewOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingReturn, setEditingReturn] = useState(null)
-  const [returnForm, setReturnForm] = useState({ supplierId: '', poNumber: '', reason: '', status: 'PENDING' })
+  const [returnForm, setReturnForm] = useState({ supplierId: '', purchaseOrderId: null, reason: '', status: 'PENDING' })
   const lineIdRef = useRef(1)
   const newLineItem = () => ({
     id: lineIdRef.current++,
@@ -71,6 +72,11 @@ export default function PurchaseReturns() {
   const { data: apiProducts } = useQuery({
     queryKey: ['products-list'],
     queryFn: () => productsApi.list().then((r) => r.data.data),
+  })
+
+  const { data: apiPurchaseOrders } = useQuery({
+    queryKey: ['purchase-orders-list'],
+    queryFn: () => purchaseOrdersApi.list().then((r) => r.data.data),
   })
 
   const createMutation = useMutation({
@@ -166,13 +172,13 @@ export default function PurchaseReturns() {
   const closeForm = () => {
     setShowForm(false)
     setEditingReturn(null)
-    setReturnForm({ supplierId: '', poNumber: '', reason: '', status: 'PENDING' })
+    setReturnForm({ supplierId: '', purchaseOrderId: null, reason: '', status: 'PENDING' })
     setLineItems([newLineItem()])
   }
 
   const openNewReturn = () => {
     setEditingReturn(null)
-    setReturnForm({ supplierId: '', poNumber: '', reason: '', status: 'PENDING' })
+    setReturnForm({ supplierId: '', purchaseOrderId: null, reason: '', status: 'PENDING' })
     setLineItems([newLineItem()])
     setShowForm(true)
   }
@@ -194,7 +200,7 @@ export default function PurchaseReturns() {
     setEditingReturn(r)
     setReturnForm({
       supplierId: r.supplierId ? String(r.supplierId) : '',
-      poNumber: r.orderNumber || r.purchaseOrder?.poNumber || '',
+      purchaseOrderId: r.purchaseOrderId || null,
       reason: r.reason || '',
       status: r.status || 'PENDING',
     })
@@ -261,6 +267,7 @@ export default function PurchaseReturns() {
                       id: editingReturn.id,
                       data: {
                         supplierId: returnForm.supplierId,
+                        purchaseOrderId: returnForm.purchaseOrderId,
                         status: returnForm.status,
                         reason: returnForm.reason,
                         items: itemsData,
@@ -269,6 +276,7 @@ export default function PurchaseReturns() {
                   } else {
                     createMutation.mutate({
                       supplierId: returnForm.supplierId,
+                      purchaseOrderId: returnForm.purchaseOrderId,
                       reason: returnForm.reason,
                       items: itemsData,
                     })
@@ -290,14 +298,17 @@ export default function PurchaseReturns() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">PO Number</label>
-                      <input
-                        type="text"
-                        value={returnForm.poNumber}
-                        onChange={(e) => setReturnForm({ ...returnForm, poNumber: e.target.value })}
-                        placeholder="e.g. PO-2026-001"
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">Purchase Order</label>
+                      <select
+                        value={returnForm.purchaseOrderId !== null ? String(returnForm.purchaseOrderId) : ''}
+                        onChange={(e) => setReturnForm({ ...returnForm, purchaseOrderId: e.target.value === '' ? null : Number(e.target.value) } )}
                         className="w-full border border-gray-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-royal-500"
-                      />
+                      >
+                        <option value="">Select a purchase order</option>
+                        {apiPurchaseOrders?.map((po) => (
+                          <option key={po.id} value={po.id}>{po.poNumber || 'PO-' + po.id}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div>

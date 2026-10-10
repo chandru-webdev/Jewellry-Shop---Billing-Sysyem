@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Eye, RotateCw, X, Save, Plus, Copy, Check, Pencil, Trash2 } from 'lucide-react'
+import { Search, Eye, RotateCw, X, Save, Plus, Copy, Check, Pencil, Trash2, BadgeCheck, XCircle } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -76,7 +76,7 @@ export default function PurchaseReturns() {
 
   const { data: apiPurchaseOrders } = useQuery({
     queryKey: ['purchase-orders-list'],
-    queryFn: () => purchaseOrdersApi.list().then((r) => r.data.data),
+    queryFn: () => purchaseOrdersApi.list().then((r) => r.data.data?.orders || []),
   })
 
   const createMutation = useMutation({
@@ -97,6 +97,15 @@ export default function PurchaseReturns() {
       alert('Purchase return updated!')
     },
     onError: (err) => alert(err.response?.data?.message || 'Failed to update purchase return'),
+  })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => purchaseReturnsApi.updateStatus(id, status),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-returns'] })
+      alert(`Purchase return marked as ${statusLabel[variables.status] || variables.status}`)
+    },
+    onError: (err) => alert(err.response?.data?.message || 'Failed to update status'),
   })
 
   const returns = apiData?.returns || []
@@ -184,17 +193,27 @@ export default function PurchaseReturns() {
   }
 
   const itemsToState = (items) =>
-    (items || []).map((it) => ({
-      id: lineIdRef.current++,
-      productId: it.productId ? String(it.productId) : '',
-      name: it.name || '',
-      sku: it.sku || '',
-      quantity: Number(it.quantity) || 1,
-      weight: Number(it.weight) || 0,
-      rate: Number(it.unitPrice) || 0,
-      lineTotal: Number(it.lineTotal) || 0,
-      editing: true,
-    }))
+    (items || []).map((it) => {
+      const product = it.productId ? productsList.find((p) => p.id === Number(it.productId)) : null
+      const savedWeight = Number(it.weight) || 0
+      return {
+        id: lineIdRef.current++,
+        productId: it.productId ? String(it.productId) : '',
+        name: it.name || '',
+        sku: it.sku || '',
+        quantity: Number(it.quantity) || 1,
+        weight: savedWeight || Number(product?.weight) || 0,
+        rate: Number(it.unitPrice) || 0,
+        lineTotal: Number(it.lineTotal) || 0,
+        editing: true,
+      }
+    })
+
+  const handleSetStatus = (r, status) => {
+    const label = statusLabel[status] || status
+    if (!confirm(`Mark return ${r.returnNumber || '#' + r.id} as "${label}"?`)) return
+    updateStatusMutation.mutate({ id: r.id, status })
+  }
 
   const openEditReturn = (r) => {
     setEditingReturn(r)
@@ -522,7 +541,34 @@ export default function PurchaseReturns() {
                       >
                         <Eye size={14} />
                       </button>
-                      {canEdit && (
+                      {canEdit && r.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleSetStatus(r, 'APPROVED')}
+                          className="p-1.5 text-blue-600 dark:text-gray-300 hover:bg-blue-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Approve"
+                        >
+                          <BadgeCheck size={14} />
+                        </button>
+                      )}
+                      {canEdit && ['APPROVED', 'PROCESSING'].includes(r.status) && (
+                        <button
+                          onClick={() => handleSetStatus(r, 'COMPLETED')}
+                          className="p-1.5 text-green-600 dark:text-gray-300 hover:bg-green-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Mark Completed"
+                        >
+                          <Check size={14} />
+                        </button>
+                      )}
+                      {canEdit && !['COMPLETED', 'REJECTED'].includes(r.status) && (
+                        <button
+                          onClick={() => handleSetStatus(r, 'REJECTED')}
+                          className="p-1.5 text-red-600 dark:text-gray-300 hover:bg-red-100 dark:bg-white/10 rounded-lg cursor-pointer"
+                          title="Reject"
+                        >
+                          <XCircle size={14} />
+                        </button>
+                      )}
+                      {canEdit && r.status === 'PENDING' && (
                         <button
                           onClick={() => openEditReturn(r)}
                           className="p-1.5 text-royal-600 dark:text-gray-300 hover:bg-royal-100 dark:bg-white/10 rounded-lg cursor-pointer"

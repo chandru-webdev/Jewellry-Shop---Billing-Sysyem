@@ -509,6 +509,18 @@ async function ensureSchema() {
     `)
     console.log('Purchase order / return models ensured.')
 
+    // One-time repair: purchase-return items that were saved with weight 0 (the old
+    // update path dropped weight) inherit the linked product's weight. Idempotent —
+    // only touches rows still at 0 linked to a product that has a weight.
+    await prisma.$executeRawUnsafe(`
+      UPDATE "PurchaseReturnItem" pri
+      SET "weight" = p."weight"
+      FROM "Product" p
+      WHERE pri."productId" = p."id"
+        AND pri."weight" = 0
+        AND p."weight" > 0
+    `)
+
     // Weight per unit (g) and rate per unit (₹/g) on PurchaseOrderItem — additive,
     // nullable so existing POs are not broken.
     await prisma.$executeRawUnsafe(`

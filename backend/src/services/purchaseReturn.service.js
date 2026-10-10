@@ -149,6 +149,7 @@ const purchaseReturnService = {
       const itemsData = data.items.map((item) => {
         const qty = new Decimal(item.quantity)
         const price = new Decimal(item.unitPrice)
+        const weight = item.weight !== undefined ? new Decimal(item.weight) : new Decimal(0)
         const lineTotal = qty.mul(price)
         totalQuantity = totalQuantity.plus(qty)
         totalAmount = totalAmount.plus(lineTotal)
@@ -159,6 +160,7 @@ const purchaseReturnService = {
           quantity: qty,
           unitPrice: price,
           lineTotal,
+          weight,
         }
       })
 

@@ -182,11 +182,16 @@ export default function ShopifyDashboard() {
         const t = new Date(l.createdAt)
         return t >= start && t < end
       }
-      const sum = (l) => l.itemsProcessed || 0
+      // Show the latest run of each type for the day. Summing every run made a
+      // second full sync of the same items look like double the work (50 -> 100).
+      const latestOf = (type) =>
+        logs
+          .filter((l) => l.type === type && inDay(l))
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
       days.push({
         day: DAY_LABELS[start.getDay()],
-        Orders: logs.filter((l) => l.type === 'ORDER' && inDay(l)).reduce((s, l) => s + sum(l), 0),
-        Products: logs.filter((l) => l.type === 'PRODUCT' && inDay(l)).reduce((s, l) => s + sum(l), 0),
+        Orders: latestOf('ORDER')?.itemsProcessed || 0,
+        Products: latestOf('PRODUCT')?.itemsProcessed || 0,
       })
     }
     return days

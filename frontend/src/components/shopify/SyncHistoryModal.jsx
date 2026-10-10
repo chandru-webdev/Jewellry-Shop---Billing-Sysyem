@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, Clock, History, Loader2, RefreshCw, Eye, ChevronDown, ChevronUp } from 'lucide-react'
 import Modal from '../ui/Modal'
@@ -20,16 +20,33 @@ export default function SyncHistoryModal({ open, onClose, type = 'PRODUCT', titl
     enabled: open,
   })
 
-  const summary = (logs || []).reduce(
+  // Summary reflects the LATEST run only — summing every row made a second
+  // full sync of the same products look like double the work (50 -> 100).
+  // For the dashboard's "ALL" view, take the latest row per type so the cards
+  // cover the whole last sync (products + prices + inventory + orders) instead
+  // of a single stage, and repeated syncs still don't stack up.
+  const latest = logs?.[0]
+  const summaryRows = useMemo(() => {
+    if (type !== 'ALL') return latest ? [latest] : []
+    const seen = new Set()
+    const rows = []
+    for (const l of logs) {
+      if (seen.has(l.type)) continue
+      seen.add(l.type)
+      rows.push(l)
+    }
+    return rows
+  }, [logs, type, latest])
+  const summary = summaryRows.reduce(
     (acc, l) => ({
-      ok: acc.ok + (l.ok ?? 0),
+      ok: acc.ok + (l.ok ?? l.itemsProcessed ?? 0),
       failed: acc.failed + (l.failed ?? 0),
       pending: acc.pending + (l.pending ?? 0),
       total: acc.total + (l.total ?? 0),
     }),
     { ok: 0, failed: 0, pending: 0, total: 0 }
   )
-  const lastSync = logs?.[0]?.createdAt
+  const lastSync = latest?.createdAt
 
   return (
     <Modal

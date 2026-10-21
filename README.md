@@ -1,4 +1,5 @@
-# OPAL LINE ERP — Billing System
+
+ # OPAL LINE ERP — Billing System
 
 A full-stack ERP for a silver jewellery business: dynamic silver-rate pricing, inventory with a stock ledger, POS billing, invoices, orders, customers, payments/dues, suppliers, staff & roles, and a live dashboard.
 

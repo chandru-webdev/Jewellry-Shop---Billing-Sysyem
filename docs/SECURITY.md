@@ -1,4 +1,3 @@
-
  # Opal Line — Security
 
 ## Authentication

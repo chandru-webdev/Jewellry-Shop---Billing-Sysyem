@@ -7,9 +7,7 @@ A full-stack ERP for a silver jewellery business: dynamic silver-rate pricing, i
 - **Database** — PostgreSQL
 
 ---
-
 ## 1. Architecture
-
 ```
 Browser (React SPA, :5173)
    │  /api requests proxied to backend
@@ -19,7 +17,6 @@ Express API (:5000)
    ▼
 PostgreSQL (via DATABASE_URL)
 ```
-
 - Vite's dev server proxies every `/api/*` request to `http://localhost:5000` (`frontend/vite.config.js`), so no CORS pain in development.
 - The backend validates every request body with **zod**, authenticates with a **JWT**, and enforces role-based access (`ADMIN` / `MANAGER` / `STAFF`).
 - All money/weight math uses exact **Decimal** arithmetic (no floating-point rounding).

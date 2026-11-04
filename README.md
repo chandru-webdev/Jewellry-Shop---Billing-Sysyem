@@ -373,3 +373,7 @@ Errors use `{ "success": false, "message": "…", "details": … }` with the rig
 | `/audit-logs` | Audit Logs | System audit trail (SUPER_ADMIN) |
 | `/settings` | Settings | System settings (SUPER_ADMIN) |
 | `/activity-log` | Activity Log | User activity log (SUPER_ADMIN) |
+
+
+pending work
+

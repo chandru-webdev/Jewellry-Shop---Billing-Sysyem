@@ -27,7 +27,7 @@ PostgreSQL (via DATABASE_URL)
 billing system/
 ├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma      # every table + enums
+│   │   ├── schema.prisma      # every table + enums             
 │   │   ├── migrations/        # SQL migrations
 │   │   ├── seed.js            # roles, admin user, silver rate, categories
 │   │   └── demo-products.js   # optional demo product data

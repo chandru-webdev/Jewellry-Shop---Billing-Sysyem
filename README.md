@@ -9,7 +9,7 @@ A full-stack ERP for a silver jewellery business: dynamic silver-rate pricing, i
 ---
 ## 1. Architecture
 ```
-Browser (React SPA, :5173)
+Browser (React SPA, :5173)                   
    │  /api requests proxied to backend
    ▼
 Express API (:5000)
